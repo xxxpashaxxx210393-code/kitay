@@ -135,6 +135,108 @@ export default function OrderTracker() {
   // Month selector filter
   const [monthFilter, setMonthFilter] = useState<string>("Все");
 
+  // Dashboard boxes customizable layout state
+  const [dashboardWidgets, setDashboardWidgets] = useState<Array<{ id: string; title: string; visible: boolean; order: number; bgClass: string }>>([
+    { id: "total_items", title: "Всего товаров", visible: true, order: 1, bgClass: "bg-slate-800/60" },
+    { id: "total_cny", title: "Общая сумма (CNY)", visible: true, order: 2, bgClass: "bg-slate-800/60" },
+    { id: "total_byn", title: "Итого к оплате в РБ (BYN)", visible: true, order: 3, bgClass: "bg-slate-800/60" },
+    { id: "total_weight", title: "Общий вес груза (кг)", visible: true, order: 4, bgClass: "bg-slate-800/60" },
+    { id: "people_stats", title: "Статистика по получателям («Для кого»)", visible: true, order: 5, bgClass: "bg-slate-800/80" },
+    { id: "status_counters", title: "Статусы заказов", visible: true, order: 6, bgClass: "bg-slate-800/40" },
+  ]);
+
+  // Load layout from localStorage on boot
+  useEffect(() => {
+    const saved = localStorage.getItem("cargo_dashboard_layout");
+    if (saved) {
+      try {
+        setDashboardWidgets(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to restore layout", e);
+      }
+    }
+  }, []);
+
+  // Save layout to localStorage
+  const saveWidgetsLayout = (newWidgets: typeof dashboardWidgets) => {
+    setDashboardWidgets(newWidgets);
+    localStorage.setItem("cargo_dashboard_layout", JSON.stringify(newWidgets));
+  };
+
+  // Move widget helper (shift order)
+  const moveWidget = (id: string, direction: "up" | "down") => {
+    const sorted = [...dashboardWidgets].sort((a, b) => a.order - b.order);
+    const index = sorted.findIndex(w => w.id === id);
+    if (index === -1) return;
+    
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sorted.length) return;
+
+    // Swap order values
+    const temp = sorted[index].order;
+    sorted[index].order = sorted[targetIndex].order;
+    sorted[targetIndex].order = temp;
+
+    saveWidgetsLayout(sorted);
+    showAlert("Положение блока изменено", "success");
+  };
+
+  // Toggle widget visibility (delete/hide box)
+  const toggleWidgetVisibility = (id: string, isVisible: boolean) => {
+    const updated = dashboardWidgets.map(w => w.id === id ? { ...w, visible: isVisible } : w);
+    saveWidgetsLayout(updated);
+    showAlert(isVisible ? "Блок отображен" : "Блок успешно скрыт/удален. Вы можете восстановить его через Настройки снизу.", "info");
+  };
+
+  // Rename widget
+  const renameWidget = (id: string) => {
+    const widget = dashboardWidgets.find(w => w.id === id);
+    if (!widget) return;
+    const newName = prompt("Введите новое название для этого блока:", widget.title);
+    if (newName && newName.trim()) {
+      const updated = dashboardWidgets.map(w => w.id === id ? { ...w, title: newName.trim() } : w);
+      saveWidgetsLayout(updated);
+      showAlert("Название блока изменено", "success");
+    }
+  };
+
+  // Reset Layout back to default
+  const resetWidgetsLayout = () => {
+    const defaults = [
+      { id: "total_items", title: "Всего товаров", visible: true, order: 1, bgClass: "bg-slate-800/60" },
+      { id: "total_cny", title: "Общая сумма (CNY)", visible: true, order: 2, bgClass: "bg-slate-800/60" },
+      { id: "total_byn", title: "Итого к оплате в РБ (BYN)", visible: true, order: 3, bgClass: "bg-slate-800/60" },
+      { id: "total_weight", title: "Общий вес груза (кг)", visible: true, order: 4, bgClass: "bg-slate-800/60" },
+      { id: "people_stats", title: "Статистика по получателям («Для кого»)", visible: true, order: 5, bgClass: "bg-slate-800/80" },
+      { id: "status_counters", title: "Статусы заказов", visible: true, order: 6, bgClass: "bg-slate-800/40" },
+    ];
+    saveWidgetsLayout(defaults);
+    showAlert("Расположение и видимость всех блоков сброшены к начальным настройкам", "info");
+  };
+
+  // Global reset for all orders in database
+  const resetAllOrdersInDatabase = async () => {
+    if (!confirm("Вы действительно хотите полностью очистить базу данных и удалить все товары? Это действие нельзя отменить!")) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const res = await fetch("/api/orders", { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        showAlert("База данных успешно очищена! Нажмите 'Обновить' или добавьте новые товары.", "success");
+        setOrders([]);
+      } else {
+        showAlert("Ошибка при очистке: " + json.error, "error");
+      }
+    } catch (e: any) {
+      showAlert("Не удалось очистить базу данных", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Sorting
   const [sortBy, setSortBy] = useState<"id" | "name" | "priceCny" | "totalByn" | "createdAt">("id");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -1129,229 +1231,334 @@ export default function OrderTracker() {
           </div>
         )}
 
-        {/* METRICS DASHBOARD */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60 shadow-md">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs sm:text-sm font-medium">Всего товаров</span>
-              <Package className="w-4 h-4 text-blue-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-white">
-              {stats.totalItemsCount} <span className="text-xs text-slate-400 font-normal">шт</span>
-            </div>
-            <div className="text-xs text-slate-400 mt-1">
-              В списке: {orders.length} позиций
-            </div>
+        {/* DYNAMIC AND CUSTOMIZABLE DASHBOARD WIDGETS */}
+        <div className="space-y-6">
+          
+          {/* Layout helper toolbar visible only during editing */}
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-800/40 p-3 rounded-2xl border border-slate-700/40 text-xs">
+            <span className="text-slate-300 font-semibold flex items-center gap-1">
+              <Info className="w-4 h-4 text-blue-400" />
+              <span>⚙️ Конструктор дашборда: Нажимайте стрелки ◀ ▶ на блоках для перемещения, ✏️ для переименования или ✕ для скрытия окон.</span>
+            </span>
+            <button
+              onClick={resetWidgetsLayout}
+              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all text-[11px] cursor-pointer"
+            >
+              Сбросить расположение окон
+            </button>
           </div>
 
-          <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60 shadow-md">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs sm:text-sm font-medium">Общая сумма (CNY)</span>
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-400">
-              ¥ {stats.totalCnyPrice.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-slate-400 mt-1">
-              Только стоимость товаров
-            </div>
-          </div>
+          {[...dashboardWidgets]
+            .sort((a, b) => a.order - b.order)
+            .map((widget) => {
+              if (!widget.visible) return null;
 
-          <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60 shadow-md">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs sm:text-sm font-medium">Итого к оплате в РБ</span>
-              <Coins className="w-4 h-4 text-indigo-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-white">
-              {stats.totalBynWithShipping.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-semibold text-slate-400">BYN</span>
-            </div>
-            <div className="text-xs text-indigo-300 mt-1 font-medium">
-              С учетом всех доставок
-            </div>
-          </div>
-
-          <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60 shadow-md">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs sm:text-sm font-medium">Общий вес груза</span>
-              <Scale className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-amber-400">
-              {stats.totalWeightKg.toFixed(2)} <span className="text-xs font-normal text-slate-400">кг</span>
-            </div>
-            <div className="text-xs text-slate-400 mt-1">
-              Для расчета доставки карго
-            </div>
-          </div>
-        </div>
-
-        {/* DETAILED STATISTICS BY PEOPLE */}
-        <div className="bg-slate-800/80 p-5 rounded-3xl border border-slate-700/80 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl"></div>
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700/60">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-emerald-400 shrink-0" />
-              <div>
-                <h3 className="font-extrabold text-white text-base sm:text-lg">
-                  👥 Статистика по получателям («Для кого»)
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Автоматический расчет сумм, объемов и веса индивидуально для каждого человека в списке.
-                </p>
-              </div>
-            </div>
-            <div className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700">
-              Людей в заказе: {stats.peopleStats.length}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {stats.peopleStats.map((person) => {
-              const isSelected = forWhomFilter === person.name;
-              return (
-                <div 
-                  key={person.name}
-                  onClick={() => setForWhomFilter(forWhomFilter === person.name ? "Все" : person.name)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer select-none group relative ${
-                    isSelected 
-                      ? "bg-gradient-to-br from-emerald-950/80 to-slate-900 border-emerald-500/80 shadow-lg shadow-emerald-500/5" 
-                      : "bg-slate-900/50 border-slate-800 hover:border-slate-700/80 hover:bg-slate-900"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-extrabold text-white text-sm tracking-tight group-hover:text-emerald-400 transition-colors">
-                      {person.name}
-                    </span>
-                    <span className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      {person.count} шт
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs text-slate-400">
-                    <div className="flex justify-between">
-                      <span>Стоимость CNY:</span>
-                      <span className="font-mono text-slate-200">¥ {person.totalCny.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-medium">
-                      <span>Стоимость BYN:</span>
-                      <span className="font-mono text-blue-300">{person.totalByn.toFixed(2)} BYN</span>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t border-slate-800/80 text-white font-extrabold">
-                      <span>Итого с дост.:</span>
-                      <span className="font-mono text-emerald-300">{person.totalBynWithShipping.toFixed(2)} BYN</span>
-                    </div>
-                    <div className="flex justify-between text-[10px]">
-                      <span>Вес посылок:</span>
-                      <span className="font-mono font-bold text-amber-400">{person.weight.toFixed(2)} кг</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
-                    <span className="text-slate-500 font-medium">
-                      {isSelected ? "⚡️ Фильтр активен" : "Кликните для фильтрации"}
-                    </span>
-                    <span className="text-emerald-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                      Выбрать →
-                    </span>
-                  </div>
+              // Render wrapper header with control handles
+              const renderControls = () => (
+                <div className="flex items-center gap-1 text-slate-400 bg-slate-950/40 px-2 py-1 rounded-lg border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => moveWidget(widget.id, "up")}
+                    title="Переместить вверх"
+                    className="p-1 hover:text-white hover:bg-slate-800 rounded text-[10px]"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveWidget(widget.id, "down")}
+                    title="Переместить вниз"
+                    className="p-1 hover:text-white hover:bg-slate-800 rounded text-[10px]"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => renameWidget(widget.id)}
+                    title="Переименовать блок"
+                    className="p-1 hover:text-white hover:bg-slate-800 rounded text-[10px]"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleWidgetVisibility(widget.id, false)}
+                    title="Скрыть блок (удалить из виду)"
+                    className="p-1 hover:text-rose-400 hover:bg-rose-950/40 rounded text-[10px] font-bold"
+                  >
+                    ✕
+                  </button>
                 </div>
               );
+
+              // 1. Render numeric metrics grid
+              if (widget.id === "total_items" || widget.id === "total_cny" || widget.id === "total_byn" || widget.id === "total_weight") {
+                // Find all active metric widgets to render them grouped or standalone
+                const isMetric = (id: string) => id === "total_items" || id === "total_cny" || id === "total_byn" || id === "total_weight";
+                const visibleMetrics = dashboardWidgets
+                  .filter(w => w.visible && isMetric(w.id))
+                  .sort((a, b) => a.order - b.order);
+
+                // To prevent double rendering, only render the metrics container once when processing the first visible metric widget
+                if (widget.id !== visibleMetrics[0]?.id) return null;
+
+                return (
+                  <div key="metrics_container" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {visibleMetrics.map((m) => (
+                      <div key={m.id} className={`${m.bgClass} p-4 rounded-2xl border border-slate-700/60 shadow-md relative group/metric`}>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover/metric:opacity-100 transition-opacity z-10">
+                          <div className="flex gap-1 bg-slate-900/90 p-0.5 rounded border border-slate-700 text-[9px]">
+                            <button onClick={() => moveWidget(m.id, "up")} className="hover:text-white px-1">◀</button>
+                            <button onClick={() => moveWidget(m.id, "down")} className="hover:text-white px-1">▶</button>
+                            <button onClick={() => renameWidget(m.id)} className="hover:text-white px-1">✏️</button>
+                            <button onClick={() => toggleWidgetVisibility(m.id, false)} className="hover:text-rose-400 px-1 font-bold">✕</button>
+                          </div>
+                        </div>
+
+                        {m.id === "total_items" && (
+                          <>
+                            <div className="flex items-center justify-between text-slate-400 mb-1">
+                              <span className="text-xs sm:text-sm font-medium">{m.title}</span>
+                              <Package className="w-4 h-4 text-blue-400" />
+                            </div>
+                            <div className="text-xl sm:text-2xl font-black text-white">
+                              {stats.totalItemsCount} <span className="text-xs text-slate-400 font-normal">шт</span>
+                            </div>
+                            <div className="text-xs text-slate-400 mt-1">В списке: {orders.length} позиций</div>
+                          </>
+                        )}
+
+                        {m.id === "total_cny" && (
+                          <>
+                            <div className="flex items-center justify-between text-slate-400 mb-1">
+                              <span className="text-xs sm:text-sm font-medium">{m.title}</span>
+                              <TrendingUp className="w-4 h-4 text-emerald-400" />
+                            </div>
+                            <div className="text-xl sm:text-2xl font-black text-emerald-400">
+                              ¥ {stats.totalCnyPrice.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-1">Только стоимость товаров</div>
+                          </>
+                        )}
+
+                        {m.id === "total_byn" && (
+                          <>
+                            <div className="flex items-center justify-between text-slate-400 mb-1">
+                              <span className="text-xs sm:text-sm font-medium">{m.title}</span>
+                              <Coins className="w-4 h-4 text-indigo-400" />
+                            </div>
+                            <div className="text-xl sm:text-2xl font-black text-white">
+                              {stats.totalBynWithShipping.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-semibold text-slate-400">BYN</span>
+                            </div>
+                            <div className="text-xs text-indigo-300 mt-1 font-medium">С учетом всех доставок</div>
+                          </>
+                        )}
+
+                        {m.id === "total_weight" && (
+                          <>
+                            <div className="flex items-center justify-between text-slate-400 mb-1">
+                              <span className="text-xs sm:text-sm font-medium">{m.title}</span>
+                              <Scale className="w-4 h-4 text-amber-400" />
+                            </div>
+                            <div className="text-xl sm:text-2xl font-black text-amber-400">
+                              {stats.totalWeightKg.toFixed(2)} <span className="text-xs font-normal text-slate-400">кг</span>
+                            </div>
+                            <div className="text-xs text-slate-400 mt-1">Для расчета доставки карго</div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
+              // 2. Render People Statistics Card
+              if (widget.id === "people_stats") {
+                return (
+                  <div key="people_stats_widget" className={`${widget.bgClass} p-5 rounded-3xl border border-slate-700/80 shadow-xl relative overflow-hidden`}>
+                    <div className="absolute top-2 right-2 z-10">
+                      {renderControls()}
+                    </div>
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl"></div>
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700/60 mr-24">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-emerald-400 shrink-0" />
+                        <div>
+                          <h3 className="font-extrabold text-white text-base sm:text-lg">
+                            {widget.title}
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                            Автоматический расчет сумм, объемов и веса индивидуально для каждого человека в списке.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700">
+                        Людей в заказе: {stats.peopleStats.length}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {stats.peopleStats.map((person) => {
+                        const isSelected = forWhomFilter === person.name;
+                        return (
+                          <div 
+                            key={person.name}
+                            onClick={() => setForWhomFilter(forWhomFilter === person.name ? "Все" : person.name)}
+                            className={`p-4 rounded-2xl border transition-all cursor-pointer select-none group relative ${
+                              isSelected 
+                                ? "bg-gradient-to-br from-emerald-950/80 to-slate-900 border-emerald-500/80 shadow-lg shadow-emerald-500/5" 
+                                : "bg-slate-900/50 border-slate-800 hover:border-slate-700/80 hover:bg-slate-900"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-extrabold text-white text-sm tracking-tight group-hover:text-emerald-400 transition-colors">
+                                {person.name}
+                              </span>
+                              <span className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                {person.count} шт
+                              </span>
+                            </div>
+
+                            <div className="space-y-1.5 text-xs text-slate-400">
+                              <div className="flex justify-between">
+                                <span>Стоимость CNY:</span>
+                                <span className="font-mono text-slate-200">¥ {person.totalCny.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between font-medium">
+                                <span>Стоимость BYN:</span>
+                                <span className="font-mono text-blue-300">{person.totalByn.toFixed(2)} BYN</span>
+                              </div>
+                              <div className="flex justify-between pt-1 border-t border-slate-800/80 text-white font-extrabold">
+                                <span>Итого с дост.:</span>
+                                <span className="font-mono text-emerald-300">{person.totalBynWithShipping.toFixed(2)} BYN</span>
+                              </div>
+                              <div className="flex justify-between text-[10px]">
+                                <span>Вес посылок:</span>
+                                <span className="font-mono font-bold text-amber-400">{person.weight.toFixed(2)} кг</span>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+                              <span className="text-slate-500 font-medium">
+                                {isSelected ? "⚡️ Фильтр активен" : "Кликните для фильтрации"}
+                              </span>
+                              <span className="text-emerald-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                Выбрать →
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
+              // 3. Render Status Counters
+              if (widget.id === "status_counters") {
+                return (
+                  <div key="status_counters_widget" className={`${widget.bgClass} p-3 sm:p-4 rounded-2xl border border-slate-700/40 relative`}>
+                    <div className="absolute top-2 right-2 z-10">
+                      {renderControls()}
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 mr-24">{widget.title}:</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3 text-center">
+                      
+                      <button 
+                        onClick={() => setStatusFilter("В пути на склад Китая")}
+                        className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer ${
+                          statusFilter === "В пути на склад Китая"
+                            ? "bg-blue-950/80 border-blue-500 text-blue-200 shadow-md shadow-blue-500/10" 
+                            : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                          <span className="text-xs font-medium text-slate-400 hidden sm:inline">В пути на склад С</span>
+                          <span className="text-xs font-medium text-slate-400 sm:hidden">В пути на склад</span>
+                        </div>
+                        <div className="text-lg font-black">{stats.statusCounts.inChinaTransit}</div>
+                      </button>
+
+                      <button 
+                        onClick={() => setStatusFilter("На складе в Китае")}
+                        className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer ${
+                          statusFilter === "На складе в Китае"
+                            ? "bg-amber-950/80 border-amber-500 text-amber-200 shadow-md shadow-amber-500/10" 
+                            : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          <span className="text-xs font-medium text-slate-400">На складе Китая</span>
+                        </div>
+                        <div className="text-lg font-black text-amber-400">{stats.statusCounts.inChinaWarehouse}</div>
+                      </button>
+
+                      <button 
+                        onClick={() => setStatusFilter("Едет в РБ")}
+                        className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer ${
+                          statusFilter === "Едет в РБ"
+                            ? "bg-indigo-950/80 border-indigo-500 text-indigo-200 shadow-md shadow-indigo-500/10" 
+                            : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                          <span className="text-xs font-medium text-slate-400">Едет в РБ</span>
+                        </div>
+                        <div className="text-lg font-black text-indigo-400">{stats.statusCounts.toBelarusTransit}</div>
+                      </button>
+
+                      <button 
+                        onClick={() => setStatusFilter("Прибыло в РБ")}
+                        className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer ${
+                          statusFilter === "Прибыло в РБ"
+                            ? "bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-md shadow-emerald-500/10" 
+                            : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          <span className="text-xs font-medium text-slate-400">Прибыло в РБ</span>
+                        </div>
+                        <div className="text-lg font-black text-emerald-400">{stats.statusCounts.arrivedInBelarus}</div>
+                      </button>
+
+                      <button 
+                        onClick={() => setStatusFilter("Выдано / Получено")}
+                        className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer col-span-2 sm:col-span-1 ${
+                          statusFilter === "Выдано / Получено"
+                            ? "bg-slate-800 border-slate-600 text-slate-100 shadow-md" 
+                            : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                          <span className="text-xs font-medium text-slate-400">Выдано / Получено</span>
+                        </div>
+                        <div className="text-lg font-black text-slate-300">{stats.statusCounts.completed}</div>
+                      </button>
+
+                    </div>
+                    {statusFilter !== "Все" && (
+                      <div className="flex items-center justify-between mt-3 text-xs text-blue-400 font-semibold bg-blue-950/30 p-2 rounded-lg border border-blue-900/40 mr-24">
+                        <span>Выбран фильтр по статусу: "{statusFilter}"</span>
+                        <button 
+                          onClick={() => setStatusFilter("Все")}
+                          className="underline hover:text-white cursor-pointer"
+                        >
+                          Показать все статусы
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return null;
             })}
-          </div>
-        </div>
 
-        {/* STATUS COUNTERS ROW */}
-        <div className="bg-slate-800/40 p-3 sm:p-4 rounded-2xl border border-slate-700/40">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Статусы заказов на текущий момент:</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3 text-center">
-            
-            <button 
-              onClick={() => setStatusFilter("В пути на склад Китая")}
-              className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer ${
-                statusFilter === "В пути на склад Китая"
-                  ? "bg-blue-950/80 border-blue-500 text-blue-200 shadow-md shadow-blue-500/10" 
-                  : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
-              }`}
-            >
-              <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                <span className="text-xs font-medium text-slate-400 hidden sm:inline">В пути на склад С</span>
-                <span className="text-xs font-medium text-slate-400 sm:hidden">В пути на склад</span>
-              </div>
-              <div className="text-lg font-black">{stats.statusCounts.inChinaTransit}</div>
-            </button>
-
-            <button 
-              onClick={() => setStatusFilter("На складе в Китае")}
-              className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer ${
-                statusFilter === "На складе в Китае"
-                  ? "bg-amber-950/80 border-amber-500 text-amber-200 shadow-md shadow-amber-500/10" 
-                  : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
-              }`}
-            >
-              <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                <span className="text-xs font-medium text-slate-400">На складе Китая</span>
-              </div>
-              <div className="text-lg font-black text-amber-400">{stats.statusCounts.inChinaWarehouse}</div>
-            </button>
-
-            <button 
-              onClick={() => setStatusFilter("Едет в РБ")}
-              className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer ${
-                statusFilter === "Едет в РБ"
-                  ? "bg-indigo-950/80 border-indigo-500 text-indigo-200 shadow-md shadow-indigo-500/10" 
-                  : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
-              }`}
-            >
-              <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
-                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                <span className="text-xs font-medium text-slate-400">Едет в РБ</span>
-              </div>
-              <div className="text-lg font-black text-indigo-400">{stats.statusCounts.toBelarusTransit}</div>
-            </button>
-
-            <button 
-              onClick={() => setStatusFilter("Прибыло в РБ")}
-              className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer ${
-                statusFilter === "Прибыло в РБ"
-                  ? "bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-md shadow-emerald-500/10" 
-                  : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
-              }`}
-            >
-              <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="text-xs font-medium text-slate-400">Прибыло в РБ</span>
-              </div>
-              <div className="text-lg font-black text-emerald-400">{stats.statusCounts.arrivedInBelarus}</div>
-            </button>
-
-            <button 
-              onClick={() => setStatusFilter("Выдано / Получено")}
-              className={`p-2.5 rounded-xl border transition-all text-left sm:text-center cursor-pointer col-span-2 sm:col-span-1 ${
-                statusFilter === "Выдано / Получено"
-                  ? "bg-slate-800 border-slate-600 text-slate-100 shadow-md" 
-                  : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
-              }`}
-            >
-              <div className="flex items-center justify-between sm:justify-center gap-1 mb-1">
-                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                <span className="text-xs font-medium text-slate-400">Выдано / Получено</span>
-              </div>
-              <div className="text-lg font-black text-slate-300">{stats.statusCounts.completed}</div>
-            </button>
-
-          </div>
-          {statusFilter !== "Все" && (
-            <div className="flex items-center justify-between mt-3 text-xs text-blue-400 font-semibold bg-blue-950/30 p-2 rounded-lg border border-blue-900/40">
-              <span>Выбран фильтр по статусу: "{statusFilter}"</span>
-              <button 
-                onClick={() => setStatusFilter("Все")}
-                className="underline hover:text-white cursor-pointer"
-              >
-                Показать все статусы
-              </button>
-            </div>
-          )}
         </div>
 
         {/* TWO COLUMN GRID: BATCH ACTION AND QUICK ADD BUTTONS */}
@@ -1527,6 +1734,15 @@ export default function OrderTracker() {
                     <span>Экспорт</span>
                   </button>
                 </div>
+
+                {/* GLOBAL DATA RESET BUTTON */}
+                <button
+                  onClick={resetAllOrdersInDatabase}
+                  className="w-full py-2.5 px-4 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-400 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-red-900/60 cursor-pointer active:scale-95"
+                >
+                  <Trash2 className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>🚨 СБРОСИТЬ ВСЕ ТОВАРЫ (ОЧИСТИТЬ)</span>
+                </button>
               </div>
             </div>
 

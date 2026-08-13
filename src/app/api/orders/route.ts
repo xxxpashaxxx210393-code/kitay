@@ -182,3 +182,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    // Drop all entries inside the orders table
+    await db.delete(orders);
+    return NextResponse.json({ success: true, message: "Все товары успешно удалены из базы" });
+  } catch (error: any) {
+    console.error("Error in DELETE /api/orders:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
