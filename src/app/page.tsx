@@ -2385,18 +2385,98 @@ export default function OrderTracker() {
                   />
                 </div>
 
-                {/* Image URL */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Ссылка на картинку (Фото товара)
+                {/* Image Upload Block (Base64 compression with Canvas) */}
+                <div className="sm:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Фотография товара *
                   </label>
-                  <input
-                    type="text"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    placeholder="Вставьте ссылку на фото или оставьте пустой для автозаполнения"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
-                  />
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 items-center bg-slate-950/40 p-4 rounded-2xl border border-slate-800">
+                    
+                    {/* Live Preview Thumbnail */}
+                    <div className="w-20 h-20 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 relative shadow">
+                      {formData.imageUrl ? (
+                        <>
+                          <img 
+                            src={formData.imageUrl} 
+                            alt="Загруженное фото" 
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, imageUrl: "" })}
+                            className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-xs text-rose-400 font-bold transition-opacity cursor-pointer"
+                          >
+                            Удалить
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 font-extrabold text-center px-1 uppercase">
+                          Нет фото
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Selector Zone */}
+                    <div className="flex-1 space-y-2 w-full">
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const img = new Image();
+                              img.onload = () => {
+                                // Downscale and compress using canvas to keep database lightweight
+                                const canvas = document.createElement("canvas");
+                                const MAX_WIDTH = 250;
+                                const scale = MAX_WIDTH / img.width;
+                                canvas.width = MAX_WIDTH;
+                                canvas.height = img.height * scale;
+
+                                const ctx = canvas.getContext("2d");
+                                if (ctx) {
+                                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                  // Get highly compressed JPEG Base64
+                                  const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                                  setFormData({ ...formData, imageUrl: compressedBase64 });
+                                  showAlert("Фото товара успешно сжато и прикреплено!", "success");
+                                }
+                              };
+                              img.src = event.target?.result as string;
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-750 text-slate-300 text-xs font-bold text-center hover:bg-slate-800 hover:text-white transition-all">
+                          📎 Выберите файл картинки на устройстве (или снимите на камеру)
+                        </div>
+                      </div>
+
+                      <div className="text-[10px] text-slate-500 leading-relaxed">
+                        Поддерживаются любые файлы изображений (JPG, PNG, WebP). Система автоматически уменьшит разрешение для быстрой работы на телефонах.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Manual URL input fallback just in case they really want to paste links */}
+                  <details className="text-slate-500 text-[11px] group cursor-pointer">
+                    <summary className="hover:text-slate-300 font-medium select-none">
+                      или вставить ссылку на картинку текстом...
+                    </summary>
+                    <input
+                      type="text"
+                      value={formData.imageUrl}
+                      onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                      placeholder="Вставьте ссылку на фото, например https://images.unsplash.com/..."
+                      className="w-full mt-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950 border border-slate-850 text-white placeholder-slate-600 text-xs focus:outline-none focus:border-blue-500"
+                    />
+                  </details>
                 </div>
 
                 {/* Math variables */}
