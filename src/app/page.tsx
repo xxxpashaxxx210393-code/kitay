@@ -140,6 +140,9 @@ export default function OrderTracker() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [exportRecipient, setExportRecipient] = useState("Все");
+  const [people, setPeople] = useState<string[]>(FOR_WHOM_PRESETS);
+  const [isPeopleModalOpen, setIsPeopleModalOpen] = useState(false);
+  const [newPersonName, setNewPersonName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Все");
   const [forWhomFilter, setForWhomFilter] = useState("Все");
@@ -669,6 +672,66 @@ export default function OrderTracker() {
     }
   };
 
+  // People directory is stored separately for each project so different projects can have different recipients.
+  const peopleStorageKey = (projectId: number) => `cargo_people_${projectId}`;
+
+  const loadPeople = (projectId: number) => {
+    try {
+      const saved = localStorage.getItem(peopleStorageKey(projectId));
+      const savedPeople = saved ? JSON.parse(saved) : [];
+      const merged = Array.from(new Set([...FOR_WHOM_PRESETS, ...(Array.isArray(savedPeople) ? savedPeople : [])]));
+      setPeople(merged);
+    } catch {
+      setPeople([...FOR_WHOM_PRESETS]);
+    }
+  };
+
+  const persistPeople = (next: string[]) => {
+    const clean = Array.from(new Set(next.map(x => x.trim()).filter(Boolean)));
+    setPeople(clean);
+    localStorage.setItem(peopleStorageKey(currentProjectId), JSON.stringify(clean));
+  };
+
+  const addPerson = () => {
+    const name = newPersonName.trim();
+    if (!name) return;
+    if (people.some(p => p.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      showAlert("Такой человек уже есть в списке", "info");
+      return;
+    }
+    persistPeople([...people, name]);
+    setNewPersonName("");
+    showAlert(`Добавлен получатель «${name}»`, "success");
+  };
+
+  const removePerson = (name: string) => {
+    if (FOR_WHOM_PRESETS.includes(name)) {
+      showAlert("Базовых получателей удалить нельзя, но их можно не использовать", "info");
+      return;
+    }
+    persistPeople(people.filter(p => p !== name));
+    if (exportRecipient === name) setExportRecipient("Все");
+    if (forWhomFilter === name) setForWhomFilter("Все");
+  };
+
+  const renamePerson = (oldName: string) => {
+    const name = prompt("Новое имя получателя:", oldName)?.trim();
+    if (!name || name === oldName) return;
+    if (people.some(p => p.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      showAlert("Такой человек уже есть", "info");
+      return;
+    }
+    persistPeople(people.map(p => p === oldName ? name : p));
+    // Keep existing orders consistent when a person is renamed.
+    const affected = orders.filter(o => o.forWhom === oldName);
+    if (affected.length) {
+      Promise.all(affected.map(o => fetch(`/api/orders/${o.id}`, {
+        method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ forWhom: name, projectId: currentProjectId })
+      }))).then(() => loadOrders(currentProjectId));
+    }
+    showAlert(`Получатель «${oldName}» переименован`, "success");
+  };
+
   // Projects + orders
   const loadProjects = async () => {
     try {
@@ -679,6 +742,7 @@ export default function OrderTracker() {
       const saved = Number(localStorage.getItem("cargo_current_project") || json.data[0]?.id || 1);
       const valid = json.data.some((p: Project) => p.id === saved) ? saved : json.data[0]?.id || 1;
       setCurrentProjectId(valid);
+      loadPeople(valid);
       return valid;
     } catch (err:any) {
       showAlert("Не удалось загрузить проекты: " + err.message, "error");
@@ -704,6 +768,7 @@ export default function OrderTracker() {
   const switchProject = async (pid:number) => {
     setCurrentProjectId(pid);
     localStorage.setItem("cargo_current_project", String(pid));
+    loadPeople(pid);
     setSearchQuery(""); setStatusFilter("Все"); setForWhomFilter("Все"); setMonthFilter("Все");
     await loadOrders(pid);
   };
@@ -1032,12 +1097,12 @@ export default function OrderTracker() {
 
   // Unique "Для кого" list for filter dropdown
   const uniqueForWhomOptions = useMemo(() => {
-    const set = new Set<string>();
+    const set = new Set<string>(people);
     orders.forEach(o => {
       if (o.forWhom) set.add(o.forWhom);
     });
     return Array.from(set);
-  }, [orders]);
+  }, [orders, people]);
 
   // Helper to get formatted month label from ISO date or createdAt string
   const getMonthLabel = (dateStr: string) => {
@@ -1141,15 +1206,66 @@ export default function OrderTracker() {
   const clearSelection = () => setSelectedOrderIds([]);
 
   const exportOrders = (mode:"all"|"filtered"|"selected"|"recipient"|"tracks") => {
-    let rows = mode === "all" ? calculatedOrders : mode === "selected" ? calculatedOrders.filter(o=>selectedOrderIds.includes(o.id)) : mode === "recipient" ? calculatedOrders.filter(o=>exportRecipient === "Все" || o.forWhom === exportRecipient) : mode === "tracks" ? calculatedOrders.filter(o=>o.trackNumber) : sortedOrders;
-    if(mode === "recipient" && exportRecipient !== "Все") rows = calculatedOrders.filter(o=>o.forWhom === exportRecipient);
-    const data = mode === "tracks" ? rows.map(o=>({"Трек-номер":o.trackNumber || ""})) : rows.map(o=>({"Название":o.name,"Для кого":o.forWhom||"","Трек-номер":o.trackNumber||"","Статус":o.status,"Количество":o.quantity,"Цена CNY":o.priceCny,"Общая CNY":o.itemTotalCny,"Итого BYN":o.totalWithShippingByn,"Вес кг":o.weight||0,"Дата":o.createdAt}));
-    const sheet=XLSX.utils.json_to_sheet(data);
-    const book=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(book,sheet,"Заказы");
-    const project=projects.find(p=>p.id===currentProjectId)?.name || "проект";
-    const safe=project.replace(/[^a-zа-яё0-9_-]+/gi,"_");
-    XLSX.writeFile(book,`cargo_${safe}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`);
-    setIsExportMenuOpen(false); showAlert(`Выгружено: ${rows.length} позиций`,"success");
+    try {
+      let rows = mode === "all"
+        ? calculatedOrders
+        : mode === "selected"
+        ? calculatedOrders.filter(o=>selectedOrderIds.includes(o.id))
+        : mode === "recipient"
+        ? calculatedOrders.filter(o=>exportRecipient === "Все" || o.forWhom === exportRecipient)
+        : mode === "tracks"
+        ? calculatedOrders.filter(o=>o.trackNumber)
+        : sortedOrders;
+
+      const data = mode === "tracks"
+        ? rows.map(o=>({"Трек-номер":o.trackNumber || ""}))
+        : rows.map(o=>({
+            "Название":o.name,
+            "Для кого":o.forWhom||"",
+            "Трек-номер":o.trackNumber||"",
+            "Статус":o.status,
+            "Количество":o.quantity,
+            "Цена CNY":o.priceCny,
+            "Общая CNY":o.itemTotalCny,
+            "Доставка Китай CNY":o.shippingChinaCny||0,
+            "Доставка РБ BYN":o.shippingBelarusByn||0,
+            "Итого BYN":o.totalWithShippingByn,
+            "Вес кг":o.weight||0,
+            "Дата":o.createdAt
+          }));
+
+      if (!data.length) {
+        showAlert("Нет данных для выгрузки", "info");
+        return;
+      }
+
+      const sheet = XLSX.utils.json_to_sheet(data);
+      const book = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(book, sheet, "Заказы");
+      const project = projects.find(p=>p.id===currentProjectId)?.name || "проект";
+      const safe = project.replace(/[^a-zа-яё0-9_-]+/gi,"_");
+      const filename = `cargo_${safe}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`;
+
+      // Use a Blob + temporary link instead of XLSX.writeFile. This is more reliable
+      // in Vercel/Chrome/Safari and makes the downloaded file an actual .xlsx file.
+      const arrayBuffer = XLSX.write(book, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+      setIsExportMenuOpen(false);
+      showAlert(`Файл Excel готов: ${rows.length} позиций`, "success");
+    } catch (e:any) {
+      console.error("Export error", e);
+      showAlert("Не удалось создать Excel-файл: " + (e?.message || "неизвестная ошибка"), "error");
+    }
   };
 
   const bulkUpdateSelectedStatus = async () => {
@@ -1292,6 +1408,7 @@ export default function OrderTracker() {
           <button onClick={createProject} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black">+ Новый проект</button>
           <button onClick={renameCurrentProject} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold">Переименовать</button>
           <button onClick={deleteCurrentProject} className="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs font-bold">Удалить проект</button>
+          <button onClick={()=>setIsPeopleModalOpen(true)} className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold">👥 Люди</button>
           <div className="ml-auto text-xs text-slate-400">Товаров в проекте: <b className="text-white">{orders.length}</b></div>
         </div>
         
@@ -2481,7 +2598,7 @@ export default function OrderTracker() {
                         className="px-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs cursor-pointer focus:outline-none"
                       >
                         <option value="">Варианты</option>
-                        {FOR_WHOM_PRESETS.map((p) => (
+                        {uniqueForWhomOptions.map((p) => (
                           <option key={p} value={p}>{p}</option>
                         ))}
                       </select>
