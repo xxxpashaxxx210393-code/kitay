@@ -28,11 +28,14 @@ import {
   ArrowUpDown,
   FileDown,
   FileUp,
-  Loader2
+  Loader2,
+  MoreVertical,
+  Download
 } from "lucide-react";
 
 interface Order {
   id: number;
+  projectId: number;
   name: string;
   imageUrl: string | null;
   itemUrl: string | null;
@@ -48,6 +51,13 @@ interface Order {
   plannedDate: string | null;
   receivedDate: string | null;
   notes: string | null;
+  createdAt: string;
+}
+
+
+interface Project {
+  id: number;
+  name: string;
   createdAt: string;
 }
 
@@ -124,7 +134,12 @@ const getStatusBadgeStyles = (status: string) => {
 
 export default function OrderTracker() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProjectId, setCurrentProjectId] = useState<number>(1);
   const [loading, setLoading] = useState(true);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [exportRecipient, setExportRecipient] = useState("Все");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Все");
   const [forWhomFilter, setForWhomFilter] = useState("Все");
@@ -136,7 +151,7 @@ export default function OrderTracker() {
   const [monthFilter, setMonthFilter] = useState<string>("Все");
 
   // Dashboard boxes customizable layout state
-  const [dashboardWidgets, setDashboardWidgets] = useState<Array<{ id: string; title: string; visible: boolean; order: number; bgClass: string }>>([
+  const [dashboardWidgets, setDashboardWidgets] = useState<Array<{ id: string; title: string; visible: boolean; order: number; bgClass: string; content?: string }>>([
     { id: "total_items", title: "Всего товаров", visible: true, order: 1, bgClass: "bg-slate-800/60" },
     { id: "total_cny", title: "Общая сумма (CNY)", visible: true, order: 2, bgClass: "bg-slate-800/60" },
     { id: "total_byn", title: "Итого к оплате в РБ (BYN)", visible: true, order: 3, bgClass: "bg-slate-800/60" },
@@ -200,6 +215,16 @@ export default function OrderTracker() {
     }
   };
 
+  const addDashboardWidget = () => {
+    const title = prompt("Название нового блока:", "Мой блок");
+    if (!title?.trim()) return;
+    const content = prompt("Текст внутри блока:", "Введите свою заметку или правило");
+    const maxOrder = dashboardWidgets.reduce((m, w) => Math.max(m, w.order), 0);
+    const widget = { id: `custom_${Date.now()}`, title: title.trim(), visible: true, order: maxOrder + 1, bgClass: "bg-slate-800/60", content: content || "" };
+    saveWidgetsLayout([...dashboardWidgets, widget]);
+    showAlert("Новый блок добавлен", "success");
+  };
+
   // Reset Layout back to default
   const resetWidgetsLayout = () => {
     const defaults = [
@@ -222,10 +247,10 @@ export default function OrderTracker() {
     
     try {
       setLoading(true);
-      const res = await fetch("/api/orders", { method: "DELETE" });
+      const res = await fetch(`/api/orders?projectId=${currentProjectId}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
-        showAlert("База данных успешно очищена! Нажмите 'Обновить' или добавьте новые товары.", "success");
+        showAlert("Текущий проект очищен! Нажмите 'Обновить' или добавьте новые товары.", "success");
         setOrders([]);
       } else {
         showAlert("Ошибка при очистке: " + json.error, "error");
@@ -518,6 +543,11 @@ export default function OrderTracker() {
     // Remove command keywords
     cleanTextForName = cleanTextForName.replace(/(?:добавить|добавь|создать|запиши|товар|название|купил|новый)/gi, "");
 
+    // Remove common speech fillers so the product name stays clean
+    cleanTextForName = cleanTextForName.replace(/\b(?:такой|такая|такое|там|ну|вот|ещё|еще|пожалуйста|мне|нужен|нужна|нужно|можно|давай|запиши|записать)\b/gi, " ");
+    cleanTextForName = cleanTextForName.replace(/\b(?:цена|стоимость|стоить|количество|штук|штуки|шт|юан(?:ей|я|и)?)\b/gi, " ");
+    cleanTextForName = cleanTextForName.replace(/\s+и\s*$/i, " ");
+
     // Final string cleaning
     name = cleanTextForName
       .replace(/^[,\s\t\.а-яА-ЯёЁ]{1,3}\b/g, "") // remove leading prepositions like "за", "на" if they remain at the start
@@ -703,7 +733,7 @@ export default function OrderTracker() {
         const res = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(item)
+          body: JSON.stringify({ ...item, projectId: currentProjectId })
         });
         const json = await res.json();
         if (json.success) {
@@ -724,27 +754,72 @@ export default function OrderTracker() {
     }
   };
 
-  // Load orders
-  const loadOrders = async () => {
+  // Projects + orders
+  const loadProjects = async () => {
     try {
-      setLoading(true);
-      const res = await fetch("/api/orders");
+      const res = await fetch("/api/projects");
       const json = await res.json();
-      if (json.success) {
-        setOrders(json.data);
-      } else {
-        showAlert("Ошибка при загрузке данных: " + json.error, "error");
-      }
-    } catch (err: any) {
-      showAlert("Не удалось подключиться к серверу", "error");
-    } finally {
-      setLoading(false);
+      if (!json.success) throw new Error(json.error);
+      setProjects(json.data);
+      const saved = Number(localStorage.getItem("cargo_current_project") || json.data[0]?.id || 1);
+      const valid = json.data.some((p: Project) => p.id === saved) ? saved : json.data[0]?.id || 1;
+      setCurrentProjectId(valid);
+      return valid;
+    } catch (err:any) {
+      showAlert("Не удалось загрузить проекты: " + err.message, "error");
+      return 1;
     }
   };
 
+  const loadOrders = async (projectId = currentProjectId) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/orders?projectId=${projectId}`);
+      const json = await res.json();
+      if (json.success) { setOrders(json.data); setSelectedOrderIds([]); }
+      else showAlert("Ошибка при загрузке данных: " + json.error, "error");
+    } catch (err: any) { showAlert("Не удалось подключиться к серверу", "error"); }
+    finally { setLoading(false); }
+  };
+
   useEffect(() => {
-    loadOrders();
+    loadProjects().then((pid) => loadOrders(pid));
   }, []);
+
+  const switchProject = async (pid:number) => {
+    setCurrentProjectId(pid);
+    localStorage.setItem("cargo_current_project", String(pid));
+    setSearchQuery(""); setStatusFilter("Все"); setForWhomFilter("Все"); setMonthFilter("Все");
+    await loadOrders(pid);
+  };
+
+  const createProject = async () => {
+    const name = prompt("Название нового проекта:", "Китай — новый проект");
+    if (!name?.trim()) return;
+    const res = await fetch("/api/projects", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name})});
+    const json = await res.json();
+    if (json.success) { setProjects(prev=>[...prev,json.data]); await switchProject(json.data.id); showAlert("Новый проект создан", "success"); }
+    else showAlert(json.error || "Не удалось создать проект", "error");
+  };
+
+  const renameCurrentProject = async () => {
+    const current = projects.find(p=>p.id===currentProjectId);
+    if (!current) return;
+    const name = prompt("Новое название проекта:", current.name);
+    if (!name?.trim()) return;
+    const res=await fetch("/api/projects",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:currentProjectId,name})});
+    const json=await res.json();
+    if(json.success){setProjects(prev=>prev.map(p=>p.id===currentProjectId?json.data:p));showAlert("Проект переименован","success");} else showAlert(json.error,"error");
+  };
+
+  const deleteCurrentProject = async () => {
+    if(projects.length<=1){showAlert("Нельзя удалить последний проект","info");return;}
+    const current=projects.find(p=>p.id===currentProjectId);
+    if(!current || !confirm(`Удалить проект «${current.name}» вместе со всеми его товарами?`)) return;
+    const res=await fetch("/api/projects",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:currentProjectId})});
+    const json=await res.json();
+    if(json.success){const rest=projects.filter(p=>p.id!==currentProjectId);setProjects(rest);await switchProject(rest[0].id);showAlert("Проект удалён","info");}else showAlert(json.error,"error");
+  };
 
   const showAlert = (text: string, type: "success" | "error" | "info" = "success") => {
     setAlertMessage({ text, type });
@@ -898,6 +973,7 @@ export default function OrderTracker() {
     try {
       const payload = {
         ...formData,
+        projectId: currentProjectId,
         quantity: Number(formData.quantity) || 1,
         priceCny: Number(formData.priceCny) || 0,
         shippingChinaCny: Number(formData.shippingChinaCny) || 0,
@@ -1140,6 +1216,39 @@ export default function OrderTracker() {
     });
   }, [filteredOrders, sortBy, sortOrder]);
 
+  // Row selection + export
+  const toggleOrderSelection = (id:number) => setSelectedOrderIds(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev,id]);
+  const allVisibleSelected = sortedOrders.length > 0 && sortedOrders.every(o=>selectedOrderIds.includes(o.id));
+  const toggleSelectAllVisible = () => {
+    const ids=sortedOrders.map(o=>o.id);
+    setSelectedOrderIds(prev => allVisibleSelected ? prev.filter(id=>!ids.includes(id)) : Array.from(new Set([...prev,...ids])));
+  };
+  const clearSelection = () => setSelectedOrderIds([]);
+
+  const exportOrders = (mode:"all"|"filtered"|"selected"|"recipient"|"tracks") => {
+    let rows = mode === "all" ? calculatedOrders : mode === "selected" ? calculatedOrders.filter(o=>selectedOrderIds.includes(o.id)) : mode === "recipient" ? calculatedOrders.filter(o=>exportRecipient === "Все" || o.forWhom === exportRecipient) : mode === "tracks" ? calculatedOrders.filter(o=>o.trackNumber) : sortedOrders;
+    if(mode === "recipient" && exportRecipient !== "Все") rows = calculatedOrders.filter(o=>o.forWhom === exportRecipient);
+    const data = mode === "tracks" ? rows.map(o=>({"Трек-номер":o.trackNumber || ""})) : rows.map(o=>({"Название":o.name,"Для кого":o.forWhom||"","Трек-номер":o.trackNumber||"","Статус":o.status,"Количество":o.quantity,"Цена CNY":o.priceCny,"Общая CNY":o.itemTotalCny,"Итого BYN":o.totalWithShippingByn,"Вес кг":o.weight||0,"Дата":o.createdAt}));
+    const sheet=XLSX.utils.json_to_sheet(data);
+    const book=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(book,sheet,"Заказы");
+    const project=projects.find(p=>p.id===currentProjectId)?.name || "проект";
+    const safe=project.replace(/[^a-zа-яё0-9_-]+/gi,"_");
+    XLSX.writeFile(book,`cargo_${safe}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setIsExportMenuOpen(false); showAlert(`Выгружено: ${rows.length} позиций`,"success");
+  };
+
+  const bulkUpdateSelectedStatus = async () => {
+    if(selectedOrderIds.length===0){showAlert("Сначала выберите товары","info");return;}
+    if(!confirm(`Изменить статус у ${selectedOrderIds.length} товаров на «${batchTargetStatus}»?`)) return;
+    setIsBatchUpdating(true);
+    try {
+      const res=await fetch("/api/orders/batch-status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderIds:selectedOrderIds,targetStatus:batchTargetStatus,projectId:currentProjectId})});
+      const json=await res.json();
+      if(json.success){await loadOrders(currentProjectId);showAlert(`Статус изменён у ${json.updatedCount} товаров`,"success");} else showAlert(json.error,"error");
+    } catch(e:any){showAlert(e.message||"Ошибка массовой смены статуса","error");}
+    finally{setIsBatchUpdating(false);}
+  };
+
   // Totals calculations
   const stats = useMemo(() => {
     let totalItemsCount = 0;
@@ -1260,6 +1369,16 @@ export default function OrderTracker() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3 flex flex-wrap items-center gap-2 shadow-lg">
+          <span className="text-xs font-black text-slate-400 uppercase tracking-wider mr-1">📁 Проект:</span>
+          <select value={currentProjectId} onChange={e=>switchProject(Number(e.target.value))} className="min-w-[230px] px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold focus:outline-none focus:border-blue-500">
+            {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <button onClick={createProject} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black">+ Новый проект</button>
+          <button onClick={renameCurrentProject} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold">Переименовать</button>
+          <button onClick={deleteCurrentProject} className="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs font-bold">Удалить проект</button>
+          <div className="ml-auto text-xs text-slate-400">Товаров в проекте: <b className="text-white">{orders.length}</b></div>
+        </div>
         
         {/* ALERT NOTIFICATION */}
         {alertMessage && (
@@ -1294,12 +1413,17 @@ export default function OrderTracker() {
               <Info className="w-4 h-4 text-blue-400" />
               <span>⚙️ Конструктор дашборда: Нажимайте стрелки ◀ ▶ на блоках для перемещения, ✏️ для переименования или ✕ для скрытия окон.</span>
             </span>
-            <button
-              onClick={resetWidgetsLayout}
-              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all text-[11px] cursor-pointer"
-            >
-              Сбросить расположение окон
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={addDashboardWidget} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all text-[11px] cursor-pointer">
+                + Добавить блок
+              </button>
+              <button
+                onClick={resetWidgetsLayout}
+                className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all text-[11px] cursor-pointer"
+              >
+                Сбросить расположение окон
+              </button>
+            </div>
           </div>
 
           {[...dashboardWidgets]
@@ -1610,6 +1734,16 @@ export default function OrderTracker() {
                 );
               }
 
+              if (widget.id.startsWith("custom_")) {
+                return (
+                  <div key={widget.id} className={`${widget.bgClass} p-4 rounded-2xl border border-slate-700/40 relative`}>
+                    <div className="absolute top-2 right-2 z-10">{renderControls()}</div>
+                    <h3 className="text-sm font-bold text-white mb-2 mr-28">{widget.title}</h3>
+                    <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">{widget.content || ""}</p>
+                  </div>
+                );
+              }
+
               return null;
             })}
 
@@ -1777,16 +1911,26 @@ export default function OrderTracker() {
                     <span>Печать / PDF</span>
                   </button>
 
-                  <button
-                    onClick={() => {
-                      // Trigger prompt or quick alert about Excel download
-                      showAlert("Данные таблицы готовы для копирования или печати в PDF. Для Excel просто выделите строки.", "info");
-                    }}
-                    className="p-3 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <FileDown className="w-4 h-4 text-blue-400" />
-                    <span>Экспорт</span>
-                  </button>
+                  <div className="relative">
+                    <button onClick={()=>setIsExportMenuOpen(v=>!v)} className="p-3 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 cursor-pointer">
+                      <Download className="w-4 h-4 text-blue-400" /><span>Экспорт</span>
+                    </button>
+                    {isExportMenuOpen && (
+                      <div className="absolute right-0 bottom-full mb-2 w-72 p-2 rounded-2xl bg-slate-950 border border-slate-700 shadow-2xl z-50">
+                        <button onClick={()=>exportOrders("all")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">📦 Весь проект</button>
+                        <button onClick={()=>exportOrders("filtered")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">🔎 Текущий фильтр</button>
+                        <button onClick={()=>exportOrders("selected")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">☑ Только выбранные</button>
+                        <div className="p-2">
+                          <select value={exportRecipient} onChange={e=>setExportRecipient(e.target.value)} className="w-full px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs">
+                            <option value="Все">Все получатели</option>
+                            {uniqueForWhomOptions.map(x=><option key={x}>{x}</option>)}
+                          </select>
+                          <button onClick={()=>exportOrders("recipient")} className="w-full mt-2 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold">Экспорт по получателю</button>
+                        </div>
+                        <button onClick={()=>exportOrders("tracks")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">🔢 Только трек-номера</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* GLOBAL DATA RESET BUTTON */}
@@ -1989,6 +2133,18 @@ export default function OrderTracker() {
           </div>
         </div>
 
+        {selectedOrderIds.length > 0 && (
+          <div className="sticky top-20 z-20 bg-blue-950/95 backdrop-blur border border-blue-700/60 rounded-2xl p-3 flex flex-wrap items-center gap-3 shadow-2xl">
+            <span className="text-sm font-black text-white">☑ Выбрано: {selectedOrderIds.length}</span>
+            <select value={batchTargetStatus} onChange={e=>setBatchTargetStatus(e.target.value)} className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm">
+              {STATUS_OPTIONS.map(st=><option key={st}>{st}</option>)}
+            </select>
+            <button onClick={bulkUpdateSelectedStatus} disabled={isBatchUpdating} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black">{isBatchUpdating?"Сохраняю…":"Изменить статус выбранных"}</button>
+            <button onClick={()=>exportOrders("selected")} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">Экспорт выбранных</button>
+            <button onClick={clearSelection} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm">Снять выбор</button>
+          </div>
+        )}
+
         {/* INTERACTIVE TABLE & GRID */}
         {loading ? (
           <div className="bg-slate-800/40 p-20 rounded-3xl border border-slate-700/40 flex flex-col items-center justify-center gap-3">
@@ -2019,6 +2175,9 @@ export default function OrderTracker() {
             <table className="w-full text-left border-collapse table-auto text-xs min-w-[1300px]">
               <thead>
                 <tr className="bg-slate-800 border-b border-slate-700/80 text-[11px] text-slate-300 font-bold uppercase tracking-wider">
+                  <th className="p-3 w-12 text-center">
+                    <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} title="Выбрать все видимые" className="w-4 h-4 accent-blue-500 cursor-pointer" />
+                  </th>
                   <th className="p-3 w-16 text-center">Фото товара</th>
                   
                   <th className="p-3 cursor-pointer hover:bg-slate-700/50 transition-colors" onClick={() => toggleSort("name")}>
@@ -2063,6 +2222,9 @@ export default function OrderTracker() {
                       key={o.id} 
                       className={`hover:bg-slate-800/65 transition-colors group ${statusStyles.rowBg}`}
                     >
+                      <td className="p-3 text-center whitespace-nowrap">
+                        <input type="checkbox" checked={selectedOrderIds.includes(o.id)} onChange={()=>toggleOrderSelection(o.id)} title="Выбрать товар" className="w-4 h-4 accent-blue-500 cursor-pointer" />
+                      </td>
                       {/* Beautiful larger image widget with magnifier styling */}
                       <td className="p-3 text-center whitespace-nowrap">
                         <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-950 border-2 border-slate-700/80 mx-auto flex items-center justify-center group-hover:border-blue-500/80 transition-all shadow-md">
@@ -2257,7 +2419,7 @@ export default function OrderTracker() {
               {/* Aggregation Row */}
               <tfoot>
                 <tr className="bg-slate-800 font-bold border-t-2 border-slate-700 text-slate-200">
-                  <td colSpan={5} className="p-3 text-right font-black">ИТОГО ПО ФИЛЬТРУ:</td>
+                  <td colSpan={6} className="p-3 text-right font-black">ИТОГО ПО ФИЛЬТРУ:</td>
                   <td className="p-3 text-center font-black text-sm text-white bg-slate-700">{filteredOrders.reduce((sum, o) => sum + o.quantity, 0)} шт</td>
                   <td className="p-3"></td>
                   <td className="p-3 text-right font-mono text-amber-300">¥ {filteredOrders.reduce((sum, o) => sum + o.itemTotalCny, 0).toFixed(2)}</td>

@@ -1,7 +1,14 @@
 import { pgTable, serial, text, varchar, integer, doublePrecision, timestamp } from "drizzle-orm/pg-core";
 
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().default(1),
   name: text("name").notNull(),
   imageUrl: text("image_url"),
   itemUrl: text("item_url"),

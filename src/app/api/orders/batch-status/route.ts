@@ -1,19 +1,27 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
-import { inArray } from "drizzle-orm";
+import { inArray, eq, and, sql } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { trackNumbersText, targetStatus } = body;
-
-    if (!trackNumbersText || typeof trackNumbersText !== "string") {
-      return NextResponse.json({ success: false, error: "Список трек-номеров пуст" }, { status: 400 });
-    }
+    const { trackNumbersText, targetStatus, orderIds, projectId } = body;
 
     if (!targetStatus || typeof targetStatus !== "string") {
       return NextResponse.json({ success: false, error: "Не выбран новый статус" }, { status: 400 });
+    }
+
+    if (Array.isArray(orderIds) && orderIds.length > 0) {
+      const ids = orderIds.map(Number).filter(Boolean);
+      const conditions:any[] = [inArray(orders.id, ids)];
+      if (projectId) conditions.push(eq(orders.projectId, Number(projectId)));
+      const updatedRows = await db.update(orders).set({ status: targetStatus }).where(and(...conditions)).returning();
+      return NextResponse.json({ success:true, updatedCount:updatedRows.length, targetStatus, totalRequested:ids.length, matchedTracks:updatedRows.map(o=>o.trackNumber).filter(Boolean), unmatchedTracks:[] });
+    }
+
+    if (!trackNumbersText || typeof trackNumbersText !== "string") {
+      return NextResponse.json({ success: false, error: "Список трек-номеров пуст" }, { status: 400 });
     }
 
     // Parse the track numbers by splitting by newlines, commas, semicolons, or spaces, then cleaning
@@ -34,7 +42,7 @@ export async function POST(req: Request) {
     const existingOrders = await db
       .select()
       .from(orders)
-      .where(inArray(orders.trackNumber, cleanedTracks));
+      .where(and(inArray(orders.trackNumber, cleanedTracks), projectId ? eq(orders.projectId, Number(projectId)) : sql`true`));
 
     const matchedTracks = existingOrders.map(o => o.trackNumber).filter(Boolean) as string[];
     const unmatchedTracks = cleanedTracks.filter(track => {
@@ -46,7 +54,7 @@ export async function POST(req: Request) {
       const updatedRows = await db
         .update(orders)
         .set({ status: targetStatus })
-        .where(inArray(orders.trackNumber, matchedTracks))
+        .where(and(inArray(orders.trackNumber, matchedTracks), projectId ? eq(orders.projectId, Number(projectId)) : sql`true`))
         .returning();
       updatedCount = updatedRows.length;
     }

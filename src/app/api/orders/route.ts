@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
-import { desc, sql } from "drizzle-orm";
+import { desc, sql, eq } from "drizzle-orm";
 
 // Prepopulated list based on the user's screenshot
 const MOCK_ORDERS = [
@@ -92,38 +92,27 @@ const MOCK_ORDERS = [
   }
 ];
 
-export async function GET() {
-  try {
-    // Zero-friction table auto-initializer. Ensures table exists in any database on first boot!
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS "orders" (
-        "id" serial PRIMARY KEY,
-        "name" text NOT NULL,
-        "image_url" text,
-        "item_url" text,
-        "for_whom" varchar(255),
-        "track_number" varchar(255),
-        "status" varchar(100) NOT NULL DEFAULT 'В пути на склад Китая',
-        "quantity" integer NOT NULL DEFAULT 1,
-        "price_cny" double precision NOT NULL DEFAULT 0,
-        "shipping_china_cny" double precision DEFAULT 0,
-        "shipping_belarus_byn" double precision DEFAULT 0,
-        "rate_cny_byn" double precision NOT NULL DEFAULT 0.48,
-        "weight" double precision DEFAULT 0,
-        "planned_date" varchar(100),
-        "received_date" varchar(100),
-        "notes" text,
-        "created_at" timestamp NOT NULL DEFAULT now()
-      );
-    `);
+async function ensureSchema() {
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS "projects" ("id" serial PRIMARY KEY, "name" varchar(255) NOT NULL, "created_at" timestamp NOT NULL DEFAULT now());`);
+  await db.execute(sql`ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "project_id" integer NOT NULL DEFAULT 1;`);
+  const projectRows = await db.execute(sql`SELECT id FROM "projects" ORDER BY id LIMIT 1`);
+  if ((projectRows as any).rows?.length === 0) {
+    await db.execute(sql`INSERT INTO "projects" (name) VALUES ('Китай — основной проект')`);
+  }
+}
 
+export async function GET(req: Request) {
+  try {
+    await ensureSchema();
+    const url = new URL(req.url);
+    const projectId = Number(url.searchParams.get("projectId") || 1);
     // Read list of orders
-    let list = await db.select().from(orders).orderBy(desc(orders.id));
+    let list = await db.select().from(orders).where(eq(orders.projectId, projectId)).orderBy(desc(orders.id));
     
     // Autoseed if empty
-    if (list.length === 0) {
-      await db.insert(orders).values(MOCK_ORDERS);
-      list = await db.select().from(orders).orderBy(desc(orders.id));
+    if (list.length === 0 && projectId === 1) {
+      await db.insert(orders).values(MOCK_ORDERS.map(o => ({...o, projectId: 1})));
+      list = await db.select().from(orders).where(eq(orders.projectId, projectId)).orderBy(desc(orders.id));
     }
     
     return NextResponse.json({ success: true, data: list });
@@ -137,6 +126,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
+      projectId,
       name,
       imageUrl,
       itemUrl,
@@ -159,6 +149,7 @@ export async function POST(req: Request) {
     }
 
     const newOrder = await db.insert(orders).values({
+      projectId: projectId !== undefined ? Number(projectId) : 1,
       name,
       imageUrl: imageUrl || null,
       itemUrl: itemUrl || null,
@@ -183,10 +174,11 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
   try {
-    // Drop all entries inside the orders table
-    await db.delete(orders);
+    const url = new URL(req.url);
+    const projectId = Number(url.searchParams.get("projectId") || 1);
+    await db.delete(orders).where(eq(orders.projectId, projectId));
     return NextResponse.json({ success: true, message: "Все товары успешно удалены из базы" });
   } catch (error: any) {
     console.error("Error in DELETE /api/orders:", error);
