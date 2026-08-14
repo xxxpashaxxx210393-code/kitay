@@ -422,25 +422,53 @@ export default function OrderTracker() {
       }
     }
 
-    // 3. Extract For Whom
+    // 3. Extract For Whom (Recipient) and clean case-endings dynamically
+    let forWhomTarget = "Родители";
+    let foundForWhomPhrase = ""; // Keep track of the exact words we parsed as recipient to remove them later from the item name!
+
     if (lower.includes("родител")) {
-      forWhom = "Родители";
+      forWhomTarget = "Родители";
+      const match = lower.match(/(?:для\s+)?родителе[йм]/i) || lower.match(/родителе[йм]/i) || ["родители"];
+      foundForWhomPhrase = match[0];
     } else if (lower.includes("себе") || lower.includes("мне") || lower.includes("сам")) {
-      forWhom = "Себе";
-    } else if (lower.includes("клиент") || lower.includes("заказчик")) {
-      forWhom = "Клиент";
-    } else if (lower.includes("продаж") || lower.includes("витрин")) {
-      forWhom = "В продажу";
-    } else if (lower.includes("друг") || lower.includes("подруг")) {
-      forWhom = "Друзьям";
-    } else if (lower.includes("подар") || lower.includes("презент")) {
-      forWhom = "Подарок";
+      forWhomTarget = "Себе";
+      const match = lower.match(/(?:для\s+)?себя/i) || lower.match(/себе/i) || lower.match(/мне/i) || ["себе"];
+      foundForWhomPhrase = match[0];
+    } else if (lower.includes("клиент")) {
+      forWhomTarget = "Клиент";
+      const match = lower.match(/(?:для\s+)?клиента/i) || lower.match(/клиенту/i) || lower.match(/клиент/i) || ["клиент"];
+      foundForWhomPhrase = match[0];
+    } else if (lower.includes("продаж")) {
+      forWhomTarget = "В продажу";
+      const match = lower.match(/(?:для\s+)?продажи/i) || lower.match(/в\s+продажу/i) || ["продажу"];
+      foundForWhomPhrase = match[0];
+    } else if (lower.includes("друг")) {
+      forWhomTarget = "Друзьям";
+      const match = lower.match(/(?:для\s+)?друзей/i) || lower.match(/друзьям/i) || ["друзьям"];
+      foundForWhomPhrase = match[0];
+    } else if (lower.includes("подар")) {
+      forWhomTarget = "Подарок";
+      const match = lower.match(/(?:для\s+)?подарка/i) || lower.match(/на\s+подарок/i) || lower.match(/подарок/i) || ["подарок"];
+      foundForWhomPhrase = match[0];
     } else {
-      const forWhomMatch = lower.match(/(?:для|кому|получатель)\s+([а-яёA-Za-z]+)/i);
-      if (forWhomMatch && !["родителей", "себя", "клиента", "продажи", "друзей", "подарка", "родителям"].includes(forWhomMatch[1])) {
-        forWhom = forWhomMatch[1].charAt(0).toUpperCase() + forWhomMatch[1].slice(1);
+      // Regex for generic recipients like "для саши", "для мамы", "для олега"
+      const forWhomMatch = lower.match(/(?:для|кому|получатель)\s+([а-яёA-Za-zА-ЯЁёё]+)/i);
+      if (forWhomMatch) {
+        let rawName = forWhomMatch[1];
+        foundForWhomPhrase = forWhomMatch[0]; // e.g. "для саши"
+        
+        // Remove trailing case markers common in Russian names (e.g. "саши" -> "Саша", "олега" -> "Олег")
+        let cleanedName = rawName;
+        if (cleanedName.endsWith("и") && cleanedName.length > 3) cleanedName = cleanedName.slice(0, -1) + "а"; // Саши -> Саша
+        else if (cleanedName.endsWith("ы") && cleanedName.length > 3) cleanedName = cleanedName.slice(0, -1) + "а"; // Мамы -> Мама
+        else if (cleanedName.endsWith("я") && cleanedName.length > 3) cleanedName = cleanedName.slice(0, -1) + "я"; // Оли -> Оля
+        else if (cleanedName.endsWith("а") && !cleanedName.endsWith("ша") && cleanedName.length > 3) cleanedName = cleanedName.slice(0, -1); // Олега -> Олег
+        else if (cleanedName.endsWith("у") && cleanedName.length > 3) cleanedName = cleanedName.slice(0, -1) + "а"; // Сашу -> Саша
+        
+        forWhomTarget = cleanedName.charAt(0).toUpperCase() + cleanedName.slice(1);
       }
     }
+    forWhom = forWhomTarget;
 
     // 4. Extract Track Number (digits or alpha-numeric of length 6 to 25)
     const trackRegex = /(?:трек|номер|трек-номер|код)\s*([a-zA-Z0-9]{6,25})/i;
@@ -456,17 +484,43 @@ export default function OrderTracker() {
 
     // 5. Clean up name
     let cleanTextForName = text;
+    
+    // Remove track number phrases
     cleanTextForName = cleanTextForName.replace(/(?:трек|номер|трек-номер|код)\s*[a-zA-Z0-9]+/gi, "");
-    cleanTextForName = cleanTextForName.replace(/\d+\s*(?:юан|юэн|cny|ю\.?|yuan|юань|юаней|юаня)/gi, "");
-    cleanTextForName = cleanTextForName.replace(/(?:цена|стоимость|стоить|за)\s*\d+/gi, "");
+    
+    // Remove price patterns
+    cleanTextForName = cleanTextForName.replace(/\d+(?:[\.,]\d+)?\s*(?:юан|юэн|cny|ю\.?|yuan|юань|юаней|юаня)/gi, "");
+    cleanTextForName = cleanTextForName.replace(/(?:цена|стоимость|стоить|за)\s*\d+(?:[\.,]\d+)?/gi, "");
+    
+    // Remove quantity patterns
     cleanTextForName = cleanTextForName.replace(/\d+\s*(?:шт|штук|количеств|кол|порц)/gi, "");
     cleanTextForName = cleanTextForName.replace(/(?:количество|кол-во|колво|кол|штук)\s*\d+/gi, "");
-    cleanTextForName = cleanTextForName.replace(/(?:для|кому|получатель)\s*[а-яёa-z]+/gi, "");
+
+    // Remove numbers expressed as text
+    const numberWords = ["один", "одна", "два", "две", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять", "десять"];
+    numberWords.forEach(nw => {
+      const regex = new RegExp("\\b" + nw + "\\b", "gi");
+      cleanTextForName = cleanTextForName.replace(regex, "");
+    });
+
+    // CRITICAL: Remove the recipient phrase we found above (e.g. "для саши", "для родителей", "для себя")
+    if (foundForWhomPhrase) {
+      // Escape special characters in the phrase to prevent regex errors
+      const escapedPhrase = foundForWhomPhrase.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const rx = new RegExp(escapedPhrase, "gi");
+      cleanTextForName = cleanTextForName.replace(rx, "");
+    }
+    
+    // Standalone fallback recipient removals
+    cleanTextForName = cleanTextForName.replace(/(?:для|кому|получатель)\s*[а-яА-ЯёЁA-Za-z]+/gi, "");
     cleanTextForName = cleanTextForName.replace(/(?:родителям|родителей|себе|клиенту|друзьям|подарок|продать|продажу)/gi, "");
+    
+    // Remove command keywords
     cleanTextForName = cleanTextForName.replace(/(?:добавить|добавь|создать|запиши|товар|название|купил|новый)/gi, "");
 
+    // Final string cleaning
     name = cleanTextForName
-      .replace(/^[,\s\t\.а-яА-ЯёЁ]{1,3}\b/g, "")
+      .replace(/^[,\s\t\.а-яА-ЯёЁ]{1,3}\b/g, "") // remove leading prepositions like "за", "на" if they remain at the start
       .replace(/[\s,;\.\-\s]+/g, " ")
       .trim();
 
@@ -2271,18 +2325,19 @@ export default function OrderTracker() {
         </div>
       </footer>
 
-      {/* CREATE & EDIT MODAL */}
+      {/* CREATE & EDIT MODAL - REDESIGNED HEIGHT TO FIT COMFORTABLY WITH INTERNALLY SCROLLING GRID */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl animate-scaleIn">
+        <div className="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-2xl w-full max-h-[94vh] sm:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-scaleIn">
             
-            {/* Modal Header */}
-            <div className="bg-slate-800 p-5 border-b border-slate-700/80 flex items-center justify-between">
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
+            {/* FIXED Header */}
+            <div className="bg-slate-800 p-4 sm:p-5 border-b border-slate-700/80 flex items-center justify-between shrink-0">
+              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
                 <Package className="w-5 h-5 text-blue-500" />
                 {editingOrder ? `Редактирование: ${formData.name}` : "Добавить новый заказ из Китая"}
               </h3>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-white transition-all cursor-pointer p-1.5 rounded-lg hover:bg-slate-700"
               >
@@ -2291,365 +2346,366 @@ export default function OrderTracker() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSaveOrder} className="p-6 space-y-4">
+            <form onSubmit={handleSaveOrder} className="flex flex-col flex-1 overflow-hidden">
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* INTERNAL SCROLLABLE BODY */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                 
-                {/* Name */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Название товара *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Например: Пылесос для автомобиля, Фен черный"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Track Number */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Трек-номер Китая
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.trackNumber}
-                    onChange={(e) => setFormData({ ...formData, trackNumber: e.target.value })}
-                    placeholder="Например: 4655594672890"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* For Whom */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Для кого (Получатель)
-                  </label>
-                  <div className="flex gap-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  
+                  {/* Name */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Название товара *
+                    </label>
                     <input
                       type="text"
-                      value={formData.forWhom}
-                      onChange={(e) => setFormData({ ...formData, forWhom: e.target.value })}
-                      placeholder="Например: Родители, Клиент..."
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Например: Пылесос для автомобиля, Фен черный"
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                     />
+                  </div>
+
+                  {/* Track Number */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Трек-номер Китая
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trackNumber}
+                      onChange={(e) => setFormData({ ...formData, trackNumber: e.target.value })}
+                      placeholder="Например: 4655594672890"
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* For Whom */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Для кого (Получатель)
+                    </label>
+                    <div className="flex gap-1">
+                      <input
+                        type="text"
+                        value={formData.forWhom}
+                        onChange={(e) => setFormData({ ...formData, forWhom: e.target.value })}
+                        placeholder="Например: Родители, Клиент..."
+                        className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                      />
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setFormData({ ...formData, forWhom: e.target.value });
+                          }
+                        }}
+                        className="px-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs cursor-pointer focus:outline-none"
+                      >
+                        <option value="">Варианты</option>
+                        {FOR_WHOM_PRESETS.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Текущий статус
+                    </label>
                     <select
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setFormData({ ...formData, forWhom: e.target.value });
-                        }
-                      }}
-                      className="px-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs cursor-pointer focus:outline-none"
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
-                      <option value="">Варианты</option>
-                      {FOR_WHOM_PRESETS.map((p) => (
-                        <option key={p} value={p}>{p}</option>
+                      {STATUS_OPTIONS.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
                       ))}
                     </select>
                   </div>
-                </div>
 
-                {/* Status */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Текущий статус
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500 cursor-pointer"
-                  >
-                    {STATUS_OPTIONS.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Item URL */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Ссылка на товар (PinDuoDuo и др)
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.itemUrl}
-                    onChange={(e) => setFormData({ ...formData, itemUrl: e.target.value })}
-                    placeholder="https://mobile.yangkeduo.com/..."
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Image Upload Block (Base64 compression with Canvas) */}
-                <div className="sm:col-span-2 space-y-2">
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    Фотография товара *
-                  </label>
-                  
-                  <div className="flex flex-col sm:flex-row gap-4 items-center bg-slate-950/40 p-4 rounded-2xl border border-slate-800">
-                    
-                    {/* Live Preview Thumbnail */}
-                    <div className="w-20 h-20 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 relative shadow">
-                      {formData.imageUrl ? (
-                        <>
-                          <img 
-                            src={formData.imageUrl} 
-                            alt="Загруженное фото" 
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, imageUrl: "" })}
-                            className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-xs text-rose-400 font-bold transition-opacity cursor-pointer"
-                          >
-                            Удалить
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-[10px] text-slate-500 font-extrabold text-center px-1 uppercase">
-                          Нет фото
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Selector Zone */}
-                    <div className="flex-1 space-y-2 w-full">
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                              const img = new Image();
-                              img.onload = () => {
-                                // Downscale and compress using canvas to keep database lightweight
-                                const canvas = document.createElement("canvas");
-                                const MAX_WIDTH = 250;
-                                const scale = MAX_WIDTH / img.width;
-                                canvas.width = MAX_WIDTH;
-                                canvas.height = img.height * scale;
-
-                                const ctx = canvas.getContext("2d");
-                                if (ctx) {
-                                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                  // Get highly compressed JPEG Base64
-                                  const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
-                                  setFormData({ ...formData, imageUrl: compressedBase64 });
-                                  showAlert("Фото товара успешно сжато и прикреплено!", "success");
-                                }
-                              };
-                              img.src = event.target?.result as string;
-                            };
-                            reader.readAsDataURL(file);
-                          }}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        />
-                        <div className="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-750 text-slate-300 text-xs font-bold text-center hover:bg-slate-800 hover:text-white transition-all">
-                          📎 Выберите файл картинки на устройстве (или снимите на камеру)
-                        </div>
-                      </div>
-
-                      <div className="text-[10px] text-slate-500 leading-relaxed">
-                        Поддерживаются любые файлы изображений (JPG, PNG, WebP). Система автоматически уменьшит разрешение для быстрой работы на телефонах.
-                      </div>
-                    </div>
+                  {/* Item URL */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Ссылка на товар (PinDuoDuo и др)
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.itemUrl}
+                      onChange={(e) => setFormData({ ...formData, itemUrl: e.target.value })}
+                      placeholder="https://mobile.yangkeduo.com/..."
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                    />
                   </div>
 
-                  {/* Manual URL input fallback just in case they really want to paste links */}
-                  <details className="text-slate-500 text-[11px] group cursor-pointer">
-                    <summary className="hover:text-slate-300 font-medium select-none">
-                      или вставить ссылку на картинку текстом...
-                    </summary>
+                  {/* Image Upload Block (Base64 compression with Canvas) */}
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Фотография товара *
+                    </label>
+                    
+                    <div className="flex flex-row gap-3 items-center bg-slate-950/40 p-3 rounded-2xl border border-slate-800">
+                      
+                      {/* Live Preview Thumbnail */}
+                      <div className="w-14 h-14 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 relative shadow">
+                        {formData.imageUrl ? (
+                          <>
+                            <img 
+                              src={formData.imageUrl} 
+                              alt="Загруженное фото" 
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, imageUrl: "" })}
+                              className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-[10px] text-rose-400 font-bold transition-opacity cursor-pointer"
+                            >
+                              Удалить
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 font-extrabold text-center px-1 uppercase">
+                            Нет фото
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Selector Zone */}
+                      <div className="flex-1 space-y-1 w-full">
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                  // Downscale and compress using canvas to keep database lightweight
+                                  const canvas = document.createElement("canvas");
+                                  const MAX_WIDTH = 250;
+                                  const scale = MAX_WIDTH / img.width;
+                                  canvas.width = MAX_WIDTH;
+                                  canvas.height = img.height * scale;
+
+                                  const ctx = canvas.getContext("2d");
+                                  if (ctx) {
+                                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                    // Get highly compressed JPEG Base64
+                                    const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                                    setFormData({ ...formData, imageUrl: compressedBase64 });
+                                    showAlert("Фото товара успешно сжато и прикреплено!", "success");
+                                  }
+                                };
+                                img.src = event.target?.result as string;
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          />
+                          <div className="w-full py-2 px-3 rounded-xl bg-slate-900 border border-slate-750 text-slate-300 text-xs font-bold text-center hover:bg-slate-800 hover:text-white transition-all">
+                            📎 Выберите файл на устройстве
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Manual URL input fallback just in case they really want to paste links */}
+                    <details className="text-slate-500 text-[11px] group cursor-pointer">
+                      <summary className="hover:text-slate-300 font-medium select-none">
+                        или вставить ссылку на картинку текстом...
+                      </summary>
+                      <input
+                        type="text"
+                        value={formData.imageUrl}
+                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                        placeholder="Вставьте ссылку на фото, например https://images.unsplash.com/..."
+                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-850 text-white placeholder-slate-600 text-xs focus:outline-none"
+                      />
+                    </details>
+                  </div>
+
+                  {/* Math variables */}
+                  <hr className="sm:col-span-2 border-slate-800 my-0.5" />
+
+                  {/* Price per unit (CNY) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Цена за ед. (CNY)
+                    </label>
                     <input
-                      type="text"
-                      value={formData.imageUrl}
-                      onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                      placeholder="Вставьте ссылку на фото, например https://images.unsplash.com/..."
-                      className="w-full mt-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950 border border-slate-850 text-white placeholder-slate-600 text-xs focus:outline-none focus:border-blue-500"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.priceCny}
+                      onChange={(e) => setFormData({ ...formData, priceCny: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.00"
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
-                  </details>
+                  </div>
+
+                  {/* Quantity */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Количество
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Shipping China (CNY) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Доставка по Китаю (CNY)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.shippingChinaCny}
+                      onChange={(e) => setFormData({ ...formData, shippingChinaCny: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Shipping Belarus (BYN) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Доставка в РБ (BYN)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.shippingBelarusByn}
+                      onChange={(e) => setFormData({ ...formData, shippingBelarusByn: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Rate CNY to BYN */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Курс за 1 CNY (в BYN)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={formData.rateCnyByn}
+                      onChange={(e) => setFormData({ ...formData, rateCnyByn: parseFloat(e.target.value) || defaultRate })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Weight */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Вес товара (кг)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.weight}
+                      onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Dates */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Плановая дата получения
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.plannedDate}
+                      onChange={(e) => setFormData({ ...formData, plannedDate: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Received Date */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Дата фактического получения
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.receivedDate}
+                      onChange={(e) => setFormData({ ...formData, receivedDate: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                      Заметки и комментарии
+                    </label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Например: Посылка в мешке с наклейкой 'AUTO', договорились на скидку"
+                      className="w-full h-14 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 resize-none"
+                    ></textarea>
+                  </div>
+
                 </div>
 
-                {/* Math variables */}
-                <hr className="sm:col-span-2 border-slate-800 my-1" />
-
-                {/* Price per unit (CNY) */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Цена за ед. (CNY)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.priceCny}
-                    onChange={(e) => setFormData({ ...formData, priceCny: parseFloat(e.target.value) || 0 })}
-                    placeholder="0.00"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Quantity */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Количество
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Shipping China (CNY) */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Доставка по Китаю (CNY)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.shippingChinaCny}
-                    onChange={(e) => setFormData({ ...formData, shippingChinaCny: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Shipping Belarus (BYN) */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Доставка в РБ (BYN)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.shippingBelarusByn}
-                    onChange={(e) => setFormData({ ...formData, shippingBelarusByn: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Rate CNY to BYN */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Курс за 1 CNY (в BYN)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={formData.rateCnyByn}
-                    onChange={(e) => setFormData({ ...formData, rateCnyByn: parseFloat(e.target.value) || defaultRate })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Weight */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Вес товара (кг)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.weight}
-                    onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Dates */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Плановая дата получения
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.plannedDate}
-                    onChange={(e) => setFormData({ ...formData, plannedDate: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Received Date */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Дата фактического получения
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.receivedDate}
-                    onChange={(e) => setFormData({ ...formData, receivedDate: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Notes */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Заметки и комментарии
-                  </label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Например: Посылка в мешке с наклейкой 'AUTO', договорились на скидку"
-                    className="w-full h-16 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 resize-none"
-                  ></textarea>
+                {/* LIVE CALCULATION PREVIEW */}
+                <div className="p-3 sm:p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-1 text-xs text-slate-300">
+                  <div className="font-bold text-white uppercase text-[10px] tracking-wider mb-1 text-blue-400">📊 Предварительный расчет в реальном времени:</div>
+                  <div className="flex justify-between">
+                    <span>Общая стоимость товара (CNY):</span>
+                    <span className="font-mono text-white">¥ {(formData.quantity * formData.priceCny).toFixed(2)} CNY</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Стоимость товара в BYN (по курсу {formData.rateCnyByn}):</span>
+                    <span className="font-mono text-white">{(formData.quantity * formData.priceCny * formData.rateCnyByn).toFixed(2)} BYN</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Доставка по Китаю в BYN:</span>
+                    <span className="font-mono text-slate-400">{(formData.shippingChinaCny * formData.rateCnyByn).toFixed(2)} BYN</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-slate-800 font-bold">
+                    <span className="text-indigo-300">Итого с доставками в РБ:</span>
+                    <span className="font-mono text-indigo-300">
+                      {((formData.quantity * formData.priceCny * formData.rateCnyByn) + (formData.shippingChinaCny * formData.rateCnyByn) + Number(formData.shippingBelarusByn)).toFixed(2)} BYN
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-bold text-emerald-400">
+                    <span>Ориентировочная себестоимость за 1 шт:</span>
+                    <span className="font-mono">
+                      {(((formData.quantity * formData.priceCny * formData.rateCnyByn) + (formData.shippingChinaCny * formData.rateCnyByn) + Number(formData.shippingBelarusByn)) / (formData.quantity || 1)).toFixed(2)} BYN
+                    </span>
+                  </div>
                 </div>
 
               </div>
 
-              {/* LIVE CALCULATION PREVIEW */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-1.5 text-xs text-slate-300">
-                <div className="font-bold text-white uppercase text-[10px] tracking-wider mb-1 text-blue-400">📊 Предварительный расчет в реальном времени:</div>
-                <div className="flex justify-between">
-                  <span>Общая стоимость товара (CNY):</span>
-                  <span className="font-mono text-white">¥ {(formData.quantity * formData.priceCny).toFixed(2)} CNY</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Стоимость товара в BYN (по курсу {formData.rateCnyByn}):</span>
-                  <span className="font-mono text-white">{(formData.quantity * formData.priceCny * formData.rateCnyByn).toFixed(2)} BYN</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Доставка по Китаю в BYN:</span>
-                  <span className="font-mono text-slate-400">{(formData.shippingChinaCny * formData.rateCnyByn).toFixed(2)} BYN</span>
-                </div>
-                <div className="flex justify-between pt-1 border-t border-slate-800 font-bold">
-                  <span className="text-indigo-300">Итого с доставками в РБ:</span>
-                  <span className="font-mono text-indigo-300">
-                    {((formData.quantity * formData.priceCny * formData.rateCnyByn) + (formData.shippingChinaCny * formData.rateCnyByn) + Number(formData.shippingBelarusByn)).toFixed(2)} BYN
-                  </span>
-                </div>
-                <div className="flex justify-between font-bold text-emerald-400">
-                  <span>Ориентировочная себестоимость за 1 шт:</span>
-                  <span className="font-mono">
-                    {(((formData.quantity * formData.priceCny * formData.rateCnyByn) + (formData.shippingChinaCny * formData.rateCnyByn) + Number(formData.shippingBelarusByn)) / (formData.quantity || 1)).toFixed(2)} BYN
-                  </span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              {/* FIXED FOOTER with Action buttons */}
+              <div className="bg-slate-800 p-4 border-t border-slate-700/80 flex items-center justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold cursor-pointer transition-all"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-bold cursor-pointer transition-all"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black cursor-pointer shadow transition-all active:scale-95"
+                  className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black cursor-pointer shadow transition-all active:scale-95"
                 >
                   {editingOrder ? "Сохранить изменения" : "Добавить товар в базу"}
                 </button>
