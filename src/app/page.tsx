@@ -1357,7 +1357,7 @@ export default function OrderTracker() {
               </button>
               
               <button
-                onClick={loadOrders}
+                onClick={() => loadOrders()}
                 title="Обновить данные"
                 className="p-1.5 text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-lg transition-all"
               >
