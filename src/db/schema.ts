@@ -18,6 +18,7 @@ export const orders = pgTable("orders", {
   quantity: integer("quantity").notNull().default(1),
   priceCny: doublePrecision("price_cny").notNull().default(0),
   shippingChinaCny: doublePrecision("shipping_china_cny").default(0),
+  shippingChinaUsd: doublePrecision("shipping_china_usd").default(0),
   shippingBelarusByn: doublePrecision("shipping_belarus_byn").default(0),
   rateCnyByn: doublePrecision("rate_cny_byn").notNull().default(0.48),
   weight: doublePrecision("weight").default(0),
