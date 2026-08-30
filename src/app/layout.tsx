@@ -13,6 +13,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="antialiased">
         {children}
         <script src="/shipping.js" />
+        <script src="/shipping-fixes.js" />
       </body>
     </html>
   );
