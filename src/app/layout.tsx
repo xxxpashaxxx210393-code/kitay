@@ -5,7 +5,7 @@ import "./cargo-ui.css";
 
 export const metadata: Metadata = {
   title: "КАРГО-КОНТРОЛЬ 🇨🇳 ➔ 🇧🇾 Трекер заказов из Китая",
-  description: "Простое и быстрое управление заказами, трек-номерами и авторасчет себестоимости в РБ",
+  description: "Простое и быстрое управление заказами, трек-номеров и авторасчет себестоимости в РБ",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -15,6 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {children}
         <script src="/shipping.js" />
         <script src="/unified-theme.js" />
+        <script src="/mobile-fixes.js" />
       </body>
     </html>
   );
