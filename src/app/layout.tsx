@@ -13,10 +13,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru">
       <body className="antialiased">
         {children}
-        <script src="/shipping.js" />
+        <script src="/shipping.js?v=20260831-2" />
         <script src="/unified-theme.js" />
-        <script src="/mobile-fixes.js" />
-        <script src="/mobile-fixes-override.js" />
+        <script src="/mobile-fixes.js?v=20260831-2" />
       </body>
     </html>
   );
