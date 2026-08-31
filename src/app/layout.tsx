@@ -16,6 +16,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script src="/shipping.js" />
         <script src="/unified-theme.js" />
         <script src="/mobile-fixes.js" />
+        <script src="/mobile-fixes-override.js" />
       </body>
     </html>
   );
