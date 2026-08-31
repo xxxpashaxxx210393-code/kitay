@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { db, ensureDatabase } from "@/db";
 import { orders } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 
@@ -29,10 +29,10 @@ function mapLegacyOrder(r: any) {
 
 export async function GET(req: Request) {
   try {
+    await ensureDatabase();
     const url = new URL(req.url);
     const projectId = Number(url.searchParams.get("projectId") || 1);
 
-    // Normal read when the current production schema has project_id.
     try {
       const list = await db
         .select()
@@ -40,9 +40,6 @@ export async function GET(req: Request) {
         .where(eq(orders.projectId, projectId))
         .orderBy(desc(orders.id));
 
-      // If the projects table was lost/reset and the UI is using the fallback
-      // project 1, do not hide existing orders just because their old project_id
-      // points elsewhere. Recover the complete historical list instead.
       if (list.length === 0 && projectId === 1) {
         const raw = await db.execute(sql`SELECT * FROM "orders" ORDER BY "id" DESC`);
         return NextResponse.json({
@@ -54,9 +51,6 @@ export async function GET(req: Request) {
 
       return NextResponse.json({ success: true, data: list });
     } catch (schemaError: any) {
-      // Compatibility with an older orders table that has no project_id or
-      // one of the newer columns. A read failure must never turn real data into
-      // an empty list on the phone.
       console.error("Project-filtered orders query failed, using legacy read:", schemaError);
       const raw = await db.execute(sql`SELECT * FROM "orders" ORDER BY "id" DESC`);
       const all = (raw as any).rows.map(mapLegacyOrder);
@@ -71,24 +65,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    await ensureDatabase();
     const body = await req.json();
     const {
-      projectId,
-      name,
-      imageUrl,
-      itemUrl,
-      forWhom,
-      trackNumber,
-      status,
-      quantity,
-      priceCny,
-      shippingChinaCny,
-      shippingBelarusByn,
-      rateCnyByn,
-      weight,
-      plannedDate,
-      receivedDate,
-      notes
+      projectId, name, imageUrl, itemUrl, forWhom, trackNumber, status,
+      quantity, priceCny, shippingChinaCny, shippingBelarusByn,
+      rateCnyByn, weight, plannedDate, receivedDate, notes
     } = body;
 
     if (!name) {
@@ -123,6 +105,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    await ensureDatabase();
     const url = new URL(req.url);
     const projectId = Number(url.searchParams.get("projectId") || 1);
     await db.delete(orders).where(eq(orders.projectId, projectId));
