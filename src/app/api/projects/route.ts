@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { db, ensureDatabase } from "@/db";
 import { projects, orders } from "@/db/schema";
 import { asc, eq } from "drizzle-orm";
 
@@ -7,12 +7,11 @@ const DEFAULT_PROJECT = { id: 1, name: "Китай — основной прое
 
 export async function GET() {
   try {
+    await ensureDatabase();
     const rows = await db.select().from(projects).orderBy(asc(projects.id));
     if (rows.length > 0) return NextResponse.json({ success: true, data: rows });
     return NextResponse.json({ success: true, data: [DEFAULT_PROJECT] });
   } catch (e: any) {
-    // The projects table may be missing in an older production database.
-    // Do not block the whole application or make the orders disappear.
     console.error("GET /api/projects:", e);
     return NextResponse.json({ success: true, data: [DEFAULT_PROJECT], fallback: true });
   }
@@ -20,18 +19,20 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    await ensureDatabase();
     const { name } = await req.json();
     if (!name?.trim()) return NextResponse.json({ success: false, error: "Название проекта обязательно" }, { status: 400 });
     const created = await db.insert(projects).values({ name: name.trim() }).returning();
     return NextResponse.json({ success: true, data: created[0] });
   } catch (e: any) {
     console.error("POST /api/projects:", e);
-    return NextResponse.json({ success: false, error: "Таблица проектов недоступна. Основной проект продолжает работать." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Не удалось создать проект" }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request) {
   try {
+    await ensureDatabase();
     const { id, name } = await req.json();
     if (!id || !name?.trim()) return NextResponse.json({ success: false, error: "Неверные данные" }, { status: 400 });
     const updated = await db.update(projects).set({ name: name.trim() }).where(eq(projects.id, Number(id))).returning();
@@ -44,6 +45,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    await ensureDatabase();
     const { id } = await req.json();
     const pid = Number(id);
     if (!pid) return NextResponse.json({ success: false, error: "Неверный проект" }, { status: 400 });
