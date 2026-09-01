@@ -18,8 +18,6 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { ensureDatabase } = await import("@/db");
-    await ensureDatabase();
     const { name } = await req.json();
     if (!name?.trim()) return NextResponse.json({ success: false, error: "Название проекта обязательно" }, { status: 400 });
     const created = await db.insert(projects).values({ name: name.trim() }).returning();
@@ -32,8 +30,6 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const { ensureDatabase } = await import("@/db");
-    await ensureDatabase();
     const { id, name } = await req.json();
     if (!id || !name?.trim()) return NextResponse.json({ success: false, error: "Неверные данные" }, { status: 400 });
     const updated = await db.update(projects).set({ name: name.trim() }).where(eq(projects.id, Number(id))).returning();
@@ -46,8 +42,6 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { ensureDatabase } = await import("@/db");
-    await ensureDatabase();
     const { id } = await req.json();
     const pid = Number(id);
     if (!pid) return NextResponse.json({ success: false, error: "Неверный проект" }, { status: 400 });
