@@ -41,8 +41,6 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { ensureDatabase } = await import("@/db");
-    await ensureDatabase();
     const body = await req.json();
     const { projectId, name, imageUrl, itemUrl, forWhom, trackNumber, status, quantity, priceCny, shippingChinaCny, shippingChinaUsd, shippingBelarusByn, rateCnyByn, weight, plannedDate, receivedDate, notes } = body;
     if (!name) return NextResponse.json({ success: false, error: "Название товара обязательно" }, { status: 400 });
@@ -65,8 +63,6 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { ensureDatabase } = await import("@/db");
-    await ensureDatabase();
     const projectId = Number(new URL(req.url).searchParams.get("projectId") || 1);
     await db.delete(orders).where(eq(orders.projectId, projectId));
     return NextResponse.json({ success: true, message: "Все товары успешно удалены из базы" });
