@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, ensureDatabase } from "@/db";
+import { db } from "@/db";
 import { projects, orders } from "@/db/schema";
 import { asc, eq } from "drizzle-orm";
 
@@ -7,7 +7,6 @@ const DEFAULT_PROJECT = { id: 1, name: "Китай — основной прое
 
 export async function GET() {
   try {
-    await ensureDatabase();
     const rows = await db.select().from(projects).orderBy(asc(projects.id));
     if (rows.length > 0) return NextResponse.json({ success: true, data: rows });
     return NextResponse.json({ success: true, data: [DEFAULT_PROJECT] });
@@ -19,6 +18,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const { ensureDatabase } = await import("@/db");
     await ensureDatabase();
     const { name } = await req.json();
     if (!name?.trim()) return NextResponse.json({ success: false, error: "Название проекта обязательно" }, { status: 400 });
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    const { ensureDatabase } = await import("@/db");
     await ensureDatabase();
     const { id, name } = await req.json();
     if (!id || !name?.trim()) return NextResponse.json({ success: false, error: "Неверные данные" }, { status: 400 });
@@ -45,6 +46,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const { ensureDatabase } = await import("@/db");
     await ensureDatabase();
     const { id } = await req.json();
     const pid = Number(id);
