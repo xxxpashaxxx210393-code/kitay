@@ -13,9 +13,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru">
       <body className="antialiased">
         {children}
-        <script src="/shipping.js?v=20260831-2" />
-        <script src="/unified-theme.js" />
-        <script src="/mobile-fixes.js?v=20260831-2" />
+        <script src="/shipping.js?v=20260903-1" />
+        <script src="/unified-theme.js?v=20260903-1" />
+        <script src="/mobile-fixes.js?v=20260903-1" />
+        <script src="/cargo-fix.js?v=20260903-1" />
       </body>
     </html>
   );
