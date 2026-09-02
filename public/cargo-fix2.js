@@ -1,0 +1,1 @@
+(function(){'use strict';function clean(){const main=document.getElementById('cargo-fix-rates');const original=document.getElementById('cargo-rates');if(main&&original)main.remove();const old=document.getElementById('cargo-usd-settings');if(old&&original)old.remove()}clean();new MutationObserver(clean).observe(document.body,{childList:true,subtree:true});})();
