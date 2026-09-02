@@ -1,173 +1,35 @@
-(function () {
-  const USD_PER_KG_KEY = "cargo_shipping_usd_per_kg";
-  const USD_BYN_KEY = "cargo_usd_byn_rate";
-  const DEFAULT_USD_PER_KG = 5.5;
-  const STYLE_ID = "cargo-polish-v3";
-  let modal;
-  let observerTimer;
-
-  const getNum = (key, fallback) => {
-    const n = Number(localStorage.getItem(key));
-    return Number.isFinite(n) && n >= 0 ? n : fallback;
-  };
-  const usdPerKg = () => getNum(USD_PER_KG_KEY, DEFAULT_USD_PER_KG);
-
-  function injectStyle() {
-    if (document.getElementById(STYLE_ID)) return;
-    const style = document.createElement("style");
-    style.id = STYLE_ID;
-    style.textContent = `
-      body { background:#f5f7fb !important; color:#172033 !important; overflow-x:hidden !important; }
-      main { max-width:1600px !important; min-width:0 !important; }
-      #cargo-usd-settings { display:none !important; }
-      table { width:100% !important; max-width:100% !important; min-width:0 !important; table-layout:fixed !important; border-collapse:separate !important; border-spacing:0 !important; }
-      table thead th { height:38px !important; padding:7px 6px !important; background:#eef3fa !important; color:#53627a !important; border-bottom:1px solid #dbe3ef !important; font-size:10px !important; font-weight:800 !important; white-space:nowrap !important; }
-      table tbody tr { height:62px !important; }
-      table tbody td { height:62px !important; padding:6px !important; background:#fff !important; color:#253149 !important; border-bottom:1px solid #edf1f6 !important; vertical-align:middle !important; overflow:hidden !important; box-sizing:border-box !important; }
-      table tbody tr:hover td { background:#f8fbff !important; }
-      table tbody td input, table tbody td select { width:100% !important; max-width:100% !important; box-sizing:border-box !important; height:31px !important; min-height:31px !important; border:1px solid #d6deea !important; border-radius:7px !important; background:#fff !important; color:#172033 !important; box-shadow:none !important; font-size:10px !important; font-weight:600 !important; }
-      table tbody td input:focus, table tbody td select:focus { outline:none !important; border-color:#6b8cff !important; box-shadow:0 0 0 2px rgba(107,140,255,.12) !important; }
-      table tbody td:nth-child(1), table thead th:nth-child(1) { width:28px !important; text-align:center !important; }
-      table tbody td:nth-child(2), table thead th:nth-child(2) { width:62px !important; text-align:center !important; }
-      table tbody td:nth-child(3), table thead th:nth-child(3) { width:auto !important; }
-      table tbody td:nth-child(4), table thead th:nth-child(4) { width:100px !important; }
-      table tbody td:nth-child(5), table thead th:nth-child(5) { width:120px !important; }
-      table tbody td:nth-child(6), table thead th:nth-child(6) { width:130px !important; }
-      table tbody td:nth-child(7), table thead th:nth-child(7) { width:58px !important; }
-      table tbody td:nth-child(8), table thead th:nth-child(8) { width:82px !important; }
-      table tbody td:nth-child(9), table thead th:nth-child(9) { width:78px !important; }
-      table tbody td:nth-child(10), table thead th:nth-child(10) { width:108px !important; }
-      table tbody td:nth-child(11), table thead th:nth-child(11) { width:65px !important; }
-      table tbody td:nth-child(12), table thead th:nth-child(12) { width:62px !important; }
-      table tbody td:nth-child(3) { overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; }
-      table tbody td:nth-child(3) a { max-width:100% !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; }
-      table tbody td:nth-child(12) { white-space:nowrap !important; }
-      table tbody td:nth-child(12) button { margin:0 1px !important; padding:3px !important; }
-      table tbody td img { display:block !important; width:48px !important; height:48px !important; max-width:48px !important; object-fit:contain !important; margin:auto !important; border-radius:9px !important; border:1px solid #e1e7f0 !important; background:#fff !important; cursor:zoom-in !important; }
-      #cargo-photo-modal { position:fixed; inset:0; z-index:2147483647; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.60); backdrop-filter:blur(4px); }
-      #cargo-photo-modal[hidden] { display:none !important; }
-      #cargo-photo-modal .cargo-photo-card { position:relative; width:min(620px,94vw); height:min(680px,88vh); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:14px; background:#fff; border:1px solid #e1e7f0; border-radius:18px; box-shadow:0 25px 80px rgba(15,23,42,.28); box-sizing:border-box; }
-      #cargo-photo-modal img { display:block; max-width:100%; max-height:calc(100% - 34px); object-fit:contain; border-radius:11px; }
-      #cargo-photo-modal button { position:absolute; top:9px; right:9px; width:34px; height:34px; border:0; border-radius:50%; background:#f1f5f9; color:#334155; font-size:22px; line-height:1; cursor:pointer; z-index:2; }
-      #cargo-photo-title { width:100%; box-sizing:border-box; padding:8px 4px 0; font:700 12px sans-serif; color:#475569; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      @media (max-width:900px) {
-        main { padding-left:10px !important; padding-right:10px !important; }
-        table thead th { font-size:9px !important; padding:6px 4px !important; }
-        table tbody td { padding:5px 4px !important; }
-        table tbody td:nth-child(5), table thead th:nth-child(5), table tbody td:nth-child(8), table thead th:nth-child(8), table tbody td:nth-child(9), table thead th:nth-child(9), table tbody td:nth-child(10), table thead th:nth-child(10), table tbody td:nth-child(11), table thead th:nth-child(11) { display:none !important; }
-        table tbody td:nth-child(1), table thead th:nth-child(1) { width:26px !important; }
-        table tbody td:nth-child(2), table thead th:nth-child(2) { width:52px !important; }
-        table tbody td:nth-child(3), table thead th:nth-child(3) { width:auto !important; }
-        table tbody td:nth-child(4), table thead th:nth-child(4) { width:82px !important; }
-        table tbody td:nth-child(6), table thead th:nth-child(6) { width:108px !important; }
-        table tbody td:nth-child(7), table thead th:nth-child(7) { width:46px !important; }
-        table tbody td:nth-child(12), table thead th:nth-child(12) { width:54px !important; }
-        table tbody tr, table tbody td { height:58px !important; }
-        table tbody td img { width:42px !important; height:42px !important; max-width:42px !important; }
-        table tbody td input, table tbody td select { height:29px !important; min-height:29px !important; font-size:9px !important; padding:3px 4px !important; }
-      }
-      @media (max-width:560px) {
-        main { width:100% !important; padding:7px !important; }
-        table tbody td:nth-child(1), table thead th:nth-child(1) { display:none !important; }
-        table tbody td:nth-child(2), table thead th:nth-child(2) { width:46px !important; }
-        table tbody td:nth-child(4), table thead th:nth-child(4) { width:72px !important; }
-        table tbody td:nth-child(6), table thead th:nth-child(6) { width:88px !important; }
-        table tbody td:nth-child(7), table thead th:nth-child(7) { width:40px !important; }
-        table tbody td:nth-child(12), table thead th:nth-child(12) { width:42px !important; }
-        table tbody tr, table tbody td { height:54px !important; }
-        table tbody td img { width:38px !important; height:38px !important; }
-        table tbody td:nth-child(3) { font-size:9px !important; }
-        table tbody td:nth-child(12) button { padding:2px !important; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function ensurePhotoModal() {
-    if (modal) return modal;
-    modal = document.createElement("div");
-    modal.id = "cargo-photo-modal";
-    modal.hidden = true;
-    modal.innerHTML = '<div class="cargo-photo-card"><button type="button" aria-label="Закрыть">×</button><img alt="Фото товара"><div id="cargo-photo-title"></div></div>';
-    document.body.appendChild(modal);
-    const close = () => { modal.hidden = true; };
-    modal.querySelector("button").addEventListener("click", close);
-    modal.addEventListener("click", e => { if (e.target === modal) close(); });
-    document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
-    return modal;
-  }
-
-  function bindPhotoZoom() {
-    ensurePhotoModal();
-    document.querySelectorAll("table tbody img").forEach(img => {
-      if (img.dataset.cargoZoom === "1") return;
-      if (!img.src) return;
-      img.dataset.cargoZoom = "1";
-      img.title = "Нажмите, чтобы увеличить";
-      img.addEventListener("click", e => {
-        e.preventDefault();
-        e.stopPropagation();
-        const big = modal.querySelector("img");
-        big.src = img.currentSrc || img.src;
-        modal.querySelector("#cargo-photo-title").textContent = img.alt || "Фото товара";
-        modal.hidden = false;
-      });
-    });
-  }
-
-  function hideDuplicateSettings() {
-    const box = document.getElementById("cargo-usd-settings");
-    if (box) box.remove();
-  }
-
-  function patchFetch() {
-    if (window.__cargoUsdFetchPatchedV3) return;
-    window.__cargoUsdFetchPatchedV3 = true;
-    const original = window.fetch.bind(window);
-    window.fetch = function(input, init) {
-      try {
-        const url = typeof input === "string" ? input : input.url;
-        const method = (init?.method || (typeof input !== "string" ? input.method : "GET") || "GET").toUpperCase();
-        if (url.includes("/api/orders") && (method === "POST" || method === "PUT") && init?.body) {
-          const payload = JSON.parse(init.body);
-          if (payload && payload.weight !== undefined && payload.shippingChinaUsd === undefined) {
-            payload.shippingChinaUsd = Number((Number(payload.weight || 0) * usdPerKg()).toFixed(2));
-            init = { ...init, body: JSON.stringify(payload) };
-          }
-        }
-      } catch {}
-      return original(input, init);
-    };
-  }
-
-  function refresh() {
-    injectStyle();
-    hideDuplicateSettings();
-    patchFetch();
-    bindPhotoZoom();
-    const table = Array.from(document.querySelectorAll("table")).find(t => {
-      const text = (t.textContent || "").toLowerCase();
-      return text.includes("трек-номер китая") && text.includes("статус");
-    });
-    if (table) {
-      table.style.width = "100%";
-      table.style.maxWidth = "100%";
-      table.style.minWidth = "0";
-      table.style.tableLayout = "fixed";
-    }
-  }
-
-  function start() {
-    refresh();
-    if (!window.__cargoPolishObserverV3 && document.body) {
-      window.__cargoPolishObserverV3 = new MutationObserver(() => {
-        clearTimeout(observerTimer);
-        observerTimer = setTimeout(refresh, 300);
-      });
-      window.__cargoPolishObserverV3.observe(document.body, { childList:true, subtree:true });
-    }
-  }
-
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
-  else start();
+(function(){
+const KG='cargo_shipping_usd_per_kg',USD='cargo_usd_byn_rate',API='/api/orders/inline',DEFKG=5.5,DEFUSD=3.25;
+const num=(k,d)=>{const v=Number(localStorage.getItem(k));return Number.isFinite(v)&&v>=0?v:d},kg=()=>num(KG,DEFKG),usd=()=>num(USD,DEFUSD),money=v=>(Number(v)||0).toFixed(2);let timer;
+function style(){if(document.getElementById('cargo-ui-v8'))return;const s=document.createElement('style');s.id='cargo-ui-v8';s.textContent=`
+body{overflow-x:hidden!important;background:#f5f7fb!important;color:#172033!important}main{min-width:0!important;max-width:1600px!important}
+.cargo-table-wrap{background:#fff!important;border:1px solid #dfe6ef!important;border-radius:14px!important;box-shadow:0 8px 30px rgba(15,23,42,.06)!important;overflow:hidden!important}
+table.cargo-table{width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#fff!important}
+table.cargo-table thead th{height:44px!important;padding:7px 5px!important;background:#f1f5fa!important;color:#5d6c82!important;border-bottom:1px solid #dbe3ee!important;font:800 9px/1.15 Inter,system-ui,sans-serif!important;letter-spacing:.03em!important;text-transform:uppercase!important;white-space:normal!important}
+table.cargo-table tbody tr{height:64px!important}table.cargo-table tbody td{height:64px!important;padding:6px 5px!important;background:#fff!important;color:#26344a!important;border-bottom:1px solid #edf1f5!important;vertical-align:middle!important;overflow:hidden!important;box-sizing:border-box!important}table.cargo-table tbody tr:hover td{background:#f8fbff!important}
+table.cargo-table input,table.cargo-table select{width:100%!important;max-width:100%!important;height:32px!important;box-sizing:border-box!important;border:1px solid #d4deea!important;border-radius:8px!important;background:#fff!important;color:#172033!important;padding:5px 6px!important;font:600 10px/1 Inter,system-ui,sans-serif!important;outline:none!important}table.cargo-table input:focus,table.cargo-table select:focus{border-color:#6b8cff!important;box-shadow:0 0 0 3px rgba(107,140,255,.12)!important}table.cargo-table input[type=number]{text-align:right!important;font-variant-numeric:tabular-nums!important}
+table.cargo-table tbody td img{display:block!important;width:50px!important;height:50px!important;max-width:50px!important;margin:auto!important;object-fit:contain!important;border:1px solid #dfe6ef!important;border-radius:10px!important;background:#fff!important;cursor:zoom-in!important}.cargo-name{font:750 12px/1.25 Inter,system-ui,sans-serif!important;color:#172033!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.cargo-value{display:flex!important;align-items:center!important;justify-content:flex-end!important;min-height:30px!important;color:#26344a!important;font:700 11px/1 Inter,system-ui,sans-serif!important;font-variant-numeric:tabular-nums!important;white-space:nowrap!important}.cargo-ship-cell{padding:5px!important}.cargo-ship-byn{margin-top:3px!important;color:#55708f!important;font:700 9px/1 Inter,system-ui,sans-serif!important;text-align:right!important}.cargo-total-cell{background:#f5f9ff!important}.cargo-total-cell .cargo-value{color:#205ba7!important;font-size:12px!important}
+#cargo-rates{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;margin-left:8px!important;padding:5px 9px!important;background:#fff!important;border:1px solid #dbe4ef!important;border-radius:10px!important;box-shadow:0 2px 8px rgba(15,23,42,.05)!important;color:#64748b!important;font:700 9px/1 Inter,system-ui,sans-serif!important}#cargo-rates .pill{padding:5px 7px!important;background:#f5f8fc!important;border-radius:7px!important}#cargo-rates b{color:#2459a6!important}#cargo-rates input{width:62px!important;height:26px!important;border:1px solid #d4deea!important;border-radius:7px!important;text-align:center!important;font:800 10px/1 Inter,system-ui,sans-serif!important;color:#172033!important;background:#fff!important}
+#cargo-photo-modal{position:fixed!important;inset:0!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:18px!important;background:rgba(15,23,42,.62)!important;backdrop-filter:blur(4px)!important}#cargo-photo-modal[hidden]{display:none!important}#cargo-photo-modal .card{position:relative!important;width:min(620px,94vw)!important;height:min(700px,88vh)!important;padding:14px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;background:#fff!important;border-radius:18px!important;box-shadow:0 25px 80px rgba(15,23,42,.3)!important;box-sizing:border-box!important}#cargo-photo-modal img{max-width:100%!important;max-height:calc(100% - 34px)!important;object-fit:contain!important;border-radius:11px!important}#cargo-photo-modal button{position:absolute!important;right:9px!important;top:9px!important;width:34px!important;height:34px!important;border:0!important;border-radius:50%!important;background:#eef2f7!important;color:#334155!important;font-size:22px!important;cursor:pointer!important}
+table.cargo-table th:nth-child(1),table.cargo-table td:nth-child(1){width:30px!important;text-align:center!important}table.cargo-table th:nth-child(2),table.cargo-table td:nth-child(2){width:62px!important}table.cargo-table th:nth-child(3),table.cargo-table td:nth-child(3){width:175px!important}table.cargo-table th:nth-child(4),table.cargo-table td:nth-child(4){width:92px!important}table.cargo-table th:nth-child(5),table.cargo-table td:nth-child(5){width:112px!important}table.cargo-table th:nth-child(6),table.cargo-table td:nth-child(6){width:125px!important}table.cargo-table th:nth-child(7),table.cargo-table td:nth-child(7){width:52px!important}table.cargo-table th:nth-child(8),table.cargo-table td:nth-child(8){width:78px!important}table.cargo-table th:nth-child(9),table.cargo-table td:nth-child(9){width:82px!important}table.cargo-table th:nth-child(10),table.cargo-table td:nth-child(10){width:62px!important}table.cargo-table th:nth-child(11),table.cargo-table td:nth-child(11){width:78px!important}table.cargo-table th:nth-child(12),table.cargo-table td:nth-child(12){width:90px!important}table.cargo-table th:nth-child(13),table.cargo-table td:nth-child(13){width:92px!important}table.cargo-table th:nth-child(14),table.cargo-table td:nth-child(14){width:92px!important}table.cargo-table th:nth-child(15),table.cargo-table td:nth-child(15){width:100px!important}table.cargo-table th:nth-child(16),table.cargo-table td:nth-child(16){width:76px!important}table.cargo-table th:nth-child(17),table.cargo-table td:nth-child(17){width:62px!important}table.cargo-table th:nth-child(18),table.cargo-table td:nth-child(18){width:60px!important}table.cargo-table th:nth-child(19),table.cargo-table td:nth-child(19){width:62px!important}
+@media(max-width:1150px){table.cargo-table th:nth-child(10),table.cargo-table td:nth-child(10),table.cargo-table th:nth-child(11),table.cargo-table td:nth-child(11),table.cargo-table th:nth-child(18),table.cargo-table td:nth-child(18){display:none!important}}
+@media(max-width:760px){#cargo-rates{margin:6px 0!important;width:100%!important;justify-content:center!important}table.cargo-table th:nth-child(1),table.cargo-table td:nth-child(1),table.cargo-table th:nth-child(4),table.cargo-table td:nth-child(4),table.cargo-table th:nth-child(5),table.cargo-table td:nth-child(5),table.cargo-table th:nth-child(8),table.cargo-table td:nth-child(8),table.cargo-table th:nth-child(9),table.cargo-table td:nth-child(9),table.cargo-table th:nth-child(13),table.cargo-table td:nth-child(13),table.cargo-table th:nth-child(14),table.cargo-table td:nth-child(14),table.cargo-table th:nth-child(16),table.cargo-table td:nth-child(16),table.cargo-table th:nth-child(17),table.cargo-table td:nth-child(17),table.cargo-table th:nth-child(18),table.cargo-table td:nth-child(18){display:none!important}table.cargo-table th:nth-child(2),table.cargo-table td:nth-child(2){width:56px!important}table.cargo-table th:nth-child(6),table.cargo-table td:nth-child(6){width:108px!important}table.cargo-table th:nth-child(7),table.cargo-table td:nth-child(7){width:48px!important}table.cargo-table th:nth-child(12),table.cargo-table td:nth-child(12){width:84px!important}table.cargo-table th:nth-child(15),table.cargo-table td:nth-child(15){width:88px!important}table.cargo-table th:nth-child(19),table.cargo-table td:nth-child(19){width:48px!important}table.cargo-table tbody tr,table.cargo-table tbody td{height:60px!important}table.cargo-table tbody td img{width:44px!important;height:44px!important}}
+@media(max-width:480px){table.cargo-table th,table.cargo-table td{padding-left:3px!important;padding-right:3px!important}table.cargo-table th:nth-child(7),table.cargo-table td:nth-child(7),table.cargo-table th:nth-child(15),table.cargo-table td:nth-child(15){display:none!important}}
+`;document.head.appendChild(s)}
+function table(){return Array.from(document.querySelectorAll('table')).find(t=>{const x=(t.textContent||'').toLowerCase();return x.includes('трек-номер китая')&&x.includes('статус')})}
+function headers(t){const h=[...t.querySelectorAll('thead th')],m={};h.forEach((x,i)=>m[(x.textContent||'').replace(/\s+/g,' ').trim().toLowerCase()]=i);const ix=a=>{for(const q of a)if(m[q.toLowerCase()]!==undefined)return m[q.toLowerCase()];return-1};return{h,name:ix(['название товара','товар']),whom:ix(['для кого']),track:ix(['трек-номер китая','трек']),status:ix(['статус доставки (клик для смены)','статус']),qty:ix(['кол-во']),price:ix(['цена за ед., cny']),totalCny:ix(['общая стоимость, cny']),rate:ix(['курс byn']),unitByn:ix(['цена за ед., byn']),totalByn:ix(['общая стоимость, byn']),china:ix(['дост. с (cny)','дост. с','кит→рб, $']),rb:ix(['дост. в (byn)','дост. рб']),total:ix(['итого с доставкой, byn']),unitCost:ix(['себест. 1 ед., byn']),weight:ix(['вес (кг)','вес']),date:ix(['срок / дата']),actions:ix(['действия'])}}
+function photo(){let m=document.getElementById('cargo-photo-modal');if(m)return m;m=document.createElement('div');m.id='cargo-photo-modal';m.hidden=true;m.innerHTML='<div class="card"><button type="button">×</button><img alt="Фото товара"></div>';document.body.appendChild(m);const close=()=>m.hidden=true;m.querySelector('button').onclick=close;m.onclick=e=>{if(e.target===m)close()};document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});return m}
+function zoom(){const m=photo();document.querySelectorAll('table tbody img').forEach(i=>{if(i.dataset.zoom||!i.src||i.src.includes('unsplash'))return;i.dataset.zoom='1';i.onclick=e=>{e.preventDefault();e.stopPropagation();m.querySelector('img').src=i.currentSrc||i.src;m.hidden=false}})}
+function values(r,i){const v=k=>i[k]>=0?(r.children[i[k]]?.querySelector('input,select')?.value||''):'';return{q:+v('qty')||1,p:+v('price')||0,w:+v('weight')||0,c:+v('china')||0,b:+v('rb')||0}}
+function calc(r,i){const v=values(r,i),rate=num('cargo_cny_byn_rate',.48),tc=v.q*v.p,tb=tc*rate,cb=v.c*usd(),tot=tb+cb+v.b,unit=tot/v.q;const put=(k,text,cls)=>{if(i[k]<0||!r.children[i[k]])return;const c=r.children[i[k]];let e=c.querySelector('.cargo-value');if(!e){c.innerHTML='<div class="cargo-value"></div>';e=c.querySelector('.cargo-value')}e.textContent=text;if(cls)c.classList.add(cls)};put('totalCny',money(tc)+' ¥');put('unitByn',money(v.p*rate)+' BYN');put('totalByn',money(tb)+' BYN');put('total',money(tot)+' BYN','cargo-total-cell');put('unitCost',money(unit)+' BYN');if(i.china>=0){const c=r.children[i.china];let s=c.querySelector('.cargo-ship-byn');if(!s){s=document.createElement('div');s.className='cargo-ship-byn';c.appendChild(s)}s.textContent='≈ '+money(cb)+' BYN';c.classList.add('cargo-ship-cell')}}
+async function save(id,field,value,input,i){const nf=['quantity','priceCny','weight','shippingBelarusByn','shippingChinaUsd','rateCnyByn'];const val=nf.includes(field)?(+value||0):String(value??'');try{const r=await fetch(API,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,field,value:val})});const j=await r.json();if(!j.success)throw Error(j.error||'Ошибка');input.style.borderColor='#20a874';setTimeout(()=>input.style.borderColor='',700);calc(input.closest('tr'),i);const p=localStorage.getItem('cargo_current_project')||'1';sessionStorage.removeItem('cargo_orders_cache_'+p)}catch(e){console.error(e);input.style.borderColor='#ef4444'}}
+function inp(c,id,f,val,type,i){c.innerHTML='';const x=document.createElement(type==='select'?'select':'input');if(type==='select'){['В пути на склад Китая','На складе в Китае','Едет в РБ','Прибыло в РБ','Выдано / Получено'].forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;if(s===val)o.selected=true;x.appendChild(o)});x.onchange=()=>save(id,f,x.value,x,i)}else{x.type=type||'text';x.value=val??'';if(type==='number'){x.min='0';x.step='0.01'}x.onkeydown=e=>{if(e.key==='Enter')x.blur()};x.oninput=()=>calc(x.closest('tr'),i);x.onblur=()=>save(id,f,x.value,x,i)}x.title='Сохраняется после выхода из поля';c.appendChild(x);return x}
+function peopleInput(c,id,val,people,i){const x=inp(c,id,'forWhom',val,'text',i);x.setAttribute('list','cargo-people');let d=document.getElementById('cargo-people');if(!d){d=document.createElement('datalist');d.id='cargo-people';document.body.appendChild(d)}const have=new Set([...d.options].map(o=>o.value));people.forEach(p=>{if(!have.has(p)){const o=document.createElement('option');o.value=p;d.appendChild(o)}})}
+function findProject(){const s=[...document.querySelectorAll('select')].find(x=>[...x.options].some(o=>(o.textContent||'').includes('Китай')));return s?.value||localStorage.getItem('cargo_current_project')||'1'}
+async function orders(){try{const p=findProject(),key='cargo_orders_cache_'+p,c=sessionStorage.getItem(key);if(c){const q=JSON.parse(c);if(Date.now()-q.ts<60000)return q.data||[]}const r=await fetch('/api/orders?projectId='+p+'&includeImages=0',{cache:'no-store'}),j=await r.json(),d=j.success?(j.data||[]):[];try{sessionStorage.setItem(key,JSON.stringify({ts:Date.now(),data:d}))}catch{}return d}catch{return[]}}
+function rates(){if(document.getElementById('cargo-rates'))return;const bs=[...document.querySelectorAll('button')],a=bs.find(b=>(b.textContent||'').includes('Изменить курс'))||bs.find(b=>(b.textContent||'').includes('Экспорт'));if(!a?.parentElement)return;const x=document.createElement('div');x.id='cargo-rates';x.innerHTML='<span class="pill">CNY→BYN <b>'+money(num('cargo_cny_byn_rate',.48))+'</b></span><label>$ / кг <input id="cargo-kg" type="number" min="0" step=".01"></label><label>USD→BYN <input id="cargo-usd" type="number" min="0" step=".0001"></label>';a.parentElement.appendChild(x);const k=x.querySelector('#cargo-kg'),u=x.querySelector('#cargo-usd');k.value=kg();u.value=usd();k.onchange=()=>{localStorage.setItem(KG,k.value);recalc()};u.onchange=()=>{localStorage.setItem(USD,u.value);recalc()}}
+function recalc(){const t=table();if(!t)return;const i=headers(t);t.querySelectorAll('tbody tr[data-order-id]').forEach(r=>calc(r,i))}
+async function install(){const t=table();if(!t||t.dataset.cargoReady)return;t.classList.add('cargo-table');t.parentElement?.classList.add('cargo-table-wrap');const i=headers(t);[i.rate,i.unitByn,i.date].forEach(k=>{if(k>=0){i.h[k].style.display='none';t.querySelectorAll('tbody tr>td:nth-child('+(k+1)+'),tfoot tr>td:nth-child('+(k+1)+')').forEach(c=>c.style.display='none')}});if(i.china>=0){i.h[i.china].textContent='Кит→РБ, $';i.h[i.china].title='Вес × тариф $/кг. Можно изменить вручную.'}const data=await orders(),ps=[...new Set(data.map(o=>o.forWhom).filter(Boolean))];t.querySelectorAll('tbody tr').forEach(r=>{if(r.dataset.cargoEnhanced)return;const c=[...r.children],track=i.track>=0?(c[i.track]?.textContent||'').trim():'',name=i.name>=0?(c[i.name]?.textContent||'').replace(/ссылка.*$/i,'').replace(/\s+/g,' ').trim():'';const o=data.find(x=>track&&x.trackNumber===track)||data.find(x=>name&&(x.name||'').replace(/\s+/g,' ').trim()===name);if(!o)return;r.dataset.cargoEnhanced='1';r.dataset.orderId=o.id;if(i.track>=0)inp(c[i.track],o.id,'trackNumber',o.trackNumber||'','text',i);if(i.whom>=0)peopleInput(c[i.whom],o.id,o.forWhom||'',ps,i);if(i.status>=0)inp(c[i.status],o.id,'status',o.status,'select',i);if(i.qty>=0)inp(c[i.qty],o.id,'quantity',o.quantity||1,'number',i);if(i.price>=0)inp(c[i.price],o.id,'priceCny',o.priceCny||0,'number',i);if(i.weight>=0)inp(c[i.weight],o.id,'weight',o.weight||0,'number',i);if(i.china>=0){const initial=Number(o.shippingChinaUsd)>0?Number(o.shippingChinaUsd):Number(o.weight||0)*kg();inp(c[i.china],o.id,'shippingChinaUsd',money(initial),'number',i)}if(i.rb>=0)inp(c[i.rb],o.id,'shippingBelarusByn',o.shippingBelarusByn||0,'number',i);calc(r,i)});t.dataset.cargoReady='1'}
+function refresh(){style();rates();zoom();install()}
+function start(){refresh();if(!window.__cargoV8){window.__cargoV8=1;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(refresh,400)}).observe(document.body,{childList:true,subtree:true})}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
