@@ -28,13 +28,13 @@
   function makeInput(cell,id,field,value,type,extra) {
     cell.innerHTML=""; const input=document.createElement("input"); input.type=type||"text"; input.value=value??"";
     if(type==="number"){input.step=extra?.step||"0.01";input.min=extra?.min||"0";}
-    input.style.cssText="width:100%;box-sizing:border-box;background:#020617;border:1px solid #334155;border-radius:7px;color:#e2e8f0;padding:4px 5px;font:600 10px ui-monospace,monospace;outline:none;";
+    input.style.cssText="width:100%;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;color:#111827;padding:4px 5px;font:600 10px ui-monospace,monospace;outline:none;";
     input.title="Изменение сохраняется после выхода из поля"; input.addEventListener("keydown",e=>{if(e.key==="Enter")input.blur();}); input.addEventListener("blur",()=>saveField(id,field,input.value,input)); cell.appendChild(input); return input;
   }
 
   function makePersonInput(cell,id,value,people) {
     cell.innerHTML=""; const input=document.createElement("input"); input.setAttribute("list","cargo-people-list"); input.value=value||"";
-    input.style.cssText="width:100%;box-sizing:border-box;background:#020617;border:1px solid #334155;border-radius:7px;color:#e2e8f0;padding:4px 5px;font:600 10px sans-serif;outline:none;";
+    input.style.cssText="width:100%;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;color:#111827;padding:4px 5px;font:600 10px sans-serif;outline:none;";
     input.addEventListener("keydown",e=>{if(e.key==="Enter")input.blur();}); input.addEventListener("blur",()=>saveField(id,"forWhom",input.value.trim(),input)); cell.appendChild(input);
     if(!document.getElementById("cargo-people-list")){const dl=document.createElement("datalist");dl.id="cargo-people-list";people.forEach(p=>{const o=document.createElement("option");o.value=p;dl.appendChild(o);});document.body.appendChild(dl);}
   }
@@ -42,7 +42,7 @@
   function makeStatus(cell,id,value){
     cell.innerHTML="";const select=document.createElement("select");
     ["В пути на склад Китая","На складе в Китае","Едет в РБ","Прибыло в РБ","Выдано / Получено"].forEach(s=>{const o=document.createElement("option");o.value=s;o.textContent=s;if(s===value)o.selected=true;select.appendChild(o);});
-    select.style.cssText="width:100%;box-sizing:border-box;background:#020617;border:1px solid #334155;border-radius:7px;color:#e2e8f0;padding:4px 5px;font:600 10px sans-serif;outline:none;";select.addEventListener("change",()=>saveField(id,"status",select.value,select));cell.appendChild(select);
+    select.style.cssText="width:100%;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;color:#111827;padding:4px 5px;font:600 10px sans-serif;outline:none;";select.addEventListener("change",()=>saveField(id,"status",select.value,select));cell.appendChild(select);
   }
 
   async function fetchOrders(){try{const ps=Array.from(document.querySelectorAll("select")).find(s=>Array.from(s.options).some(o=>(o.textContent||"").includes("Китай")));const projectId=ps?.value||localStorage.getItem("cargo_current_project")||"1";const r=await fetch(`/api/orders?projectId=${projectId}`);const j=await r.json();return j.success?(j.data||[]):[];}catch{return[];}}
@@ -68,7 +68,7 @@
     const {heads,map}=headerMap(table);
     const nameIdx=indexFor(map,["название товара","товар"]),trackIdx=indexFor(map,["трек-номер китая","трек"]),whomIdx=indexFor(map,["для кого"]),statusIdx=indexFor(map,["статус доставки (клик для смены)","статус"]),qtyIdx=indexFor(map,["кол-во"]),weightIdx=indexFor(map,["вес (кг)","вес"]),priceIdx=indexFor(map,["цена за ед., cny","цена cny"]),chinaIdx=indexFor(map,["дост. с (cny)","дост. с"]),rbIdx=indexFor(map,["дост. в (byn)","дост. рб"]),dateIdx=indexFor(map,["срок / дата"]);
     if(dateIdx>=0){heads[dateIdx].style.display="none";table.querySelectorAll(`tbody tr > td:nth-child(${dateIdx+1}),tfoot tr > td:nth-child(${dateIdx+1})`).forEach(c=>c.style.display="none");}
-    ["Фото товара","Общая стоимость, CNY","Курс BYN","Цена за ед., BYN","Общая стоимость, BYN","Себест. 1 ед., BYN"].forEach(label=>{const idx=indexFor(map,[label]);if(idx>=0){heads[idx].style.display="none";table.querySelectorAll(`tbody tr > td:nth-child(${idx+1}),tfoot tr > td:nth-child(${idx+1})`).forEach(c=>c.style.display="none");}});
+    ["Общая стоимость, CNY","Курс BYN","Цена за ед., BYN","Общая стоимость, BYN","Себест. 1 ед., BYN"].forEach(label=>{const idx=indexFor(map,[label]);if(idx>=0){heads[idx].style.display="none";table.querySelectorAll(`tbody tr > td:nth-child(${idx+1}),tfoot tr > td:nth-child(${idx+1})`).forEach(c=>c.style.display="none");}});
     table.style.width="100%";table.style.minWidth="0";table.style.tableLayout="fixed";table.querySelectorAll("th,td").forEach(c=>{c.style.overflow="hidden";});
     if(chinaIdx>=0){heads[chinaIdx].textContent="Дост. $";heads[chinaIdx].title="$ / кг × вес. Можно изменить вручную.";}
 
@@ -94,8 +94,8 @@
   function installSettings(){
     if(document.getElementById("cargo-usd-settings"))return;
     const buttons=Array.from(document.querySelectorAll("button"));const anchor=buttons.find(b=>(b.textContent||"").includes("Изменить курс"))||buttons.find(b=>(b.textContent||"").includes("Экспорт"));if(!anchor?.parentElement)return;
-    const box=document.createElement("div");box.id="cargo-usd-settings";box.style.cssText="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 8px;margin-left:6px;border-radius:10px;background:#0f172a;border:1px solid #334155;color:#94a3b8;font:700 10px sans-serif";
-    box.innerHTML='<span style="color:#fbbf24">🚚 Китай → РБ</span><label>$ / кг <input id="cargo-usd-kg" type="number" min="0" step="0.01" style="width:55px;background:#020617;color:#fb923c;border:1px solid #334155;border-radius:6px;padding:3px;text-align:center"></label><label>USD→BYN <input id="cargo-usd-byn" type="number" min="0" step="0.0001" style="width:62px;background:#020617;color:#22d3ee;border:1px solid #334155;border-radius:6px;padding:3px;text-align:center"></label>';
+    const box=document.createElement("div");box.id="cargo-usd-settings";box.style.cssText="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 8px;margin-left:6px;border-radius:10px;background:#fff;border:1px solid #e5e7eb;color:#64748b;font:700 10px sans-serif";
+    box.innerHTML='<span style="color:#b45309">🚚 Китай → РБ</span><label>$ / кг <input id="cargo-usd-kg" type="number" min="0" step="0.01" style="width:55px;background:#fff;color:#111827;border:1px solid #d1d5db;border-radius:6px;padding:3px;text-align:center"></label><label>USD→BYN <input id="cargo-usd-byn" type="number" min="0" step="0.0001" style="width:62px;background:#fff;color:#111827;border:1px solid #d1d5db;border-radius:6px;padding:3px;text-align:center"></label>';
     anchor.parentElement.appendChild(box);const a=box.querySelector("#cargo-usd-kg"),b=box.querySelector("#cargo-usd-byn");a.value=usdPerKg();b.value=usdByn();
     a.addEventListener("input",()=>{setNum(USD_PER_KG_KEY,a.value);refreshAutoShippingInputs();});
     b.addEventListener("input",()=>setNum(USD_BYN_KEY,b.value));
@@ -105,7 +105,6 @@
 
   async function init(){patchFetch();installSettings();await installInlineTable();}
 
-  // Watch for React replacing the table, but do not refetch on every DOM mutation.
   let timer=null;const observer=new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(init,500);});
   const start=()=>{if(document.body)observer.observe(document.body,{childList:true,subtree:true});init();};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
