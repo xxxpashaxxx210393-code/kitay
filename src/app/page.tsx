@@ -1365,13 +1365,16 @@ export default function OrderTracker() {
     const numericFields = new Set(["quantity","priceCny","weight","shippingChinaUsd","shippingBelarusByn"]);
     const value = numericFields.has(field) ? Number(String(rawValue).replace(",", ".")) : rawValue;
     if (numericFields.has(field) && !Number.isFinite(value)) { showAlert("Введите корректное число", "error"); return; }
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [field]: value } as Order : o));
     try {
       const res = await fetch(`/api/orders/${orderId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [field]: value }) });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || "Ошибка сохранения");
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [field]: value } as Order : o));
       showAlert("Изменение сохранено", "success");
-    } catch (e: any) { showAlert("Не удалось сохранить изменение: " + (e?.message || "ошибка"), "error"); }
+    } catch (e: any) {
+      showAlert("Не удалось сохранить изменение: " + (e?.message || "ошибка"), "error");
+      await loadOrders();
+    }
   };
 
   return (
@@ -2259,8 +2262,8 @@ export default function OrderTracker() {
                   <th className="p-3 text-right text-blue-300 bg-blue-950/40 font-extrabold border-l border-blue-900/40">Цена за ед., BYN</th>
                   <th className="p-3 text-right text-emerald-300 bg-emerald-950/20 font-black border-r border-emerald-900/20">Общая стоимость, BYN</th>
                   
-                  <th className="p-3 text-right">Дост. С (CNY)</th>
-                  <th className="p-3 text-right">Дост. В (BYN)</th>
+                  <th className="p-3 text-right text-orange-300 bg-orange-950/20">Доставка Китай ($)</th>
+                  <th className="p-3 text-right">Доставка РБ (BYN)</th>
                   <th className="p-3 text-right font-extrabold text-indigo-300 bg-indigo-950/20">Итого с доставкой, BYN</th>
                   <th className="p-3 text-right font-semibold text-teal-300 bg-teal-950/20">Себест. 1 ед., BYN</th>
                   <th className="p-3 text-center">Вес (кг)</th>
@@ -2327,10 +2330,10 @@ export default function OrderTracker() {
                       </td>
 
                       {/* For whom badge */}
-                      <td className="p-2 text-center whitespace-nowrap"><input defaultValue={o.forWhom || "Родители"} onBlur={e=>updateInlineOrderField(o.id,"forWhom",e.currentTarget.value)} className="w-full min-w-[86px] px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white text-[10px] font-bold text-center focus:outline-none focus:border-blue-500" /></td>
+                      <td className="p-2 text-center whitespace-nowrap"><input value={o.forWhom || "Родители"} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,forWhom:e.currentTarget.value}:x))} onBlur={e=>updateInlineOrderField(o.id,"forWhom",e.currentTarget.value)} className="w-full min-w-[86px] px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white text-[10px] font-bold text-center focus:outline-none focus:border-blue-500" /></td>
 
                       {/* Track number with copy */}
-                      <td className="p-2"><input defaultValue={o.trackNumber || ""} placeholder="трек" onBlur={e=>updateInlineOrderField(o.id,"trackNumber",e.currentTarget.value)} className="w-full min-w-[125px] px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-[10px] focus:outline-none focus:border-blue-500" /></td>
+                      <td className="p-2"><input value={o.trackNumber || ""} placeholder="трек" onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,trackNumber:e.currentTarget.value}:x))} onBlur={e=>updateInlineOrderField(o.id,"trackNumber",e.currentTarget.value)} className="w-full min-w-[125px] px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-[10px] focus:outline-none focus:border-blue-500" /></td>
 
                       {/* Interactive Status Selector Badge */}
                       <td className="p-3 text-center whitespace-nowrap">
@@ -2350,10 +2353,10 @@ export default function OrderTracker() {
                       </td>
 
                       {/* Quantity */}
-                      <td className="p-2 text-center bg-slate-800/40"><input type="number" min="1" step="1" defaultValue={o.quantity} onBlur={e=>updateInlineOrderField(o.id,"quantity",e.currentTarget.value)} className="w-16 mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white text-xs font-black text-center focus:outline-none focus:border-blue-500" /></td>
+                      <td className="p-2 text-center bg-slate-800/40"><input type="number" min="1" step="1" value={o.quantity} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,quantity:Number(e.currentTarget.value)||0}:x))} onBlur={e=>updateInlineOrderField(o.id,"quantity",e.currentTarget.value)} className="w-16 mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white text-xs font-black text-center focus:outline-none focus:border-blue-500" /></td>
 
                       {/* Price CNY */}
-                      <td className="p-2 text-right bg-slate-950/20"><input type="number" min="0" step="0.01" defaultValue={o.priceCny} onBlur={e=>updateInlineOrderField(o.id,"priceCny",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-xs text-right focus:outline-none focus:border-amber-500" /></td>
+                      <td className="p-2 text-right bg-slate-950/20"><input type="number" min="0" step="0.01" value={o.priceCny} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,priceCny:Number(e.currentTarget.value)||0}:x))} onBlur={e=>updateInlineOrderField(o.id,"priceCny",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-xs text-right focus:outline-none focus:border-amber-500" /></td>
 
                       {/* Total CNY */}
                       <td className="p-3 text-right font-mono font-bold text-amber-400 bg-slate-950/20">
@@ -2375,11 +2378,11 @@ export default function OrderTracker() {
                         {o.itemCostByn.toFixed(2)} <span className="text-[9px] text-slate-400 font-normal">BYN</span>
                       </td>
 
-                      {/* Delivery China CNY */}
-                      <td className="p-2 text-right bg-orange-950/10"><input type="number" min="0" step="0.01" defaultValue={o.shippingChinaUsd ?? 0} onBlur={e=>updateInlineOrderField(o.id,"shippingChinaUsd",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-orange-900/40 text-orange-200 font-mono text-xs text-right focus:outline-none focus:border-orange-500" /><div className="text-[9px] text-orange-400 mt-1">≈ {o.shippingUsd.toFixed(2)} $</div></td>
+                      {/* China delivery = weight × cargo tariff */}
+                      <td className="p-2 text-right bg-orange-950/10"><div className="font-mono font-black text-orange-300 text-[11px] whitespace-nowrap">$ {o.shippingUsd.toFixed(2)}</div><div className="text-[8px] text-slate-500 whitespace-nowrap">{(o.weight || 0).toFixed(2)} кг × {cargoShippingUsdPerKg.toFixed(2)}</div></td>
 
                       {/* Delivery Belarus BYN */}
-                      <td className="p-2 text-right"><input type="number" min="0" step="0.01" defaultValue={o.shippingBelarusByn ?? 0} onBlur={e=>updateInlineOrderField(o.id,"shippingBelarusByn",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-xs text-right focus:outline-none focus:border-blue-500" /></td>
+                      <td className="p-2 text-right"><input type="number" min="0" step="0.01" value={o.shippingBelarusByn ?? 0} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,shippingBelarusByn:Number(e.currentTarget.value)||0}:x))} onBlur={e=>updateInlineOrderField(o.id,"shippingBelarusByn",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-xs text-right focus:outline-none focus:border-blue-500" /></td>
 
                       {/* Total With Shipping BYN */}
                       <td className="p-3 text-right font-mono font-black text-indigo-300 bg-indigo-950/20 text-xs">
@@ -2392,7 +2395,7 @@ export default function OrderTracker() {
                       </td>
 
                       {/* Weight */}
-                      <td className="p-2 text-center"><input type="number" min="0" step="0.01" defaultValue={o.weight ?? 0} onBlur={e=>updateInlineOrderField(o.id,"weight",e.currentTarget.value)} className="w-20 mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-amber-300 font-mono text-xs text-center focus:outline-none focus:border-amber-500" /></td>
+                      <td className="p-2 text-center"><input type="number" min="0" step="0.01" value={o.weight ?? 0} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,weight:Number(e.currentTarget.value)||0}:x))} onBlur={e=>updateInlineOrderField(o.id,"weight",e.currentTarget.value)} className="w-20 mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-amber-300 font-mono text-xs text-center focus:outline-none focus:border-amber-500" /></td>
 
                       {/* Date */}
                       <td className="p-3 text-center whitespace-nowrap">
