@@ -319,6 +319,18 @@ export default function OrderTracker() {
     setDefaultRate(next);
     localStorage.setItem("cargo_cny_byn_rate", String(next));
   };
+
+  const persistCnyRate = async (raw: string) => {
+    const next = Number(String(raw).replace(",", "."));
+    if (!Number.isFinite(next) || next <= 0) return;
+    applyCnyRateLive(String(next));
+    const pending = orders.filter(o => o.status !== "Выдано / Получено");
+    await Promise.all(pending.map(o => fetch(`/api/orders/${o.id}`, {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ rateCnyByn: next })
+    }).catch(()=>null)));
+  };
   
   // Form State
   const [formData, setFormData] = useState({
@@ -1994,7 +2006,7 @@ export default function OrderTracker() {
                   <div className="mt-2 grid grid-cols-3 gap-2">
                     <label className="min-w-0 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
                       <span className="block text-[9px] font-bold text-slate-400 mb-1">CNY → BYN</span>
-                      <input type="number" min="0.0001" step="0.0001" value={defaultRate} onChange={e=>applyCnyRateLive(e.target.value)} onBlur={e=>{const n=Number(e.target.value); if(Number.isFinite(n)&&n>0) applyGlobalRate();}} className="w-full px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-emerald-300 focus:outline-none focus:border-emerald-500" />
+                      <input type="number" min="0.0001" step="0.0001" value={defaultRate} onChange={e=>applyCnyRateLive(e.target.value)} onBlur={e=>persistCnyRate(e.target.value)} className="w-full px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-emerald-300 focus:outline-none focus:border-emerald-500" />
                     </label>
                     <label className="min-w-0 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
                       <span className="block text-[9px] font-bold text-slate-400 mb-1">Карго $/кг</span>
@@ -2284,7 +2296,7 @@ export default function OrderTracker() {
                 {sortedOrders.map((o) => {
                   const statusStyles = getStatusBadgeStyles(o.status);
                   // explicit single price in BYN
-                  const unitPriceByn = o.priceCny * o.rateCnyByn;
+                  const unitPriceByn = o.priceCny * defaultRate;
 
                   return (
                     <tr 
@@ -2375,7 +2387,7 @@ export default function OrderTracker() {
 
                       {/* Exchange Rate */}
                       <td className="p-3 text-right font-mono text-slate-400 text-[11px]">
-                        {o.rateCnyByn.toFixed(4)}
+                        {defaultRate.toFixed(4)}
                       </td>
 
                       {/* Price per unit, BYN (New field) */}
