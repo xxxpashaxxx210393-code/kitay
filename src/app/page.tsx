@@ -293,8 +293,11 @@ export default function OrderTracker() {
   const [defaultRate, setDefaultRate] = useState<number>(0.4800);
   const [cargoShippingUsdPerKg, setCargoShippingUsdPerKg] = useState<number>(5.5);
   const [usdBynRate, setUsdBynRate] = useState<number>(3.25);
+  const [previewImage, setPreviewImage] = useState<{src:string; name:string} | null>(null);
 
   useEffect(() => {
+    const savedCny = Number(localStorage.getItem("cargo_cny_byn_rate"));
+    if (Number.isFinite(savedCny) && savedCny > 0) setDefaultRate(savedCny);
     const kg = Number(localStorage.getItem("cargo_shipping_usd_per_kg"));
     const usd = Number(localStorage.getItem("cargo_usd_byn_rate"));
     if (Number.isFinite(kg) && kg > 0) setCargoShippingUsdPerKg(kg);
@@ -308,6 +311,13 @@ export default function OrderTracker() {
     setUsdBynRate(nextUsd);
     localStorage.setItem("cargo_shipping_usd_per_kg", String(nextKg));
     localStorage.setItem("cargo_usd_byn_rate", String(nextUsd));
+  };
+
+  const applyCnyRateLive = (raw: string) => {
+    const next = Number(String(raw).replace(",", "."));
+    if (!Number.isFinite(next) || next <= 0) return;
+    setDefaultRate(next);
+    localStorage.setItem("cargo_cny_byn_rate", String(next));
   };
   
   // Form State
@@ -1093,10 +1103,11 @@ export default function OrderTracker() {
     return orders.map((o) => {
       const qty = o.quantity || 1;
       const priceCny = o.priceCny || 0;
-      const rate = o.rateCnyByn || 0.48;
+      // One global CNY rate and one global cargo tariff drive the live calculation.
+      const rate = defaultRate > 0 ? defaultRate : 0.48;
       const shipBelarusByn = o.shippingBelarusByn || 0;
       const weight = o.weight || 0;
-      const shippingUsd = (o.shippingChinaUsd || 0) > 0 ? Number(o.shippingChinaUsd) : weight * cargoShippingUsdPerKg;
+      const shippingUsd = weight * cargoShippingUsdPerKg;
       const shippingChinaByn = shippingUsd * usdBynRate;
 
       const itemTotalCny = qty * priceCny;
@@ -1106,7 +1117,7 @@ export default function OrderTracker() {
 
       return { ...o, itemTotalCny, itemCostByn, shippingChinaByn, shippingUsd, totalWithShippingByn, unitCostByn };
     });
-  }, [orders, cargoShippingUsdPerKg, usdBynRate]);
+  }, [orders, defaultRate, cargoShippingUsdPerKg, usdBynRate]);
 
   // Unique "Для кого" list for filter dropdown
   const uniqueForWhomOptions = useMemo(() => {
@@ -1980,20 +1991,18 @@ export default function OrderTracker() {
                 </button>
                 <div className="mt-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-700/70">
                   <div className="text-[10px] font-black text-slate-300 uppercase tracking-wider mb-2">⚙️ Курсы и тариф карго</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
-                      <span className="text-[10px] font-bold text-slate-400">🚚 Карго</span>
-                      <span className="flex items-center gap-1">
-                        <input type="number" min="0.01" step="0.1" value={cargoShippingUsdPerKg} onChange={e=>saveCargoRates(Number(e.target.value), usdBynRate)} className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-white focus:outline-none focus:border-blue-500" />
-                        <span className="text-[9px] text-slate-500">$/кг</span>
-                      </span>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    <label className="min-w-0 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
+                      <span className="block text-[9px] font-bold text-slate-400 mb-1">CNY → BYN</span>
+                      <input type="number" min="0.0001" step="0.0001" value={defaultRate} onChange={e=>applyCnyRateLive(e.target.value)} onBlur={e=>{const n=Number(e.target.value); if(Number.isFinite(n)&&n>0) applyGlobalRate();}} className="w-full px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-emerald-300 focus:outline-none focus:border-emerald-500" />
                     </label>
-                    <label className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
-                      <span className="text-[10px] font-bold text-slate-400">💵 USD → BYN</span>
-                      <span className="flex items-center gap-1">
-                        <input type="number" min="0.01" step="0.01" value={usdBynRate} onChange={e=>saveCargoRates(cargoShippingUsdPerKg, Number(e.target.value))} className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-white focus:outline-none focus:border-blue-500" />
-                        <span className="text-[9px] text-slate-500">BYN/$</span>
-                      </span>
+                    <label className="min-w-0 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
+                      <span className="block text-[9px] font-bold text-slate-400 mb-1">Карго $/кг</span>
+                      <input type="number" min="0.01" step="0.1" value={cargoShippingUsdPerKg} onChange={e=>saveCargoRates(Number(e.target.value), usdBynRate)} className="w-full px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-orange-300 focus:outline-none focus:border-orange-500" />
+                    </label>
+                    <label className="min-w-0 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
+                      <span className="block text-[9px] font-bold text-slate-400 mb-1">USD → BYN</span>
+                      <input type="number" min="0.01" step="0.01" value={usdBynRate} onChange={e=>saveCargoRates(cargoShippingUsdPerKg, Number(e.target.value))} className="w-full px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-blue-300 focus:outline-none focus:border-blue-500" />
                     </label>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[10px]">
@@ -2292,7 +2301,8 @@ export default function OrderTracker() {
                             <img 
                               src={o.imageUrl} 
                               alt={o.name}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                              onClick={(e)=>{e.stopPropagation();setPreviewImage({src:o.imageUrl!,name:o.name})}}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 cursor-zoom-in"
                               onError={(e) => {
                                 (e.target as any).src = "https://images.unsplash.com/photo-1595079676339-1534801ad6cf?w=120&auto=format&fit=crop";
                               }}
@@ -2466,6 +2476,16 @@ export default function OrderTracker() {
                 </tr>
               </tfoot>
             </table>
+          </div>
+        )}
+
+        {previewImage && (
+          <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm p-6 flex items-center justify-center" onClick={()=>setPreviewImage(null)}>
+            <div className="relative max-w-[92vw] max-h-[90vh] rounded-2xl border border-slate-700 bg-slate-900 p-3 shadow-2xl" onClick={e=>e.stopPropagation()}>
+              <button type="button" onClick={()=>setPreviewImage(null)} className="absolute right-2 top-2 z-10 w-9 h-9 rounded-full bg-slate-950/90 border border-slate-700 text-white text-xl hover:bg-rose-900 cursor-pointer">×</button>
+              <img src={previewImage.src} alt={previewImage.name} className="block max-w-[88vw] max-h-[84vh] object-contain rounded-xl bg-white" />
+              <div className="mt-2 text-center text-xs text-slate-300 truncate max-w-[80vw]">{previewImage.name}</div>
+            </div>
           </div>
         )}
 
