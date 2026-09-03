@@ -2271,7 +2271,7 @@ export default function OrderTracker() {
                   <th className="p-3 w-12 text-center">
                     <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} title="Выбрать все видимые" className="w-4 h-4 accent-blue-500 cursor-pointer" />
                   </th>
-                  <th className="p-3 w-16 text-center">Фото товара</th>
+                  <th className="p-3 w-24 text-center">Фото товара</th>
                   
                   <th className="p-3 cursor-pointer hover:bg-slate-700/50 transition-colors" onClick={() => toggleSort("name")}>
                     <div className="flex items-center gap-1">
@@ -2319,13 +2319,13 @@ export default function OrderTracker() {
                       </td>
                       {/* Beautiful larger image widget with magnifier styling */}
                       <td className="p-3 text-center whitespace-nowrap">
-                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-950 border-2 border-slate-700/80 mx-auto flex items-center justify-center group-hover:border-blue-500/80 transition-all shadow-md">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-700/80 mx-auto flex items-center justify-center group-hover:border-blue-500/80 transition-all shadow-md">
                           {o.imageUrl ? (
                             <img 
                               src={o.imageUrl} 
                               alt={o.name}
                               onClick={(e)=>{e.stopPropagation();setPreviewImage({src:o.imageUrl!,name:o.name})}}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 cursor-zoom-in"
+                              className="w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-105 cursor-zoom-in"
                               onError={(e) => {
                                 (e.target as any).src = "https://images.unsplash.com/photo-1595079676339-1534801ad6cf?w=120&auto=format&fit=crop";
                               }}
