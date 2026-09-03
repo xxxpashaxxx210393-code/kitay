@@ -1388,15 +1388,27 @@ export default function OrderTracker() {
     const numericFields = new Set(["quantity","priceCny","weight","shippingChinaUsd","shippingBelarusByn"]);
     const value = numericFields.has(field) ? Number(String(rawValue).replace(",", ".")) : rawValue;
     if (numericFields.has(field) && !Number.isFinite(value)) { showAlert("Введите корректное число", "error"); return; }
+
+    // Update the screen first. Calculated columns are derived from this state,
+    // so weight/price/quantity visibly recalculate without waiting for the server.
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [field]: value } as Order : o));
+
     try {
-      const res = await fetch(`/api/orders/${orderId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [field]: value }) });
+      // Use the dedicated single-field endpoint. It sends exactly one column,
+      // avoiding partial-update problems in the full order PUT route.
+      const res = await fetch("/api/orders/inline", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: orderId, field, value })
+      });
       const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Ошибка сохранения");
+      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      // Keep the server-normalized value in state.
+      if (json.data) setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...json.data } as Order : o));
       showAlert("Изменение сохранено", "success");
     } catch (e: any) {
       showAlert("Не удалось сохранить изменение: " + (e?.message || "ошибка"), "error");
-      await loadOrders();
+      // Do not destroy the user's edit by reloading stale data.
     }
   };
 
@@ -2288,7 +2300,6 @@ export default function OrderTracker() {
                   <th className="p-3 text-right font-extrabold text-indigo-300 bg-indigo-950/20">Итого с доставкой, BYN</th>
                   <th className="p-3 text-right font-semibold text-teal-300 bg-teal-950/20">Себест. 1 ед., BYN</th>
                   <th className="p-3 text-center">Вес (кг)</th>
-                  <th className="p-3 text-center">Срок / Дата</th>
                   <th className="p-3 w-20 text-center">Действия</th>
                 </tr>
               </thead>
