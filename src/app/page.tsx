@@ -1385,30 +1385,28 @@ export default function OrderTracker() {
   };
 
   const updateInlineOrderField = async (orderId: number, field: string, rawValue: string) => {
-    const numericFields = new Set(["quantity","priceCny","weight","shippingChinaUsd","shippingBelarusByn"]);
+    const numericFields = new Set(["quantity","priceCny","weight","shippingBelarusByn","shippingChinaUsd","rateCnyByn"]);
     const value = numericFields.has(field) ? Number(String(rawValue).replace(",", ".")) : rawValue;
-    if (numericFields.has(field) && !Number.isFinite(value)) { showAlert("Введите корректное число", "error"); return; }
+    if (numericFields.has(field) && !Number.isFinite(value)) return;
 
-    // Update the screen first. Calculated columns are derived from this state,
-    // so weight/price/quantity visibly recalculate without waiting for the server.
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [field]: value } as Order : o));
+    // React state is the source for the live calculation. Never reload the row after blur.
+    setOrders(prev => prev.map(o => o.id === orderId ? ({ ...o, [field]: value } as Order) : o));
 
     try {
-      // Use the dedicated single-field endpoint. It sends exactly one column,
-      // avoiding partial-update problems in the full order PUT route.
       const res = await fetch("/api/orders/inline", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: orderId, field, value })
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({id: orderId, field, value})
       });
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
-      // Keep the server-normalized value in state.
-      if (json.data) setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...json.data } as Order : o));
-      showAlert("Изменение сохранено", "success");
-    } catch (e: any) {
-      showAlert("Не удалось сохранить изменение: " + (e?.message || "ошибка"), "error");
-      // Do not destroy the user's edit by reloading stale data.
+      if (!res.ok || !json.success) throw new Error(json.error || "Ошибка сохранения");
+      if (json.data) {
+        setOrders(prev => prev.map(o => o.id === orderId ? ({...o, ...json.data} as Order) : o));
+      }
+    } catch (e) {
+      // Keep the live calculation intact. A failed save must not blank/crash the table.
+      console.error("Inline save failed", e);
+      showAlert("Изменение показано, но не удалось сохранить в базе", "error");
     }
   };
 
@@ -2486,7 +2484,7 @@ export default function OrderTracker() {
                   <td className="p-3 text-right font-mono text-emerald-300 bg-emerald-950/10 border-r border-emerald-900/20 text-xs">
                     {(filteredOrders.reduce((sum, o) => sum + o.itemCostByn, 0)).toFixed(2)} BYN
                   </td>
-                  <td className="p-3 text-right font-mono text-slate-300">¥ {filteredOrders.reduce((sum, o) => sum + (o.shippingChinaCny || 0), 0).toFixed(2)}</td>
+                  <td className="p-3 text-right font-mono text-slate-300">¥ {filteredOrders.reduce((sum, o) => sum + o.shippingUsd, 0).toFixed(2)} $</td>
                   <td className="p-3 text-right font-mono text-slate-300">{filteredOrders.reduce((sum, o) => sum + (o.shippingBelarusByn || 0), 0).toFixed(2)} BYN</td>
                   <td className="p-3 text-right font-mono font-black text-indigo-300 bg-indigo-950/40 text-sm">
                     {filteredOrders.reduce((sum, o) => sum + o.totalWithShippingByn, 0).toFixed(2)} BYN
