@@ -16,8 +16,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script src="/shipping.js?v=20260903-4" />
         <script src="/unified-theme.js?v=20260903-4" />
         <script src="/mobile-fixes.js?v=20260903-4" />
-        <script src="/cargo-fix2.js?v=20260903-4" />
-        <script src="/cargo-fix.js?v=20260903-4" />
         <script src="/cargo-excel.js?v=20260903-2" />
       </body>
     </html>
