@@ -20,7 +20,42 @@ main table thead th{position:sticky!important;top:0!important;z-index:5!importan
 main table tbody tr{background:#101d34!important}main table tbody tr:nth-child(even){background:#0e1a30!important}main table tbody tr:hover{background:#172946!important;box-shadow:inset 3px 0 #2f7df6!important}
 main table td{padding:7px 6px!important;font-size:11px!important;vertical-align:middle!important;border-bottom:1px solid rgba(49,67,99,.55)!important;font-variant-numeric:tabular-nums}
 main table a{color:#52baff!important}
+/* Cargo financial columns: visually separated like a compact control table. */
+main table th.cargo-col-cny,main table td.cargo-col-cny{background:rgba(245,158,11,.075)!important}
+main table th.cargo-col-cny{color:#fbbf24!important;border-bottom-color:rgba(245,158,11,.35)!important}
+main table th.cargo-col-total,main table td.cargo-col-total{background:rgba(16,185,129,.09)!important}
+main table th.cargo-col-total{color:#34d399!important;border-bottom-color:rgba(16,185,129,.35)!important}
+main table th.cargo-col-usd,main table td.cargo-col-usd{background:rgba(245,158,11,.10)!important}
+main table th.cargo-col-usd{color:#f59e0b!important;border-bottom-color:rgba(245,158,11,.4)!important}
+main table th.cargo-col-rb,main table td.cargo-col-rb{background:rgba(59,130,246,.055)!important}
+main table th.cargo-col-rb{color:#93c5fd!important}
+main table td.cargo-col-cny b,main table td.cargo-col-cny strong{color:#fbbf24!important}
+main table td.cargo-col-total b,main table td.cargo-col-total strong{color:#34d399!important}
+main table td.cargo-col-usd b,main table td.cargo-col-usd strong{color:#f59e0b!important}
+main table td.cargo-col-rb b,main table td.cargo-col-rb strong{color:#93c5fd!important}
+main table td.cargo-col-cny,main table td.cargo-col-total,main table td.cargo-col-usd,main table td.cargo-col-rb{box-shadow:inset 1px 0 rgba(255,255,255,.025),inset -1px 0 rgba(255,255,255,.025)}
+main table tbody tr:hover td.cargo-col-cny{background:rgba(245,158,11,.13)!important}
+main table tbody tr:hover td.cargo-col-total{background:rgba(16,185,129,.14)!important}
+main table tbody tr:hover td.cargo-col-usd{background:rgba(245,158,11,.15)!important}
+main table tbody tr:hover td.cargo-col-rb{background:rgba(59,130,246,.10)!important}
 @media(max-width:900px){main{padding-left:10px!important;padding-right:10px!important}main table{min-width:980px!important}}
 `;
 document.head.appendChild(s);
+function norm(v){return String(v||"").replace(/\s+/g," ").trim().toLowerCase()}
+function paint(){
+ document.querySelectorAll("main table").forEach(t=>{
+  const hs=[...t.querySelectorAll("thead th")];
+  hs.forEach((h,i)=>{
+   const x=norm(h.textContent);
+   let cls="";
+   if(x.includes("стоимость, cny")||x.includes("цена cny")||x.includes("итого cny"))cls="cargo-col-cny";
+   else if(x.includes("итого")&&x.includes("byn"))cls="cargo-col-total";
+   else if(x.includes("доставка")&&(x.includes("$")||x.includes("к→р")))cls="cargo-col-usd";
+   else if(x.includes("дост. рб")||x.includes("доставка рб")||x.includes("дост. в")||x.includes("рб, byn"))cls="cargo-col-rb";
+   if(cls){h.classList.add(cls);t.querySelectorAll("tbody tr,tfoot tr").forEach(r=>{if(r.children[i])r.children[i].classList.add(cls)})}
+  });
+ });
+}
+paint();
+new MutationObserver(()=>{clearTimeout(window.__cargoThemePaint);window.__cargoThemePaint=setTimeout(paint,120)}).observe(document.body,{childList:true,subtree:true});
 })();
