@@ -45,6 +45,7 @@ interface Order {
   quantity: number;
   priceCny: number;
   shippingChinaCny: number | null;
+  shippingChinaUsd: number | null;
   shippingBelarusByn: number | null;
   rateCnyByn: number;
   weight: number | null;
@@ -290,6 +291,24 @@ export default function OrderTracker() {
 
   // Default parameters for new orders
   const [defaultRate, setDefaultRate] = useState<number>(0.4800);
+  const [cargoShippingUsdPerKg, setCargoShippingUsdPerKg] = useState<number>(5.5);
+  const [usdBynRate, setUsdBynRate] = useState<number>(3.25);
+
+  useEffect(() => {
+    const kg = Number(localStorage.getItem("cargo_shipping_usd_per_kg"));
+    const usd = Number(localStorage.getItem("cargo_usd_byn_rate"));
+    if (Number.isFinite(kg) && kg > 0) setCargoShippingUsdPerKg(kg);
+    if (Number.isFinite(usd) && usd > 0) setUsdBynRate(usd);
+  }, []);
+
+  const saveCargoRates = (kg: number, usd: number) => {
+    const nextKg = Number.isFinite(kg) && kg > 0 ? kg : cargoShippingUsdPerKg;
+    const nextUsd = Number.isFinite(usd) && usd > 0 ? usd : usdBynRate;
+    setCargoShippingUsdPerKg(nextKg);
+    setUsdBynRate(nextUsd);
+    localStorage.setItem("cargo_shipping_usd_per_kg", String(nextKg));
+    localStorage.setItem("cargo_usd_byn_rate", String(nextUsd));
+  };
   
   // Form State
   const [formData, setFormData] = useState({
@@ -1075,25 +1094,19 @@ export default function OrderTracker() {
       const qty = o.quantity || 1;
       const priceCny = o.priceCny || 0;
       const rate = o.rateCnyByn || 0.48;
-      const shipChinaCny = o.shippingChinaCny || 0;
       const shipBelarusByn = o.shippingBelarusByn || 0;
+      const weight = o.weight || 0;
+      const shippingUsd = (o.shippingChinaUsd || 0) > 0 ? Number(o.shippingChinaUsd) : weight * cargoShippingUsdPerKg;
+      const shippingChinaByn = shippingUsd * usdBynRate;
 
-      const itemTotalCny = qty * priceCny; // Общая стоимость, CNY
-      const itemCostByn = itemTotalCny * rate; // Стоимость товара, BYN
-      const shippingChinaByn = shipChinaCny * rate; // Доставка по Китаю в BYN
-      const totalWithShippingByn = itemCostByn + shippingChinaByn + shipBelarusByn; // Итого с доставкой, BYN
-      const unitCostByn = totalWithShippingByn / qty; // Себестоимость 1 ед., BYN
+      const itemTotalCny = qty * priceCny;
+      const itemCostByn = itemTotalCny * rate;
+      const totalWithShippingByn = itemCostByn + shippingChinaByn + shipBelarusByn;
+      const unitCostByn = totalWithShippingByn / qty;
 
-      return {
-        ...o,
-        itemTotalCny,
-        itemCostByn,
-        shippingChinaByn,
-        totalWithShippingByn,
-        unitCostByn
-      };
+      return { ...o, itemTotalCny, itemCostByn, shippingChinaByn, shippingUsd, totalWithShippingByn, unitCostByn };
     });
-  }, [orders]);
+  }, [orders, cargoShippingUsdPerKg, usdBynRate]);
 
   // Unique "Для кого" list for filter dropdown
   const uniqueForWhomOptions = useMemo(() => {
@@ -1348,6 +1361,19 @@ export default function OrderTracker() {
     }
   };
 
+  const updateInlineOrderField = async (orderId: number, field: string, rawValue: string) => {
+    const numericFields = new Set(["quantity","priceCny","weight","shippingChinaUsd","shippingBelarusByn"]);
+    const value = numericFields.has(field) ? Number(String(rawValue).replace(",", ".")) : rawValue;
+    if (numericFields.has(field) && !Number.isFinite(value)) { showAlert("Введите корректное число", "error"); return; }
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [field]: value }) });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Ошибка сохранения");
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [field]: value } as Order : o));
+      showAlert("Изменение сохранено", "success");
+    } catch (e: any) { showAlert("Не удалось сохранить изменение: " + (e?.message || "ошибка"), "error"); }
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 selection:bg-blue-600 selection:text-white">
       {/* HEADER SECTION */}
@@ -1370,31 +1396,7 @@ export default function OrderTracker() {
               </div>
             </div>
 
-            {/* Quick configuration bar */}
-            <div className="flex flex-wrap items-center gap-2 bg-slate-800/80 p-2 rounded-xl border border-slate-700/50">
-              <div className="text-xs font-semibold px-2 text-slate-400 uppercase tracking-wider">
-                Курс по умолчанию:
-              </div>
-              <div className="bg-slate-900 px-3 py-1 rounded-lg text-emerald-400 font-mono font-bold text-sm border border-slate-700">
-                1 CNY = {defaultRate} BYN
-              </div>
-              <button
-                onClick={applyGlobalRate}
-                title="Обновить курс для всех активных товаров"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shadow-sm active:scale-95"
-              >
-                <Coins className="w-3.5 h-3.5" />
-                <span>Изменить курс</span>
-              </button>
-              
-              <button
-                onClick={() => loadOrders()}
-                title="Обновить данные"
-                className="p-1.5 text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-lg transition-all"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              </button>
-            </div>
+            {/* Курс вынесен в Центр управления */}
           </div>
         </div>
       </header>
@@ -1973,6 +1975,29 @@ export default function OrderTracker() {
                   <Trash2 className="w-4 h-4 text-red-400 shrink-0" />
                   <span>🚨 СБРОСИТЬ ВСЕ ТОВАРЫ (ОЧИСТИТЬ)</span>
                 </button>
+                <div className="mt-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-700/70">
+                  <div className="text-[10px] font-black text-slate-300 uppercase tracking-wider mb-2">⚙️ Курсы и тариф карго</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
+                      <span className="text-[10px] font-bold text-slate-400">🚚 Карго</span>
+                      <span className="flex items-center gap-1">
+                        <input type="number" min="0.01" step="0.1" value={cargoShippingUsdPerKg} onChange={e=>saveCargoRates(Number(e.target.value), usdBynRate)} className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-white focus:outline-none focus:border-blue-500" />
+                        <span className="text-[9px] text-slate-500">$/кг</span>
+                      </span>
+                    </label>
+                    <label className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700">
+                      <span className="text-[10px] font-bold text-slate-400">💵 USD → BYN</span>
+                      <span className="flex items-center gap-1">
+                        <input type="number" min="0.01" step="0.01" value={usdBynRate} onChange={e=>saveCargoRates(cargoShippingUsdPerKg, Number(e.target.value))} className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-right text-xs font-black text-white focus:outline-none focus:border-blue-500" />
+                        <span className="text-[9px] text-slate-500">BYN/$</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-500">Доставка из Китая (по весу):</span>
+                    <span className="font-black text-orange-400">$ {calculatedOrders.reduce((sum,o)=>sum+(o.shippingUsd||0),0).toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2203,7 +2228,7 @@ export default function OrderTracker() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
+          <div className="w-full max-w-7xl mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
             <table className="w-full text-left border-collapse table-auto text-xs min-w-[1300px]">
               <thead>
                 <tr className="bg-slate-800 border-b border-slate-700/80 text-[11px] text-slate-300 font-bold uppercase tracking-wider">
@@ -2302,37 +2327,10 @@ export default function OrderTracker() {
                       </td>
 
                       {/* For whom badge */}
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-700 text-[10px] font-bold">
-                          {o.forWhom || "Родители"}
-                        </span>
-                      </td>
+                      <td className="p-2 text-center whitespace-nowrap"><input defaultValue={o.forWhom || "Родители"} onBlur={e=>updateInlineOrderField(o.id,"forWhom",e.currentTarget.value)} className="w-full min-w-[86px] px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white text-[10px] font-bold text-center focus:outline-none focus:border-blue-500" /></td>
 
                       {/* Track number with copy */}
-                      <td className="p-3">
-                        {o.trackNumber ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs text-slate-300 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800/80 select-all font-semibold">
-                              {o.trackNumber}
-                            </span>
-                            <button
-                              onClick={() => handleCopy(o.trackNumber || "")}
-                              title="Копировать трек-номер"
-                              className="p-1 text-slate-500 hover:text-white hover:bg-slate-800 rounded transition-all cursor-pointer"
-                            >
-                              {copiedTrack === o.trackNumber ? (
-                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              ) : (
-                                <Copy className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-rose-400 italic text-[10px] font-semibold">
-                            ⚠ Нет трека
-                          </span>
-                        )}
-                      </td>
+                      <td className="p-2"><input defaultValue={o.trackNumber || ""} placeholder="трек" onBlur={e=>updateInlineOrderField(o.id,"trackNumber",e.currentTarget.value)} className="w-full min-w-[125px] px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-[10px] focus:outline-none focus:border-blue-500" /></td>
 
                       {/* Interactive Status Selector Badge */}
                       <td className="p-3 text-center whitespace-nowrap">
@@ -2352,14 +2350,10 @@ export default function OrderTracker() {
                       </td>
 
                       {/* Quantity */}
-                      <td className="p-3 text-center text-sm font-black text-white bg-slate-800/40">
-                        {o.quantity}
-                      </td>
+                      <td className="p-2 text-center bg-slate-800/40"><input type="number" min="1" step="1" defaultValue={o.quantity} onBlur={e=>updateInlineOrderField(o.id,"quantity",e.currentTarget.value)} className="w-16 mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white text-xs font-black text-center focus:outline-none focus:border-blue-500" /></td>
 
                       {/* Price CNY */}
-                      <td className="p-3 text-right font-mono font-medium text-slate-300 bg-slate-950/20">
-                        ¥ {o.priceCny.toFixed(2)}
-                      </td>
+                      <td className="p-2 text-right bg-slate-950/20"><input type="number" min="0" step="0.01" defaultValue={o.priceCny} onBlur={e=>updateInlineOrderField(o.id,"priceCny",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-xs text-right focus:outline-none focus:border-amber-500" /></td>
 
                       {/* Total CNY */}
                       <td className="p-3 text-right font-mono font-bold text-amber-400 bg-slate-950/20">
@@ -2382,14 +2376,10 @@ export default function OrderTracker() {
                       </td>
 
                       {/* Delivery China CNY */}
-                      <td className="p-3 text-right font-mono text-slate-400">
-                        {o.shippingChinaCny ? `¥ ${o.shippingChinaCny.toFixed(2)}` : "—"}
-                      </td>
+                      <td className="p-2 text-right bg-orange-950/10"><input type="number" min="0" step="0.01" defaultValue={o.shippingChinaUsd ?? 0} onBlur={e=>updateInlineOrderField(o.id,"shippingChinaUsd",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-orange-900/40 text-orange-200 font-mono text-xs text-right focus:outline-none focus:border-orange-500" /><div className="text-[9px] text-orange-400 mt-1">≈ {o.shippingUsd.toFixed(2)} $</div></td>
 
                       {/* Delivery Belarus BYN */}
-                      <td className="p-3 text-right font-mono text-slate-400">
-                        {o.shippingBelarusByn ? `${o.shippingBelarusByn.toFixed(2)}` : "—"}
-                      </td>
+                      <td className="p-2 text-right"><input type="number" min="0" step="0.01" defaultValue={o.shippingBelarusByn ?? 0} onBlur={e=>updateInlineOrderField(o.id,"shippingBelarusByn",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-xs text-right focus:outline-none focus:border-blue-500" /></td>
 
                       {/* Total With Shipping BYN */}
                       <td className="p-3 text-right font-mono font-black text-indigo-300 bg-indigo-950/20 text-xs">
@@ -2402,9 +2392,7 @@ export default function OrderTracker() {
                       </td>
 
                       {/* Weight */}
-                      <td className="p-3 text-center font-mono font-bold text-amber-400">
-                        {o.weight ? `${o.weight} кг` : "—"}
-                      </td>
+                      <td className="p-2 text-center"><input type="number" min="0" step="0.01" defaultValue={o.weight ?? 0} onBlur={e=>updateInlineOrderField(o.id,"weight",e.currentTarget.value)} className="w-20 mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-amber-300 font-mono text-xs text-center focus:outline-none focus:border-amber-500" /></td>
 
                       {/* Date */}
                       <td className="p-3 text-center whitespace-nowrap">
