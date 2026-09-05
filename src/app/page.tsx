@@ -294,6 +294,27 @@ export default function OrderTracker() {
   const [cargoShippingUsdPerKg, setCargoShippingUsdPerKg] = useState<number>(5.5);
   const [usdBynRate, setUsdBynRate] = useState<number>(3.25);
   const [previewImage, setPreviewImage] = useState<{src:string; name:string} | null>(null);
+  const [excelImages, setExcelImages] = useState<Record<string,string>>({});
+
+  useEffect(() => {
+    fetch("/china-images-map.json", { cache: "force-cache" })
+      .then(r => r.ok ? r.json() : [])
+      .then((items: Array<{name:string;track:string|null;data:string}>) => {
+        const map: Record<string,string> = {};
+        for (const item of items) {
+          const key = `${item.track || ""}|${item.name || ""}`;
+          if (item.data) map[key] = item.data;
+        }
+        setExcelImages(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  const getEmbeddedImage = (o: Order) => {
+    const exact = excelImages[`${o.trackNumber || ""}|${o.name || ""}`];
+    if (exact) return exact;
+    return excelImages[`|${o.name || ""}`] || null;
+  };
 
   useEffect(() => {
     const savedCny = Number(localStorage.getItem("cargo_cny_byn_rate"));
@@ -2303,7 +2324,7 @@ export default function OrderTracker() {
               </thead>
               <tbody className="divide-y divide-slate-800/80">
                 {sortedOrders.map((o) => {
-                  const statusStyles = getStatusBadgeStyles(o.status);
+                  const statusStyles = getStatusBadgeStyles(o.status);\n                  const displayImage = o.imageUrl || getEmbeddedImage(o);
                   // explicit single price in BYN
                   const unitPriceByn = o.priceCny * defaultRate;
 
@@ -2318,11 +2339,11 @@ export default function OrderTracker() {
                       {/* Beautiful larger image widget with magnifier styling */}
                       <td className="p-3 text-center whitespace-nowrap">
                         <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-700/80 mx-auto flex items-center justify-center group-hover:border-blue-500/80 transition-all shadow-md">
-                          {o.imageUrl ? (
+                          {displayImage ? (
                             <img 
-                              src={o.imageUrl} 
+                              src={displayImage} 
                               alt={o.name}
-                              onClick={(e)=>{e.stopPropagation();setPreviewImage({src:o.imageUrl!,name:o.name})}}
+                              onClick={(e)=>{e.stopPropagation();setPreviewImage({src:displayImage!,name:o.name})}}
                               className="w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-105 cursor-zoom-in"
                               onError={(e) => {
                                 (e.target as any).src = "https://images.unsplash.com/photo-1595079676339-1534801ad6cf?w=120&auto=format&fit=crop";
@@ -2339,9 +2360,9 @@ export default function OrderTracker() {
                       </td>
 
                       {/* Name & link */}
-                      <td className="p-3 font-semibold text-slate-100 max-w-[200px]">
+                      <td className="p-3 font-semibold text-slate-100 min-w-[220px] max-w-[280px] align-top">
                         <div className="space-y-1">
-                          <div className="font-extrabold text-sm text-white tracking-tight group-hover:text-blue-300 transition-colors">
+                          <div className="font-extrabold text-[13px] leading-snug text-white tracking-tight group-hover:text-blue-300 transition-colors whitespace-normal break-words">
                             {o.name}
                           </div>
                           {o.itemUrl ? (
