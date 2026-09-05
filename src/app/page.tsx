@@ -295,64 +295,47 @@ export default function OrderTracker() {
   const [usdBynRate, setUsdBynRate] = useState<number>(3.25);
   const [previewImage, setPreviewImage] = useState<{src:string; name:string} | null>(null);
   const [excelImages, setExcelImages] = useState<Record<string,string>>({});
+  const [excelImagesByTrack, setExcelImagesByTrack] = useState<Record<string,string>>({});
+  const [excelImagesByName, setExcelImagesByName] = useState<Record<string,string>>({});
+
+  const normalizeTrack = (value: string | null | undefined) =>
+    String(value || "").toUpperCase().replace(/[^A-ZА-Я0-9]/g, "");
+
+  const normalizeName = (value: string | null | undefined) =>
+    String(value || "").toLowerCase().replace(/ё/g, "е").replace(/[^a-zа-я0-9]+/g, " ").trim();
 
   useEffect(() => {
     fetch("/china-images-map.json", { cache: "force-cache" })
       .then(r => r.ok ? r.json() : [])
       .then((items: Array<{name:string;track:string|null;data:string}>) => {
-        const map: Record<string,string> = {};
+        const exactMap: Record<string,string> = {};
+        const trackMap: Record<string,string> = {};
+        const nameMap: Record<string,string> = {};
         for (const item of items) {
-          const key = `${item.track || ""}|${item.name || ""}`;
-          if (item.data) map[key] = item.data;
+          if (!item.data) continue;
+          exactMap[`${item.track || ""}|${item.name || ""}`] = item.data;
+          const track = normalizeTrack(item.track);
+          const name = normalizeName(item.name);
+          if (track) trackMap[track] = item.data;
+          if (name) nameMap[name] = item.data;
         }
-        setExcelImages(map);
+        setExcelImages(exactMap);
+        setExcelImagesByTrack(trackMap);
+        setExcelImagesByName(nameMap);
       })
       .catch(() => {});
   }, []);
 
   const getEmbeddedImage = (o: Order) => {
+    const track = normalizeTrack(o.trackNumber);
+    const name = normalizeName(o.name);
+    if (track && excelImagesByTrack[track]) return excelImagesByTrack[track];
     const exact = excelImages[`${o.trackNumber || ""}|${o.name || ""}`];
     if (exact) return exact;
-    return excelImages[`|${o.name || ""}`] || null;
+    if (name && excelImagesByName[name]) return excelImagesByName[name];
+    return null;
   };
 
-  useEffect(() => {
-    const savedCny = Number(localStorage.getItem("cargo_cny_byn_rate"));
-    if (Number.isFinite(savedCny) && savedCny > 0) setDefaultRate(savedCny);
-    const kg = Number(localStorage.getItem("cargo_shipping_usd_per_kg"));
-    const usd = Number(localStorage.getItem("cargo_usd_byn_rate"));
-    if (Number.isFinite(kg) && kg > 0) setCargoShippingUsdPerKg(kg);
-    if (Number.isFinite(usd) && usd > 0) setUsdBynRate(usd);
-  }, []);
-
-  const saveCargoRates = (kg: number, usd: number) => {
-    const nextKg = Number.isFinite(kg) && kg > 0 ? kg : cargoShippingUsdPerKg;
-    const nextUsd = Number.isFinite(usd) && usd > 0 ? usd : usdBynRate;
-    setCargoShippingUsdPerKg(nextKg);
-    setUsdBynRate(nextUsd);
-    localStorage.setItem("cargo_shipping_usd_per_kg", String(nextKg));
-    localStorage.setItem("cargo_usd_byn_rate", String(nextUsd));
-  };
-
-  const applyCnyRateLive = (raw: string) => {
-    const next = Number(String(raw).replace(",", "."));
-    if (!Number.isFinite(next) || next <= 0) return;
-    setDefaultRate(next);
-    localStorage.setItem("cargo_cny_byn_rate", String(next));
-  };
-
-  const persistCnyRate = async (raw: string) => {
-    const next = Number(String(raw).replace(",", "."));
-    if (!Number.isFinite(next) || next <= 0) return;
-    applyCnyRateLive(String(next));
-    const pending = orders.filter(o => o.status !== "Выдано / Получено");
-    await Promise.all(pending.map(o => fetch(`/api/orders/${o.id}`, {
-      method: "PUT",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ rateCnyByn: next })
-    }).catch(()=>null)));
-  };
-  
   // Form State
   const [formData, setFormData] = useState({
     name: "",
@@ -1458,7 +1441,7 @@ export default function OrderTracker() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         <div className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3 flex flex-wrap items-center gap-2 shadow-lg">
           <span className="text-xs font-black text-slate-400 uppercase tracking-wider mr-1">📁 Проект:</span>
           <select value={currentProjectId} onChange={e=>switchProject(Number(e.target.value))} className="min-w-[230px] px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold focus:outline-none focus:border-blue-500">
@@ -2283,16 +2266,16 @@ export default function OrderTracker() {
             </button>
           </div>
         ) : (
-          <div className="w-full max-w-7xl mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
-            <table className="w-full text-left border-collapse table-auto text-xs min-w-[1300px]">
+          <div className="w-full max-w-[1500px] mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
+            <table className="w-full text-left border-collapse table-auto text-xs min-w-[1700px]">
               <thead>
                 <tr className="bg-slate-800 border-b border-slate-700/80 text-[11px] text-slate-300 font-bold uppercase tracking-wider">
                   <th className="p-3 w-12 text-center">
                     <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} title="Выбрать все видимые" className="w-4 h-4 accent-blue-500 cursor-pointer" />
                   </th>
-                  <th className="p-3 w-24 text-center">Фото товара</th>
+                  <th className="p-3 w-24 min-w-[100px] text-center">Фото товара</th>
                   
-                  <th className="p-3 cursor-pointer hover:bg-slate-700/50 transition-colors" onClick={() => toggleSort("name")}>
+                  <th className="p-3 min-w-[230px] w-[230px] cursor-pointer hover:bg-slate-700/50 transition-colors" onClick={() => toggleSort("name")}>
                     <div className="flex items-center gap-1">
                       <span>Название товара</span>
                       <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
@@ -2360,9 +2343,9 @@ export default function OrderTracker() {
                       </td>
 
                       {/* Name & link */}
-                      <td className="p-3 font-semibold text-slate-100 min-w-[220px] max-w-[280px] align-top">
+                      <td className="p-3 font-semibold text-slate-100 min-w-[230px] w-[230px] max-w-[230px] align-top">
                         <div className="space-y-1">
-                          <div className="font-extrabold text-[13px] leading-snug text-white tracking-tight group-hover:text-blue-300 transition-colors whitespace-normal break-words">
+                          <div className="font-extrabold text-[12px] leading-[1.25] text-white tracking-tight group-hover:text-blue-300 transition-colors whitespace-normal break-words">
                             {o.name}
                           </div>
                           {o.itemUrl ? (
