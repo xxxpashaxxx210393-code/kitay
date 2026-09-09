@@ -2307,7 +2307,8 @@ export default function OrderTracker() {
               </thead>
               <tbody className="divide-y divide-slate-800/80">
                 {sortedOrders.map((o) => {
-                  const statusStyles = getStatusBadgeStyles(o.status);\n                  const displayImage = o.imageUrl || getEmbeddedImage(o);
+                  const statusStyles = getStatusBadgeStyles(o.status);
+                  const displayImage = o.imageUrl || getEmbeddedImage(o);
                   // explicit single price in BYN
                   const unitPriceByn = o.priceCny * defaultRate;
 
