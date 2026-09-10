@@ -26,4 +26,5 @@ export const orders = pgTable("orders", {
   receivedDate: varchar("received_date", { length: 100 }),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  shippingUsdByn: doublePrecision("shipping_usd_byn").default(0),
 });
