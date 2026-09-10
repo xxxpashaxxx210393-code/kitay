@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import "./globals.css";
 import "./cargo-ui.css";
 
@@ -13,6 +14,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru">
       <body className="antialiased">
         {children}
+        <Script src="/shipping.js" strategy="afterInteractive" />
+        <Script src="/cargo-excel.js" strategy="afterInteractive" />
       </body>
     </html>
   );
