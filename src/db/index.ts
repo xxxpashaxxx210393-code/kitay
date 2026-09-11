@@ -54,8 +54,16 @@ export async function ensureDatabase() {
       planned_date VARCHAR(100),
       received_date VARCHAR(100),
       notes TEXT,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      shipping_usd_byn DOUBLE PRECISION
     )
+  `);
+
+  // Keep older databases compatible with the current Drizzle schema without
+  // touching any existing data.
+  await pool.query(`
+    ALTER TABLE orders
+    ADD COLUMN IF NOT EXISTS shipping_usd_byn DOUBLE PRECISION
   `);
 
   await pool.query(`
