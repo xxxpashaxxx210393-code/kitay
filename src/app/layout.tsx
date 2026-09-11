@@ -15,6 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="antialiased">
         {children}
         <Script src="/shipping.js" strategy="afterInteractive" />
+        <Script src="/cargo-inline-fallback.js" strategy="afterInteractive" />
         <Script src="/cargo-excel.js" strategy="afterInteractive" />
       </body>
     </html>
