@@ -18,7 +18,7 @@ main>div:first-child{background:transparent!important;border:0!important;box-sha
 main>div:first-child select{height:40px!important;background:#0b2036!important;border-color:#1e3b59!important;border-radius:9px!important;color:#dce8f7!important}
 main>div:first-child button{height:40px!important;border-radius:9px!important}
 main>div:first-child button:nth-of-type(1),main>div:first-child button:nth-of-type(2),main>div:first-child button:nth-of-type(3),main>div:first-child button:nth-of-type(4){display:none!important}
-main>div:first-child:after{content:"+  Добавить товар";position:absolute;right:22px;top:96px;z-index:12;display:flex;align-items:center;height:48px;padding:0 22px;border-radius:9px;background:#087cf2;color:#fff;font-weight:800;font-size:13px;box-shadow:0 8px 22px rgba(0,124,255,.22)}
+main>div:first-child:after{display:none!important}
 main .space-y-6{gap:12px!important}
 main .space-y-6>div:first-child{display:none!important}
 main .space-y-6>div:nth-child(3),main .space-y-6>div:nth-child(4){display:none!important}
@@ -28,7 +28,13 @@ main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(2){backgr
 main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(3){background:linear-gradient(145deg,#663c0c,#39250e)!important;border-color:rgba(255,157,31,.4)!important}
 main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(4){background:linear-gradient(145deg,#3d1b74,#261548)!important;border-color:rgba(145,80,255,.45)!important}
 main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div .text-xl,main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div .sm\\:text-2xl{font-size:28px!important;line-height:1!important}
-main>div.grid.grid-cols-1.lg\\:grid-cols-12{display:none!important}
+/* Preserve the real Add Product action, but remove the old admin panels around it. */
+main>div.grid.grid-cols-1.lg\\:grid-cols-12{display:block!important;height:0!important;margin:0!important;padding:0!important;overflow:visible!important;position:relative!important}
+main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:first-child{display:none!important}
+main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child{position:fixed!important;top:96px!important;right:22px!important;width:158px!important;height:48px!important;z-index:25!important;background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important;display:block!important}
+main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child>div:first-child{display:block!important;height:48px!important}
+main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child>div:first-child>h2,main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child>div:first-child>p,main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child>div:first-child>div:not(:first-child){display:none!important}
+main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child button:first-of-type{display:flex!important;width:158px!important;height:48px!important;align-items:center!important;justify-content:center!important;border:0!important;border-radius:9px!important;background:#087cf2!important;color:#fff!important;font-size:13px!important;font-weight:800!important;box-shadow:0 8px 22px rgba(0,124,255,.22)!important}
 main .bg-slate-800\\/80.p-4.rounded-3xl{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
 main .bg-slate-800\\/80.p-4.rounded-3xl>div:first-child{display:none!important}
 main .bg-slate-800\\/80.p-4.rounded-3xl>div:last-child{display:flex!important;gap:10px!important;align-items:center!important;margin-top:10px!important;padding:10px!important;background:rgba(9,28,46,.75)!important;border:1px solid rgba(64,104,141,.28)!important;border-radius:11px!important}
@@ -46,5 +52,5 @@ main [data-cargo-center]{background:linear-gradient(145deg,#0b2034,#081a2a)!impo
 main [data-cargo-center] img{border-radius:10px!important}
 main .rounded-3xl{border-radius:11px!important}
 main:before{content:"Курс CNY → BYN\A 0,4550        ✎       Карго, $/кг\A 2,50          ✎       Курс USD → BYN\A 3,2800        ✎";white-space:pre;position:absolute;top:14px;right:22px;z-index:18;width:495px;height:52px;padding:7px 10px;background:transparent;color:#d9e6f5;font:800 11px/1.15 system-ui,sans-serif;pointer-events:none;text-align:right}
-@media(max-width:1100px){body:before{width:118px}header,main{margin-left:118px!important}header:after{left:245px;width:300px}main:before{display:none}main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:760px){body:before{display:none}header,main{margin-left:0!important}header{height:70px!important}header:after{display:none}main{padding:10px!important}main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{grid-template-columns:1fr!important}main>div:first-child:after{right:10px;top:82px}}
+@media(max-width:1100px){body:before{width:118px}header,main{margin-left:118px!important}header:after{left:245px;width:300px}main:before{display:none}main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child{right:12px!important}}
+@media(max-width:760px){body:before{display:none}header,main{margin-left:0!important}header{height:70px!important}header:after{display:none}main{padding:10px!important}main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{grid-template-columns:1fr!important}main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child{top:82px!important;right:10px!important}}
