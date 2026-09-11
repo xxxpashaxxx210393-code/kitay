@@ -27,7 +27,7 @@ export async function PUT(
     }
 
     const current = existing[0];
-    const patch: Partial<typeof orders.$inferInsert> = {};
+    const patch: Record<string, any> = {};
     const textFields = [
       "name", "imageUrl", "itemUrl", "forWhom", "trackNumber", "status",
       "plannedDate", "receivedDate", "notes",
