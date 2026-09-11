@@ -1,55 +1,44 @@
-/* China project visual match: presentation only. Logic/data remain in page.tsx. */
-:root{--cx-bg:#061321;--cx-panel:#0b1d30;--cx-panel2:#102943;--cx-line:#1e3852;--cx-blue:#0b82ff;--cx-green:#12d28a;--cx-orange:#ff9f1c;--cx-purple:#8a4dff;--cx-text:#f5f8ff;--cx-muted:#8fa4bf}
+/* China dashboard reference visual. Presentation only. */
+:root{--cx-bg:#071321;--cx-panel:#0b1d30;--cx-panel2:#102943;--cx-line:#24415d;--cx-blue:#1687ff;--cx-green:#18d28c;--cx-orange:#ffad32;--cx-purple:#9368ff;--cx-text:#f5f8ff;--cx-muted:#8fa4bf}
 *{box-sizing:border-box}
-html,body{background:#061321!important;color:var(--cx-text)!important;overflow-x:hidden}
-body{background:radial-gradient(900px 520px at 50% -10%,rgba(14,107,190,.18),transparent 65%),linear-gradient(180deg,#061321 0%,#06101c 100%)!important}
-body:before{content:"🇨🇳\A  Китай → Беларусь\A  Мои покупки и заказы\A\A  🛒  Товары\A\A  ▥  Статистика\A\A  🧾  Заказы\A\A  ▣  Поставщики\A\A  ♙  Получатели\A\A  ▤  Склад (Китай)\A\A  🚚  В пути\A\A  🏠  В Беларуси\A\A  ⚠  Проблемы   2\A\A\A  ⚙  Настройки\A\A\A  Покупай проще\A  Доставляем больше\A\A  v1.0.0";white-space:pre;position:fixed;z-index:5;left:0;top:0;width:150px;height:100vh;padding:20px 14px;background:linear-gradient(180deg,#081a2d,#061321 72%);border-right:1px solid rgba(69,105,139,.32);color:#c8d6e8;font:600 12px/1.35 Inter,system-ui,sans-serif;pointer-events:none;box-shadow:10px 0 35px rgba(0,0,0,.18)}
+html,body{margin:0;background:#071321!important;color:var(--cx-text)!important;overflow-x:hidden}
+body{background:radial-gradient(900px 500px at 45% -15%,rgba(19,106,190,.22),transparent 65%),linear-gradient(180deg,#071321,#060f1b)!important}
 body>div:first-child{min-height:100vh!important}
-header{height:78px!important;margin-left:150px!important;background:rgba(5,16,29,.88)!important;border-bottom:1px solid rgba(69,105,139,.28)!important;backdrop-filter:blur(18px)!important;position:sticky!important;top:0!important;z-index:20!important}
-header>div{max-width:none!important;height:100%!important;padding:0 24px!important;margin:0!important;display:flex!important;align-items:center!important}
-header h1{font-size:0!important;margin-left:0!important}
-header h1:before{content:"Китай → Беларусь";font-size:24px;font-weight:900;letter-spacing:-.04em;color:#f5f8ff}
-header p{font-size:0!important;margin-top:2px!important}
-header p:before{content:"Мои покупки и заказы";font-size:12px;color:#8fa4bf}
-header .bg-gradient-to-tr{display:none!important}
-header:after{display:none!important}
-main{margin-left:150px!important;max-width:none!important;padding:18px 22px 42px!important;gap:16px!important}
-main>div:first-child{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;min-height:0!important}
-main>div:first-child select{height:40px!important;background:#0b2036!important;border-color:#1e3b59!important;border-radius:9px!important;color:#dce8f7!important}
+header{height:82px!important;background:rgba(6,17,30,.94)!important;border-bottom:1px solid rgba(70,108,145,.28)!important;backdrop-filter:blur(18px)!important;position:sticky!important;top:0!important;z-index:20!important}
+header>div{max-width:none!important;height:100%!important;padding:0 28px!important;margin:0!important;display:flex!important;align-items:center!important}
+header h1{font-size:25px!important;letter-spacing:-.045em!important}
+header p{font-size:12px!important;color:var(--cx-muted)!important}
+header .bg-gradient-to-tr{background:linear-gradient(135deg,#087cf2,#18d28c)!important}
+main{max-width:1540px!important;margin:0 auto!important;padding:18px 24px 48px!important;gap:16px!important}
+/* project bar */
+main>div:first-child{background:linear-gradient(135deg,rgba(15,38,62,.96),rgba(8,24,41,.96))!important;border:1px solid rgba(69,110,149,.34)!important;border-radius:13px!important;padding:10px!important;box-shadow:0 12px 34px rgba(0,0,0,.18)!important}
+main>div:first-child select{height:40px!important;background:#0a1d31!important;border-color:#294765!important;border-radius:9px!important}
 main>div:first-child button{height:40px!important;border-radius:9px!important}
-main>div:first-child button:nth-of-type(1),main>div:first-child button:nth-of-type(2),main>div:first-child button:nth-of-type(3),main>div:first-child button:nth-of-type(4){display:none!important}
-main>div:first-child:after{display:none!important}
-main .space-y-6{gap:12px!important}
-main .space-y-6>div:first-child{display:none!important}
-main .space-y-6>div:nth-child(3),main .space-y-6>div:nth-child(4){display:none!important}
+/* KPI cards */
 main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
-main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div{height:110px!important;min-height:110px!important;padding:17px 18px!important;border-radius:11px!important;border:1px solid rgba(72,120,165,.36)!important;background:linear-gradient(145deg,#0e2d4d,#0b2138)!important;box-shadow:0 12px 30px rgba(0,0,0,.22)!important;overflow:hidden!important}
-main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(2){background:linear-gradient(145deg,#07513f,#07382f)!important;border-color:rgba(0,219,145,.38)!important}
-main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(3){background:linear-gradient(145deg,#663c0c,#39250e)!important;border-color:rgba(255,157,31,.4)!important}
-main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(4){background:linear-gradient(145deg,#3d1b74,#261548)!important;border-color:rgba(145,80,255,.45)!important}
-main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div .text-xl,main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div .sm\\:text-2xl{font-size:28px!important;line-height:1!important}
-main>div.grid.grid-cols-1.lg\\:grid-cols-12{display:block!important;height:0!important;margin:0!important;padding:0!important;overflow:visible!important;position:relative!important}
-main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:first-child{display:none!important}
-main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child{position:fixed!important;top:96px!important;right:22px!important;width:158px!important;height:48px!important;z-index:25!important;background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important;display:block!important}
-main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child>div:first-child{display:block!important;height:48px!important}
-main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child>div:first-child>h2,main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child>div:first-child>p,main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child>div:first-child>div:not(:first-child){display:none!important}
-main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child button:first-of-type{display:flex!important;width:158px!important;height:48px!important;align-items:center!important;justify-content:center!important;border:0!important;border-radius:9px!important;background:#087cf2!important;color:#fff!important;font-size:13px!important;font-weight:800!important;box-shadow:0 8px 22px rgba(0,124,255,.22)!important}
-main .bg-slate-800\\/80.p-4.rounded-3xl{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
-main .bg-slate-800\\/80.p-4.rounded-3xl>div:first-child{display:none!important}
-main .bg-slate-800\\/80.p-4.rounded-3xl>div:last-child{display:flex!important;gap:10px!important;align-items:center!important;margin-top:10px!important;padding:10px!important;background:rgba(9,28,46,.75)!important;border:1px solid rgba(64,104,141,.28)!important;border-radius:11px!important}
-main input[placeholder*="Поиск"]{position:fixed!important;left:310px!important;top:15px!important;width:360px!important;height:48px!important;z-index:30!important;background:#0b2036!important;border:1px solid #1e3b59!important;border-radius:10px!important;color:#eaf3ff!important;font-size:12px!important;padding-left:14px!important;box-shadow:inset 0 1px rgba(255,255,255,.02)!important}
-main .flex.flex-wrap.items-center.gap-2 button{height:42px!important;padding:0 13px!important;border-radius:9px!important;background:#0b2035!important;border:1px solid #23415f!important;color:#b8c9dc!important}
-main table{width:100%!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#091a2a!important;border:1px solid rgba(65,105,142,.34)!important;border-radius:10px!important;overflow:hidden!important;box-shadow:0 20px 55px rgba(0,0,0,.28)!important}
-main table thead th{height:48px!important;padding:0 8px!important;background:#10283f!important;color:#8fa6c0!important;font-size:10px!important;font-weight:800!important;border-bottom:1px solid #203a54!important}
-main table tbody tr{height:52px!important;background:#081a2a!important;border-bottom:1px solid rgba(38,67,91,.48)!important}
-main table tbody tr:hover{background:#0c2439!important}
-main table td{height:52px!important;padding:5px 7px!important;color:#dce7f4!important;font-size:11px!important;border-bottom:1px solid rgba(38,67,91,.45)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-main table input:not([type="checkbox"]),main table select{height:34px!important;background:#0a2035!important;border:1px solid #23415f!important;color:#eaf3ff!important;border-radius:7px!important;font-size:11px!important}
-main table input[type="checkbox"]{width:16px!important;height:16px!important;accent-color:#087cf2!important}
-main table .rounded-full{font-size:10px!important;padding:5px 9px!important;font-weight:800!important;white-space:nowrap!important}
-main [data-cargo-center]{background:linear-gradient(145deg,#0b2034,#081a2a)!important;border:1px solid rgba(70,113,151,.36)!important;border-radius:11px!important;box-shadow:0 18px 45px rgba(0,0,0,.28)!important}
+main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div{min-height:116px!important;padding:17px 18px!important;border-radius:13px!important;border:1px solid rgba(76,119,160,.35)!important;background:linear-gradient(145deg,#103253,#0a2138)!important;box-shadow:0 14px 34px rgba(0,0,0,.24)!important}
+main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(2){background:linear-gradient(145deg,#07523f,#07352d)!important;border-color:rgba(25,211,140,.4)!important}
+main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(3){background:linear-gradient(145deg,#65400e,#38270e)!important;border-color:rgba(255,173,50,.42)!important}
+main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div:nth-child(4){background:linear-gradient(145deg,#402477,#25164a)!important;border-color:rgba(147,104,255,.44)!important}
+main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div .text-xl,main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4>div .sm\\:text-2xl{font-size:29px!important;line-height:1!important}
+/* secondary dashboard blocks */
+main .space-y-6{gap:13px!important}
+main .space-y-6>div{border-color:rgba(69,108,145,.3)!important}
+/* Search / tabs */
+main input[placeholder*="Поиск"]{height:44px!important;background:#091c30!important;border:1px solid #294765!important;border-radius:10px!important;color:#edf5ff!important;font-size:12px!important}
+main .flex.flex-wrap.items-center.gap-2 button{border-radius:9px!important;border-color:#294765!important;background:#0b2035!important}
+/* Table */
+main table{width:100%!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#081a2a!important;border:1px solid rgba(66,106,143,.38)!important;border-radius:12px!important;overflow:hidden!important;box-shadow:0 20px 55px rgba(0,0,0,.28)!important}
+main table thead th{height:48px!important;padding:0 8px!important;background:#112a43!important;color:#91a7c0!important;font-size:10px!important;font-weight:800!important;border-bottom:1px solid #24415d!important}
+main table tbody tr{height:54px!important;background:#081a2a!important}
+main table tbody tr:hover{background:#0d253c!important}
+main table td{height:54px!important;padding:6px 8px!important;color:#dce7f4!important;font-size:11px!important;border-bottom:1px solid rgba(38,67,91,.5)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+main table input:not([type="checkbox"]),main table select{height:34px!important;background:#0a2035!important;border:1px solid #294765!important;color:#edf5ff!important;border-radius:7px!important;font-size:11px!important}
+main table input[type="checkbox"]{width:16px!important;height:16px!important;accent-color:#1687ff!important}
+main table .rounded-full{font-size:10px!important;padding:5px 9px!important;font-weight:800!important}
+/* detail */
+main [data-cargo-center]{background:linear-gradient(145deg,#0b2034,#081a2a)!important;border:1px solid rgba(70,113,151,.38)!important;border-radius:12px!important;box-shadow:0 18px 45px rgba(0,0,0,.28)!important}
 main [data-cargo-center] img{border-radius:10px!important}
-main .rounded-3xl{border-radius:11px!important}
-main:before{content:"Курс CNY → BYN\A 0,4550        ✎       Карго, $/кг\A 2,50          ✎       Курс USD → BYN\A 3,2800        ✎";white-space:pre;position:absolute;top:14px;right:22px;z-index:18;width:495px;height:52px;padding:7px 10px;background:transparent;color:#d9e6f5;font:800 11px/1.15 system-ui,sans-serif;pointer-events:none;text-align:right}
-@media(max-width:1100px){body:before{width:118px}header,main{margin-left:118px!important}main input[placeholder*="Поиск"]{left:245px!important;width:300px!important}main:before{display:none}main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child{right:12px!important}}
-@media(max-width:760px){body:before{display:none}header,main{margin-left:0!important}header{height:70px!important}main input[placeholder*="Поиск"]{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:42px!important}main{padding:10px!important}main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{grid-template-columns:1fr!important}main>div.grid.grid-cols-1.lg\\:grid-cols-12>div:last-child{top:82px!important;right:10px!important}}
+main .rounded-3xl{border-radius:12px!important}
+@media(max-width:1050px){main{padding:14px!important}main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:700px){header{height:auto!important}header>div{padding:12px 14px!important}main{padding:10px!important}main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4{grid-template-columns:1fr!important}}
