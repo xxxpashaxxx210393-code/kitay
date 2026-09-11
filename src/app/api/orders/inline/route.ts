@@ -83,21 +83,27 @@ export async function PUT(req: Request) {
       }
     }
 
-    const result = await db
+    // Verify the actual persisted row instead of relying on driver-specific
+    // UPDATE metadata such as rowCount. Return only the edited field so the
+    // client keeps the rest of its calculated row intact.
+    await db
       .update(orders)
       .set({ [column]: value } as Partial<typeof orders.$inferInsert>)
       .where(eq(orders.id, orderId));
 
-    if (result.rowCount !== 1) {
+    const saved = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (!saved.length) {
       return json({ success: false, error: "Товар не найден" }, 404);
     }
 
-    // Return only the value that was actually written. The client keeps the
-    // existing row object intact, so an inline edit cannot replace it with a
-    // partially serialized database row and break live calculations.
     return json({
       success: true,
-      data: { id: orderId, [field]: value },
+      data: { id: orderId, [field]: saved[0][column] },
     });
   } catch (error: unknown) {
     console.error("Inline order update error", error);
