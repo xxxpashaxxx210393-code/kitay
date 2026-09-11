@@ -106,12 +106,6 @@
     } catch { return []; }
   }
 
-  function setReactInputValue(input, value) {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set;
-    if (setter) setter.call(input,String(value)); else input.value=String(value);
-    input.dispatchEvent(new Event('input',{bubbles:true}));
-  }
-
   function saveField(id, field, value, input) {
     const numericFields = ['quantity','priceCny','weight','shippingBelarusByn','shippingChinaUsd','shippingUsdByn','rateCnyByn'];
     const normalized = numericFields.includes(field) ? num(value,0) : String(value ?? '');
@@ -120,12 +114,30 @@
       .catch(err=>{console.error('Inline save error',{id,field,value,err});if(input)input.style.borderColor='#ef4444';throw err;});
   }
 
+  function recalcRow(row) {
+    const table = findOrdersTable();
+    if (!table || !row) return;
+    const { map } = headerMap(table);
+    const idx = {
+      qtyIdx: indexFor(map,['кол-во']),
+      priceIdx: indexFor(map,['цена за ед., cny','цена cny']),
+      rateIdx: indexFor(map,['курс byn']),
+      chinaIdx: indexFor(map,['дост. $','дост. с (cny)','дост. с']),
+      rbIdx: indexFor(map,['дост. в (byn)','дост. рб']),
+      totalIdx: indexFor(map,['итого с доставкой, byn']),
+      unitIdx: indexFor(map,['себест. 1 ед., byn']),
+      weightIdx: indexFor(map,['вес (кг)','вес'])
+    };
+    updateRowCalculation(row, idx);
+  }
+
   function makeInput(cell,id,field,value,type,extra) {
     cell.innerHTML=''; const input=document.createElement('input'); input.type=type||'text'; input.value=value??''; input.dataset.field=field;
     if(type==='number'){input.step=extra?.step||'0.01';input.min=extra?.min||'0';}
     input.className='cargo-inline-input'; input.title='Сохраняется после выхода из поля';
     input.addEventListener('keydown',e=>{if(e.key==='Enter')input.blur();});
-    const save=async()=>{const raw=input.value;if(type==='number'){const n=num(raw,NaN);if(!Number.isFinite(n)){input.value='0';return;}await saveField(id,field,n,input);if(field==='weight'){const shippingUsd=Number((n*usdPerKg()).toFixed(2));const shippingInput=input.closest('tr')?.querySelector('input[data-field="shippingChinaUsd"]');if(shippingInput&&shippingInput.dataset.manual!=='1')shippingInput.value=shippingUsd.toFixed(2);try{await saveField(id,'shippingChinaUsd',shippingUsd,shippingInput||input);}catch(err){console.warn('Автоматическое сохранение доставки пропущено',err);}}}else await saveField(id,field,raw,input);};
+    input.addEventListener('input',()=>{if(field==='shippingChinaUsd')input.dataset.manual='1';recalcRow(input.closest('tr'));});
+    const save=async()=>{const raw=input.value;if(type==='number'){const n=num(raw,NaN);if(!Number.isFinite(n)){input.value='0';recalcRow(input.closest('tr'));return;}await saveField(id,field,n,input);if(field==='weight'){const shippingUsd=Number((n*usdPerKg()).toFixed(2));const shippingInput=input.closest('tr')?.querySelector('input[data-field="shippingChinaUsd"]');if(shippingInput&&shippingInput.dataset.manual!=='1')shippingInput.value=shippingUsd.toFixed(2);recalcRow(input.closest('tr'));}}else{await saveField(id,field,raw,input);recalcRow(input.closest('tr'));}};
     input.addEventListener('blur',()=>save().catch(()=>{})); cell.appendChild(input); return input;
   }
 
@@ -138,7 +150,7 @@
   function makeStatus(cell,id,value) {
     cell.innerHTML=''; const select=document.createElement('select');
     ['В пути на склад Китая','На складе в Китае','Едет в РБ','Прибыло в РБ','Выдано / Получено'].forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;o.selected=s===value;select.appendChild(o);});
-    select.className='cargo-inline-input'; select.dataset.field='status'; select.addEventListener('change',()=>saveField(id,'status',select.value,select).catch(()=>{})); cell.appendChild(select);
+    select.className='cargo-inline-input'; select.dataset.field='status'; select.addEventListener('change',()=>saveField(id,'status',select.value,select).then(()=>recalcRow(select.closest('tr'))).catch(()=>{})); cell.appendChild(select);
   }
 
   function updateRowCalculation(row,indexes) {
@@ -166,7 +178,7 @@
       const cells=Array.from(row.children); const track=trackIdx>=0?(cells[trackIdx]?.textContent||'').replace(/\s+/g,' ').trim():''; const name=nameIdx>=0?(cells[nameIdx]?.textContent||'').replace(/ссылка.*$/i,'').replace(/\s+/g,' ').trim():''; const o=byTrack.get(track)||byName.get(name); if(!o)return;
       row.dataset.cargoEnhanced='1';row.dataset.cargoOrderId=String(o.id);
       if(trackIdx>=0)makeInput(cells[trackIdx],o.id,'trackNumber',o.trackNumber||'','text'); if(whomIdx>=0)makePersonInput(cells[whomIdx],o.id,o.forWhom||'',people); if(statusIdx>=0)makeStatus(cells[statusIdx],o.id,o.status); if(qtyIdx>=0)makeInput(cells[qtyIdx],o.id,'quantity',o.quantity||1,'number',{min:'1',step:'1'}); if(priceIdx>=0)makeInput(cells[priceIdx],o.id,'priceCny',o.priceCny||0,'number',{min:'0',step:'0.01'}); if(weightIdx>=0)makeInput(cells[weightIdx],o.id,'weight',o.weight||0,'number',{min:'0',step:'0.01'});
-      if(chinaIdx>=0){const auto=!o.shippingChinaUsd||Number(o.shippingChinaUsd)===0;const usd=auto?(Number(o.weight||0)*usdPerKg()):Number(o.shippingChinaUsd);const inp=makeInput(cells[chinaIdx],o.id,'shippingChinaUsd',usd.toFixed(2),'number',{min:'0',step:'0.01'});inp.dataset.manual=auto?'0':'1';inp.addEventListener('input',()=>inp.dataset.manual='1');}
+      if(chinaIdx>=0){const auto=!o.shippingChinaUsd||Number(o.shippingChinaUsd)===0;const usd=auto?(Number(o.weight||0)*usdPerKg()):Number(o.shippingChinaUsd);const inp=makeInput(cells[chinaIdx],o.id,'shippingChinaUsd',usd.toFixed(2),'number',{min:'0',step:'0.01'});inp.dataset.manual=auto?'0':'1';}
       if(rbIdx>=0)makeInput(cells[rbIdx],o.id,'shippingBelarusByn',o.shippingBelarusByn||0,'number',{min:'0',step:'0.01'});
       updateRowCalculation(row,{weightIdx,qtyIdx,priceIdx,rateIdx,chinaIdx,rbIdx,totalIdx,unitIdx});
     });
@@ -176,7 +188,7 @@
     if(document.querySelector('.cargo-rate-panel'))return; const table=findOrdersTable();if(!table)return; const panel=document.createElement('div');panel.className='cargo-rate-panel';
     panel.innerHTML=`<span class="cargo-rate-title">🚚 Доставка</span><label class="cargo-rate-card"><span>Китай → РБ $/кг</span><input id="cargo-usdkg" type="number" min="0" step="0.01" value="${usdPerKg()}"></label><label class="cargo-rate-card"><span>USD → BYN</span><input id="cargo-usdbyn" type="number" min="0" step="0.0001" value="${usdByn()}"></label><button class="cargo-rate-save" type="button">Сохранить</button>`;
     const wrapper=table.parentElement;wrapper?.parentElement?.insertBefore(panel,wrapper);
-    panel.querySelector('.cargo-rate-save').addEventListener('click',()=>{const a=num(panel.querySelector('#cargo-usdkg').value,DEFAULT_USD_PER_KG);const b=num(panel.querySelector('#cargo-usdbyn').value,DEFAULT_USD_BYN);localStorage.setItem(USD_PER_KG_KEY,String(a));localStorage.setItem(USD_PER_KG_OLD_KEY,String(a));localStorage.setItem(USD_BYN_KEY,String(b));localStorage.setItem(USD_BYN_OLD_KEY,String(b));document.querySelectorAll('table tbody tr[data-cargo-enhanced="1"]').forEach(row=>{const inp=row.querySelector('input[data-field="shippingChinaUsd"]');if(inp&&inp.dataset.manual!=='1'){const w=num(row.querySelector('input[data-field="weight"]')?.value);inp.value=(w*a).toFixed(2);}});alert(`Сохранено: ${a.toFixed(2)} $/кг · ${b.toFixed(4)} BYN/$`);});
+    panel.querySelector('.cargo-rate-save').addEventListener('click',()=>{const a=num(panel.querySelector('#cargo-usdkg').value,DEFAULT_USD_PER_KG);const b=num(panel.querySelector('#cargo-usdbyn').value,DEFAULT_USD_BYN);localStorage.setItem(USD_PER_KG_KEY,String(a));localStorage.setItem(USD_PER_KG_OLD_KEY,String(a));localStorage.setItem(USD_BYN_KEY,String(b));localStorage.setItem(USD_BYN_OLD_KEY,String(b));document.querySelectorAll('table tbody tr[data-cargo-enhanced="1"]').forEach(row=>{const inp=row.querySelector('input[data-field="shippingChinaUsd"]');if(inp&&inp.dataset.manual!=='1'){const w=num(row.querySelector('input[data-field="weight"]')?.value);inp.value=(w*a).toFixed(2);}recalcRow(row);});alert(`Сохранено: ${a.toFixed(2)} $/кг · ${b.toFixed(4)} BYN/$`);});
   }
 
   function addExportButtons(){
