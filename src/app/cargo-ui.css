@@ -4,7 +4,7 @@ html,body{background:var(--cargo-bg)!important;color:var(--cargo-text)}
 html,body,#__next{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
 body{margin:0!important}
 main{width:100%!important;max-width:none!important;min-width:0!important;margin-left:auto!important;margin-right:auto!important;padding-left:clamp(8px,1.2vw,20px)!important;padding-right:clamp(8px,1.2vw,20px)!important;box-sizing:border-box!important}
-main .bg-slate-800\\/80,main .bg-slate-800\\/60,main .bg-slate-800\\/40{background:linear-gradient(180deg,rgba(21,35,61,.96),rgba(17,29,52,.96))!important;border-color:var(--cargo-line)!important;box-shadow:0 8px 24px rgba(0,0,0,.16)!important}
+main [class*="bg-slate-800/80"],main [class*="bg-slate-800/60"],main [class*="bg-slate-800/40"]{background:linear-gradient(180deg,rgba(21,35,61,.96),rgba(17,29,52,.96))!important;border-color:var(--cargo-line)!important;box-shadow:0 8px 24px rgba(0,0,0,.16)!important}
 
 /* The order table is a dashboard, not a logistics spreadsheet. Keep the whole working surface inside the viewport. */
 main div.overflow-x-auto{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important;box-sizing:border-box!important}
