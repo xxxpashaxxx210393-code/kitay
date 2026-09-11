@@ -20,6 +20,8 @@ main table td a{color:#4db5ff!important;text-decoration:none!important;overflow-
 main table select{width:100%!important;max-width:100%!important;background:#12213a!important;color:#eaf2ff!important;border:1px solid #304665!important;border-radius:8px!important;min-height:27px!important;font-size:clamp(8px,.58vw,10px)!important;white-space:normal!important;box-sizing:border-box!important}
 main table select:focus{border-color:#4b8df8!important;box-shadow:0 0 0 3px rgba(47,125,246,.14)!important;outline:none!important}
 main table input{width:100%!important;max-width:100%!important;min-width:0!important;background:transparent!important;color:#eef4ff!important;border:1px solid transparent!important;border-radius:7px!important;min-height:27px!important;transition:.15s!important;box-sizing:border-box!important;font-size:clamp(9px,.62vw,11px)!important}
+/* Checkboxes must stay checkbox-sized. The table's generic input rule must not stretch them into large squares. */
+main table input[type="checkbox"]{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;max-width:16px!important;padding:0!important;margin:0 auto!important;display:block!important;accent-color:#2f7df6!important}
 main table input:hover{background:#12213a!important;border-color:#304665!important}
 main table input:focus{background:#0b1629!important;border-color:#4b8df8!important;box-shadow:0 0 0 3px rgba(47,125,246,.12)!important;outline:none!important}
 main table input::placeholder{color:#536785!important}
