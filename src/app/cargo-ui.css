@@ -4,7 +4,7 @@ html,body{background:var(--cargo-bg)!important;color:var(--cargo-text)}
 html,body,#__next{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
 body{margin:0!important}
 main{width:100%!important;max-width:none!important;min-width:0!important;margin-left:auto!important;margin-right:auto!important;padding-left:clamp(8px,1.2vw,20px)!important;padding-right:clamp(8px,1.2vw,20px)!important;box-sizing:border-box!important}
-main .bg-slate-800\/80,main .bg-slate-800\/60,main .bg-slate-800\/40{background:linear-gradient(180deg,rgba(21,35,61,.96),rgba(17,29,52,.96))!important;border-color:var(--cargo-line)!important;box-shadow:0 8px 24px rgba(0,0,0,.16)!important}
+main .bg-slate-800\\/80,main .bg-slate-800\\/60,main .bg-slate-800\\/40{background:linear-gradient(180deg,rgba(21,35,61,.96),rgba(17,29,52,.96))!important;border-color:var(--cargo-line)!important;box-shadow:0 8px 24px rgba(0,0,0,.16)!important}
 
 /* The order table is a dashboard, not a logistics spreadsheet. Keep the whole working surface inside the viewport. */
 main div.overflow-x-auto{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important;box-sizing:border-box!important}
@@ -25,30 +25,30 @@ main table input:focus{background:#0b1629!important;border-color:#4b8df8!importa
 main table input::placeholder{color:#536785!important}
 main table td>input,main table td>select,main table td>div,main table td>a{max-width:100%!important;box-sizing:border-box!important}
 
-/* Secondary calculated columns are still available in the edit/details view, but do not consume dashboard width. */
-main table thead th:nth-child(9),main table tbody td:nth-child(9),
+/* Keep the rate and date secondary on the compact dashboard. BYN cost columns remain visible. */
 main table thead th:nth-child(10),main table tbody td:nth-child(10),
-main table thead th:nth-child(11),main table tbody td:nth-child(11),
-main table thead th:nth-child(12),main table tbody td:nth-child(12){display:none!important}
+main table thead th:nth-child(18),main table tbody td:nth-child(18){display:none!important}
 
-/* Visible dashboard columns are deliberately compact. Product name gets enough room to wrap, while editable fields stay narrow. */
-main table thead th:nth-child(1),main table tbody td:nth-child(1){width:2.5%!important}
-main table thead th:nth-child(2),main table tbody td:nth-child(2){width:5.5%!important}
-main table thead th:nth-child(3),main table tbody td:nth-child(3){width:12%!important}
-main table thead th:nth-child(4),main table tbody td:nth-child(4){width:6.5%!important}
-main table thead th:nth-child(5),main table tbody td:nth-child(5){width:9%!important}
-main table thead th:nth-child(6),main table tbody td:nth-child(6){width:11%!important}
-main table thead th:nth-child(7),main table tbody td:nth-child(7){width:4%!important}
-main table thead th:nth-child(8),main table tbody td:nth-child(8){width:7%!important}
-main table thead th:nth-child(13),main table tbody td:nth-child(13){width:7%!important}
-main table thead th:nth-child(14),main table tbody td:nth-child(14){width:6.5%!important}
-main table thead th:nth-child(15),main table tbody td:nth-child(15){width:8%!important}
-main table thead th:nth-child(16),main table tbody td:nth-child(16){width:7%!important}
-main table thead th:nth-child(17),main table tbody td:nth-child(17){width:4.5%!important}
-main table thead th:nth-child(18),main table tbody td:nth-child(18){width:6%!important}
-main table thead th:nth-child(19),main table tbody td:nth-child(19){width:3.5%!important}
+/* Visible dashboard columns. Product name gets room to wrap; CNY and BYN costs stay visible. */
+main table thead th:nth-child(1),main table tbody td:nth-child(1){width:2%!important}
+main table thead th:nth-child(2),main table tbody td:nth-child(2){width:5%!important}
+main table thead th:nth-child(3),main table tbody td:nth-child(3){width:11%!important}
+main table thead th:nth-child(4),main table tbody td:nth-child(4){width:5%!important}
+main table thead th:nth-child(5),main table tbody td:nth-child(5){width:8%!important}
+main table thead th:nth-child(6),main table tbody td:nth-child(6){width:9%!important}
+main table thead th:nth-child(7),main table tbody td:nth-child(7){width:3.5%!important}
+main table thead th:nth-child(8),main table tbody td:nth-child(8){width:5%!important}
+main table thead th:nth-child(9),main table tbody td:nth-child(9){width:6%!important}
+main table thead th:nth-child(11),main table tbody td:nth-child(11){width:6%!important}
+main table thead th:nth-child(12),main table tbody td:nth-child(12){width:7%!important}
+main table thead th:nth-child(13),main table tbody td:nth-child(13){width:6%!important}
+main table thead th:nth-child(14),main table tbody td:nth-child(14){width:5%!important}
+main table thead th:nth-child(15),main table tbody td:nth-child(15){width:7%!important}
+main table thead th:nth-child(16),main table tbody td:nth-child(16){width:5%!important}
+main table thead th:nth-child(17),main table tbody td:nth-child(17){width:4%!important}
+main table thead th:nth-child(19),main table tbody td:nth-child(19){width:2.5%!important}
 
-/* Keep the most important editable controls compact even when a browser tries to honor old Tailwind min-width classes. */
+/* Keep important editable controls compact even when old Tailwind min-width classes are present. */
 main table td:nth-child(4)>input{max-width:105px!important;margin-left:auto!important;margin-right:auto!important}
 main table td:nth-child(5)>input{max-width:145px!important;margin-left:auto!important;margin-right:auto!important}
 main table td:nth-child(7)>input{max-width:58px!important;margin-left:auto!important;margin-right:auto!important}
@@ -57,7 +57,7 @@ main table td:nth-child(14)>input{max-width:92px!important;margin-left:auto!impo
 main table td:nth-child(17)>input{max-width:72px!important;margin-left:auto!important;margin-right:auto!important}
 
 main table td:nth-child(5),main table th:nth-child(5),main table td:nth-child(3),main table th:nth-child(3){overflow-wrap:anywhere!important}
-main table td:nth-child(18),main table th:nth-child(18),main table td:nth-child(19),main table th:nth-child(19){white-space:nowrap!important}
+main table td:nth-child(19),main table th:nth-child(19){white-space:nowrap!important}
 main .grid>*{min-width:0!important}
 main h1,main h2,main h3,main p,main span,main label{overflow-wrap:anywhere}
 main button,main input,main select,main textarea{box-sizing:border-box;max-width:100%}
