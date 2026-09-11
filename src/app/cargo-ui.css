@@ -31,22 +31,30 @@ main table thead th:nth-child(10),main table tbody td:nth-child(10),
 main table thead th:nth-child(11),main table tbody td:nth-child(11),
 main table thead th:nth-child(12),main table tbody td:nth-child(12){display:none!important}
 
-/* Widths of the visible dashboard columns. Total = 100%, so there is nothing to scroll sideways. */
+/* Visible dashboard columns are deliberately compact. Product name gets enough room to wrap, while editable fields stay narrow. */
 main table thead th:nth-child(1),main table tbody td:nth-child(1){width:2.5%!important}
-main table thead th:nth-child(2),main table tbody td:nth-child(2){width:5%!important}
-main table thead th:nth-child(3),main table tbody td:nth-child(3){width:14.5%!important}
-main table thead th:nth-child(4),main table tbody td:nth-child(4){width:6%!important}
+main table thead th:nth-child(2),main table tbody td:nth-child(2){width:5.5%!important}
+main table thead th:nth-child(3),main table tbody td:nth-child(3){width:12%!important}
+main table thead th:nth-child(4),main table tbody td:nth-child(4){width:6.5%!important}
 main table thead th:nth-child(5),main table tbody td:nth-child(5){width:9%!important}
-main table thead th:nth-child(6),main table tbody td:nth-child(6){width:10%!important}
+main table thead th:nth-child(6),main table tbody td:nth-child(6){width:11%!important}
 main table thead th:nth-child(7),main table tbody td:nth-child(7){width:4%!important}
 main table thead th:nth-child(8),main table tbody td:nth-child(8){width:7%!important}
-main table thead th:nth-child(13),main table tbody td:nth-child(13){width:8%!important}
-main table thead th:nth-child(14),main table tbody td:nth-child(14){width:7%!important}
-main table thead th:nth-child(15),main table tbody td:nth-child(15){width:9%!important}
-main table thead th:nth-child(16),main table tbody td:nth-child(16){width:8%!important}
-main table thead th:nth-child(17),main table tbody td:nth-child(17){width:4%!important}
-main table thead th:nth-child(18),main table tbody td:nth-child(18){width:3.5%!important}
-main table thead th:nth-child(19),main table tbody td:nth-child(19){width:2.5%!important}
+main table thead th:nth-child(13),main table tbody td:nth-child(13){width:7%!important}
+main table thead th:nth-child(14),main table tbody td:nth-child(14){width:6.5%!important}
+main table thead th:nth-child(15),main table tbody td:nth-child(15){width:8%!important}
+main table thead th:nth-child(16),main table tbody td:nth-child(16){width:7%!important}
+main table thead th:nth-child(17),main table tbody td:nth-child(17){width:4.5%!important}
+main table thead th:nth-child(18),main table tbody td:nth-child(18){width:6%!important}
+main table thead th:nth-child(19),main table tbody td:nth-child(19){width:3.5%!important}
+
+/* Keep the most important editable controls compact even when a browser tries to honor old Tailwind min-width classes. */
+main table td:nth-child(4)>input{max-width:105px!important;margin-left:auto!important;margin-right:auto!important}
+main table td:nth-child(5)>input{max-width:145px!important;margin-left:auto!important;margin-right:auto!important}
+main table td:nth-child(7)>input{max-width:58px!important;margin-left:auto!important;margin-right:auto!important}
+main table td:nth-child(8)>input{max-width:92px!important;margin-left:auto!important}
+main table td:nth-child(14)>input{max-width:92px!important;margin-left:auto!important}
+main table td:nth-child(17)>input{max-width:72px!important;margin-left:auto!important;margin-right:auto!important}
 
 main table td:nth-child(5),main table th:nth-child(5),main table td:nth-child(3),main table th:nth-child(3){overflow-wrap:anywhere!important}
 main table td:nth-child(18),main table th:nth-child(18),main table td:nth-child(19),main table th:nth-child(19){white-space:nowrap!important}
