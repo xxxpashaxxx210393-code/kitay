@@ -6,16 +6,16 @@ body{margin:0!important}
 main{width:100%!important;max-width:none!important;min-width:0!important;margin-left:auto!important;margin-right:auto!important;padding-left:clamp(8px,1.2vw,20px)!important;padding-right:clamp(8px,1.2vw,20px)!important;box-sizing:border-box!important}
 main .bg-slate-800\/80,main .bg-slate-800\/60,main .bg-slate-800\/40{background:linear-gradient(180deg,rgba(21,35,61,.96),rgba(17,29,52,.96))!important;border-color:var(--cargo-line)!important;box-shadow:0 8px 24px rgba(0,0,0,.16)!important}
 
-/* Cargo table: the page itself must never become wider than the viewport. */
-main .overflow-x-auto{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important;box-sizing:border-box!important}
+/* The order table is a dashboard, not a logistics spreadsheet. Keep the whole working surface inside the viewport. */
+main div.overflow-x-auto{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important;box-sizing:border-box!important}
 main table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#0f1b31!important;border:1px solid var(--cargo-line)!important;border-radius:16px!important;overflow:hidden!important;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+main table th,main table td{min-width:0!important;box-sizing:border-box!important}
 main table thead th{position:sticky!important;top:0!important;z-index:4!important;background:#172642!important;color:#b8c7df!important;border-bottom:1px solid #314363!important;text-transform:uppercase!important;letter-spacing:.025em!important;font-size:clamp(8px,.58vw,10px)!important;font-weight:800!important;line-height:1.18!important;padding:7px 5px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;vertical-align:middle!important}
 main table td{overflow-wrap:anywhere!important;word-break:normal!important;white-space:normal!important;border-bottom:1px solid rgba(49,67,99,.55)!important;color:#dbe7fa!important;padding:6px 5px!important;vertical-align:middle!important;font-size:clamp(9px,.62vw,11px)!important;overflow:hidden!important;font-variant-numeric:tabular-nums}
 main table tbody tr{background:#101d34!important;transition:background .14s ease,box-shadow .14s ease!important}
 main table tbody tr:nth-child(even){background:#0e1a30!important}
 main table tbody tr:hover{background:#1a3152!important;box-shadow:inset 4px 0 0 #2f7df6,0 0 18px rgba(47,125,246,.08)!important}
 main table tbody tr:last-child td{border-bottom:0!important}
-
 main table td a{color:#4db5ff!important;text-decoration:none!important;overflow-wrap:anywhere!important}main table td a:hover{text-decoration:underline!important}
 main table select{width:100%!important;max-width:100%!important;background:#12213a!important;color:#eaf2ff!important;border:1px solid #304665!important;border-radius:8px!important;min-height:27px!important;font-size:clamp(8px,.58vw,10px)!important;white-space:normal!important;box-sizing:border-box!important}
 main table select:focus{border-color:#4b8df8!important;box-shadow:0 0 0 3px rgba(47,125,246,.14)!important;outline:none!important}
@@ -25,40 +25,39 @@ main table input:focus{background:#0b1629!important;border-color:#4b8df8!importa
 main table input::placeholder{color:#536785!important}
 main table td>input,main table td>select,main table td>div,main table td>a{max-width:100%!important;box-sizing:border-box!important}
 
-/* Important columns may wrap to a second line instead of expanding the table. */
-main table td:nth-child(3),main table th:nth-child(3),main table td:nth-child(5),main table th:nth-child(5){overflow-wrap:anywhere!important}
-main table td:nth-child(6) select{max-width:100%!important;white-space:normal!important}
-main table td:nth-child(18),main table th:nth-child(18),main table td:nth-child(19),main table th:nth-child(19){white-space:nowrap!important}
-main table td:nth-child(19),main table th:nth-child(19){width:72px!important}
+/* Secondary calculated columns are still available in the edit/details view, but do not consume dashboard width. */
+main table thead th:nth-child(9),main table tbody td:nth-child(9),
+main table thead th:nth-child(10),main table tbody td:nth-child(10),
+main table thead th:nth-child(11),main table tbody td:nth-child(11),
+main table thead th:nth-child(12),main table tbody td:nth-child(12){display:none!important}
 
+/* Widths of the visible dashboard columns. Total = 100%, so there is nothing to scroll sideways. */
+main table thead th:nth-child(1),main table tbody td:nth-child(1){width:2.5%!important}
+main table thead th:nth-child(2),main table tbody td:nth-child(2){width:5%!important}
+main table thead th:nth-child(3),main table tbody td:nth-child(3){width:14.5%!important}
+main table thead th:nth-child(4),main table tbody td:nth-child(4){width:6%!important}
+main table thead th:nth-child(5),main table tbody td:nth-child(5){width:9%!important}
+main table thead th:nth-child(6),main table tbody td:nth-child(6){width:10%!important}
+main table thead th:nth-child(7),main table tbody td:nth-child(7){width:4%!important}
+main table thead th:nth-child(8),main table tbody td:nth-child(8){width:7%!important}
+main table thead th:nth-child(13),main table tbody td:nth-child(13){width:8%!important}
+main table thead th:nth-child(14),main table tbody td:nth-child(14){width:7%!important}
+main table thead th:nth-child(15),main table tbody td:nth-child(15){width:9%!important}
+main table thead th:nth-child(16),main table tbody td:nth-child(16){width:8%!important}
+main table thead th:nth-child(17),main table tbody td:nth-child(17){width:4%!important}
+main table thead th:nth-child(18),main table tbody td:nth-child(18){width:3.5%!important}
+main table thead th:nth-child(19),main table tbody td:nth-child(19){width:2.5%!important}
+
+main table td:nth-child(5),main table th:nth-child(5),main table td:nth-child(3),main table th:nth-child(3){overflow-wrap:anywhere!important}
+main table td:nth-child(18),main table th:nth-child(18),main table td:nth-child(19),main table th:nth-child(19){white-space:nowrap!important}
 main .grid>*{min-width:0!important}
 main h1,main h2,main h3,main p,main span,main label{overflow-wrap:anywhere}
 main button,main input,main select,main textarea{box-sizing:border-box;max-width:100%}
-
 #cargo-usd-settings{margin:10px 0 0!important;padding:10px 12px!important;border-radius:12px!important;background:#0d1930!important;border:1px solid #2a3d5d!important;box-shadow:none!important;width:100%!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
 #cargo-usd-settings>span{grid-column:1/-1;font-size:10px!important;color:#a9bad5!important;font-weight:900!important;text-transform:uppercase;letter-spacing:.08em}
 #cargo-usd-settings label{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;color:#91a4c3!important;font-size:10px!important}
 #cargo-usd-settings input{width:86px!important;background:#081326!important;color:#f8fafc!important;border:1px solid #304665!important;border-radius:7px!important;padding:6px 7px!important;text-align:right!important;font-weight:800!important}
 [data-cargo-center]{background:linear-gradient(180deg,#14233e,#101c32)!important;border:1px solid #2b3e5f!important;border-radius:16px!important;padding:14px!important}[data-cargo-center] h2,[data-cargo-center] h3{color:#f3f7ff!important}
-
-@media (min-width:901px){
-  main table th{font-size:9px!important;padding:6px 4px!important}
-  main table td{font-size:10px!important;padding:5px 4px!important}
-  main table input,main table select{font-size:9px!important;min-width:0!important}
-}
-
-@media (max-width:900px){
-  main{padding-left:8px!important;padding-right:8px!important}
-  main table{min-width:0!important}
-  main table th{font-size:8px!important;padding:5px 3px!important}
-  main table td{font-size:9px!important;padding:5px 3px!important}
-  main table input,main table select{font-size:9px!important}
-  #cargo-usd-settings{grid-template-columns:1fr!important}
-}
-
-@media print{
-  body{background:#fff!important;color:#111!important}
-  main{max-width:none!important;padding:0!important}
-  main .overflow-x-auto{overflow:visible!important}
-  main table{min-width:0!important;font-size:8px!important}
-}
+@media (min-width:901px){main table th{font-size:9px!important;padding:6px 4px!important}main table td{font-size:10px!important;padding:5px 4px!important}main table input,main table select{font-size:9px!important;min-width:0!important}}
+@media (max-width:900px){main{padding-left:8px!important;padding-right:8px!important}main table{min-width:0!important}main table th{font-size:8px!important;padding:5px 3px!important}main table td{font-size:9px!important;padding:5px 3px!important}main table input,main table select{font-size:9px!important}#cargo-usd-settings{grid-template-columns:1fr!important}}
+@media print{body{background:#fff!important;color:#111!important}main{max-width:none!important;padding:0!important}main .overflow-x-auto{overflow:visible!important}main table{min-width:0!important;font-size:8px!important}}
