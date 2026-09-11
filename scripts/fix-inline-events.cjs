@@ -56,8 +56,7 @@ for (const [before, after] of replacements) {
 const rateStateAnchor = '  const [usdBynRate, setUsdBynRate] = useState<number>(3.25);';
 const rateStateHydration = `${rateStateAnchor}\n\n  // Restore the three global cargo parameters without reloading the page.\n  useEffect(() => {\n    const readPositive = (key: string, fallback: number) => {\n      const value = Number(localStorage.getItem(key));\n      return Number.isFinite(value) && value > 0 ? value : fallback;\n    };\n    setDefaultRate(readPositive("cargo_cny_byn_rate", 0.4800));\n    setCargoShippingUsdPerKg(readPositive("cargo_shipping_usd_per_kg", 5.5));\n    setUsdBynRate(readPositive("cargo_usd_byn_rate", 3.25));\n  }, []);`;
 
-const hasHydration = output.includes('readPositive("cargo_cny_byn_rate"');
-if (!hasHydration) {
+if (!output.includes('readPositive("cargo_cny_byn_rate"')) {
   if (!output.includes(rateStateAnchor)) {
     throw new Error("Cargo rate state anchor was not found");
   }
@@ -69,19 +68,13 @@ if (remainingUnsafe) {
   throw new Error("Unsafe event access remains inside an orders state updater");
 }
 
-const legacyRateCalls = /applyCnyRateLive|persistCnyRate|saveCargoRates/.test(output);
-if (legacyRateCalls) {
+if (/applyCnyRateLive|persistCnyRate|saveCargoRates/.test(output)) {
   throw new Error("Legacy cargo rate bridge calls remain in page.tsx");
 }
 
-if (fixed === 0) {
-  const inlineAlreadyFixed = replacements.slice(0, 6).every(([, after]) => output.includes(after));
-  const rateAlreadyFixed = replacements.slice(6).every(([, after]) => output.includes(after));
-  if (!inlineAlreadyFixed || !rateAlreadyFixed) {
-    throw new Error("Expected inline or cargo-rate handlers were not found");
-  }
-} else if (fixed !== replacements.length) {
-  throw new Error(`Inline event fix changed ${fixed} handlers; expected ${replacements.length}`);
+const allExpected = replacements.every(([, after]) => output.includes(after));
+if (!allExpected) {
+  throw new Error("Expected inline or cargo-rate handlers were not found");
 }
 
 fs.writeFileSync(file, output, "utf8");
