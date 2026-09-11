@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(
       { success: true, data },
-      { headers: { "Cache-Control": "private, max-age=5, stale-while-revalidate=20" } }
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
     );
   } catch (error: any) {
     console.error("Error in GET /api/orders:", error);
