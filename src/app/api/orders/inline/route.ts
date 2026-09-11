@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { pool } from "@/db";
+import { db } from "@/db";
+import { orders } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 const NUMBER_FIELDS = new Set([
   "quantity",
@@ -21,20 +23,20 @@ const TEXT_FIELDS = new Set([
   "notes",
 ]);
 
-const COLUMN_BY_FIELD: Record<string, string> = {
+const COLUMN_BY_FIELD: Record<string, keyof typeof orders.$inferInsert> = {
   quantity: "quantity",
-  priceCny: "price_cny",
+  priceCny: "priceCny",
   weight: "weight",
-  shippingBelarusByn: "shipping_belarus_byn",
-  shippingChinaUsd: "shipping_china_usd",
-  shippingUsdByn: "shipping_usd_byn",
-  rateCnyByn: "rate_cny_byn",
+  shippingBelarusByn: "shippingBelarusByn",
+  shippingChinaUsd: "shippingChinaUsd",
+  shippingUsdByn: "shippingUsdByn",
+  rateCnyByn: "rateCnyByn",
   name: "name",
-  forWhom: "for_whom",
-  trackNumber: "track_number",
+  forWhom: "forWhom",
+  trackNumber: "trackNumber",
   status: "status",
-  itemUrl: "item_url",
-  imageUrl: "image_url",
+  itemUrl: "itemUrl",
+  imageUrl: "imageUrl",
   notes: "notes",
 };
 
@@ -74,18 +76,24 @@ export async function PUT(req: Request) {
       }
     }
 
-    const result = await pool.query(
-      `UPDATE orders SET "${column}" = $1 WHERE id = $2`,
-      [value, orderId]
-    );
+    await db
+      .update(orders)
+      .set({ [column]: value } as Partial<typeof orders.$inferInsert>)
+      .where(eq(orders.id, orderId));
 
-    if (result.rowCount !== 1) {
+    const updated = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (!updated.length) {
       return json({ success: false, error: "Товар не найден" }, 404);
     }
 
     return json({
       success: true,
-      data: { id: orderId, [field]: value },
+      data: updated[0],
     });
   } catch (error: unknown) {
     console.error("Inline order update error", error);
