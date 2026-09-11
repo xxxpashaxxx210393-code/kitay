@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { orders } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const NUMBER_FIELDS = new Set([
+const EDITABLE_FIELDS = new Set([
   "quantity",
   "priceCny",
   "weight",
@@ -11,9 +11,6 @@ const NUMBER_FIELDS = new Set([
   "shippingChinaUsd",
   "shippingUsdByn",
   "rateCnyByn",
-]);
-
-const TEXT_FIELDS = new Set([
   "name",
   "forWhom",
   "trackNumber",
@@ -40,6 +37,16 @@ const COLUMN_BY_FIELD: Record<string, keyof typeof orders.$inferInsert> = {
   notes: "notes",
 };
 
+const NUMBER_FIELDS = new Set([
+  "quantity",
+  "priceCny",
+  "weight",
+  "shippingBelarusByn",
+  "shippingChinaUsd",
+  "shippingUsdByn",
+  "rateCnyByn",
+]);
+
 const json = (body: unknown, status = 200) =>
   NextResponse.json(body, {
     status,
@@ -57,7 +64,7 @@ export async function PUT(req: Request) {
       return json({ success: false, error: "Некорректный ID товара" }, 400);
     }
 
-    if (!column || (!NUMBER_FIELDS.has(field) && !TEXT_FIELDS.has(field))) {
+    if (!column || !EDITABLE_FIELDS.has(field)) {
       return json({ success: false, error: "Это поле нельзя редактировать" }, 400);
     }
 
@@ -76,24 +83,21 @@ export async function PUT(req: Request) {
       }
     }
 
-    await db
+    const result = await db
       .update(orders)
       .set({ [column]: value } as Partial<typeof orders.$inferInsert>)
       .where(eq(orders.id, orderId));
 
-    const updated = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.id, orderId))
-      .limit(1);
-
-    if (!updated.length) {
+    if (result.rowCount !== 1) {
       return json({ success: false, error: "Товар не найден" }, 404);
     }
 
+    // Return only the value that was actually written. The client keeps the
+    // existing row object intact, so an inline edit cannot replace it with a
+    // partially serialized database row and break live calculations.
     return json({
       success: true,
-      data: updated[0],
+      data: { id: orderId, [field]: value },
     });
   } catch (error: unknown) {
     console.error("Inline order update error", error);
