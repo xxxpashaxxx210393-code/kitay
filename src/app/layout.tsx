@@ -16,7 +16,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {children}
         <Script src="/shipping.js" strategy="afterInteractive" />
         <Script src="/cargo-rate-bridge.js" strategy="afterInteractive" />
-        <Script src="/cargo-excel.js" strategy="afterInteractive" />
       </body>
     </html>
   );
