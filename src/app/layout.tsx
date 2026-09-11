@@ -14,7 +14,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru">
       <body className="antialiased">
         {children}
-        <Script src="/shipping.js" strategy="afterInteractive" />
         <Script src="/cargo-rate-bridge.js" strategy="afterInteractive" />
       </body>
     </html>
