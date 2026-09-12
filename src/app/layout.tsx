@@ -3,17 +3,18 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import "./cargo-ui.css";
 import "./design-experiment.css";
+import ChinaDesignShell from "./china-design-shell";
 
 export const metadata: Metadata = {
-  title: "КАРГО-КОНТРОЛЬ 🇨🇳 ➔ 🇧🇾 Трекер заказов из Китая",
-  description: "Простое и быстрое управление заказами, трек-номеров и авторасчет себестоимости в РБ",
+  title: "Китай → Беларусь | Мои покупки и заказы",
+  description: "Учет заказов из Китая, трек-номеров и себестоимости в Беларуси",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <body className="antialiased">
-        {children}
+        <ChinaDesignShell>{children}</ChinaDesignShell>
       </body>
     </html>
   );
