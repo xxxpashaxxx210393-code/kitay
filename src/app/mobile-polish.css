@@ -1,0 +1,251 @@
+/* =========================================================
+   КИТАЙ → БЕЛАРУСЬ
+   Mobile-only order cards
+   Не меняет API, базу или расчёты.
+   ========================================================= */
+
+@media (max-width: 650px) {
+  html, body { width:100%; max-width:100%; overflow-x:hidden !important; }
+  main { width:100% !important; max-width:100% !important; padding:10px !important; overflow-x:hidden !important; }
+
+  /* KPI: компактно, но читаемо */
+  main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:8px !important;
+  }
+  main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 > div {
+    min-height:92px !important;
+    padding:12px !important;
+  }
+
+  /* Контейнер таблицы перестаёт быть горизонтальным скроллом */
+  main .w-full.max-w-\\[1500px\\].mx-auto.overflow-x-auto {
+    overflow:visible !important;
+    border:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    border-radius:0 !important;
+  }
+
+  main table {
+    display:block !important;
+    width:100% !important;
+    min-width:0 !important;
+    table-layout:auto !important;
+    border:0 !important;
+    background:transparent !important;
+    border-spacing:0 !important;
+  }
+  main table thead { display:none !important; }
+  main table tbody, main table tbody tr { display:block !important; width:100% !important; }
+
+  /* Одна строка = одна большая карточка */
+  main table tbody tr {
+    margin:0 0 12px !important;
+    padding:12px !important;
+    border:1px solid rgba(71,85,105,.7) !important;
+    border-radius:16px !important;
+    background:linear-gradient(145deg,#102943,#091b2d) !important;
+    box-shadow:0 10px 28px rgba(0,0,0,.24) !important;
+    overflow:hidden !important;
+  }
+
+  main table tbody td {
+    display:block !important;
+    width:100% !important;
+    min-width:0 !important;
+    height:auto !important;
+    padding:5px 0 !important;
+    border:0 !important;
+    white-space:normal !important;
+    overflow:visible !important;
+    text-overflow:clip !important;
+  }
+
+  /* Выбор */
+  main table tbody td:nth-child(1) {
+    position:absolute !important;
+    width:auto !important;
+    right:14px !important;
+    top:14px !important;
+    z-index:3;
+  }
+  main table tbody td:nth-child(1) input[type="checkbox"] {
+    width:20px !important;
+    height:20px !important;
+    min-width:20px !important;
+  }
+
+  /* Фото */
+  main table tbody td:nth-child(2) {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    min-height:145px !important;
+    padding:0 0 9px !important;
+  }
+  main table tbody td:nth-child(2) > div {
+    width:150px !important;
+    height:135px !important;
+    margin:0 auto !important;
+    border-radius:14px !important;
+  }
+
+  /* Название */
+  main table tbody td:nth-child(3) { padding:4px 28px 7px 0 !important; }
+  main table tbody td:nth-child(3) > div > div:first-child {
+    font-size:17px !important;
+    line-height:1.28 !important;
+    font-weight:800 !important;
+    color:#fff !important;
+  }
+  main table tbody td:nth-child(3) a,
+  main table tbody td:nth-child(3) span { font-size:11px !important; }
+
+  /* Получатель */
+  main table tbody td:nth-child(4)::before,
+  main table tbody td:nth-child(5)::before,
+  main table tbody td:nth-child(7)::before,
+  main table tbody td:nth-child(8)::before,
+  main table tbody td:nth-child(17)::before,
+  main table tbody td:nth-child(18)::before {
+    display:inline-block;
+    margin-right:8px;
+    font-size:10px;
+    line-height:1;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:#8fa4bf;
+  }
+  main table tbody td:nth-child(4)::before { content:"Кому"; }
+  main table tbody td:nth-child(5)::before { content:"Трек"; }
+  main table tbody td:nth-child(7)::before { content:"Количество"; }
+  main table tbody td:nth-child(8)::before { content:"Цена"; }
+  main table tbody td:nth-child(17)::before { content:"Вес"; }
+  main table tbody td:nth-child(18)::before { content:"Дата"; }
+
+  /* Поля Кому / Трек */
+  main table tbody td:nth-child(4) input,
+  main table tbody td:nth-child(5) input {
+    width:100% !important;
+    min-height:40px !important;
+    box-sizing:border-box !important;
+    font-size:13px !important;
+  }
+  main table tbody td:nth-child(5) input { font-family:ui-monospace,SFMono-Regular,Menlo,monospace !important; }
+
+  /* Яркий статус */
+  main table tbody td:nth-child(6) {
+    margin:8px 0 !important;
+    padding:0 !important;
+  }
+  main table tbody td:nth-child(6)::before {
+    content:"СТАТУС ДОСТАВКИ";
+    display:block;
+    margin-bottom:5px;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:.07em;
+    color:#8fa4bf;
+  }
+  main table tbody td:nth-child(6) select {
+    display:block !important;
+    width:100% !important;
+    min-height:48px !important;
+    padding:10px 12px !important;
+    border-radius:12px !important;
+    font-size:14px !important;
+    font-weight:900 !important;
+    text-align:center !important;
+    color:#fff !important;
+  }
+
+  /* Количество / цена */
+  main table tbody td:nth-child(7) input,
+  main table tbody td:nth-child(8) input {
+    min-height:40px !important;
+    box-sizing:border-box !important;
+    font-size:14px !important;
+  }
+  main table tbody td:nth-child(7) { margin-top:2px !important; }
+
+  /* Прячем промежуточные денежные колонки, которые на телефоне только мешают */
+  main table tbody td:nth-child(9),
+  main table tbody td:nth-child(10),
+  main table tbody td:nth-child(11),
+  main table tbody td:nth-child(12),
+  main table tbody td:nth-child(13),
+  main table tbody td:nth-child(14),
+  main table tbody td:nth-child(16) { display:none !important; }
+
+  /* Главный итог */
+  main table tbody td:nth-child(15) {
+    margin:8px 0 4px !important;
+    padding:11px 13px !important;
+    border:1px solid rgba(147,104,255,.5) !important;
+    border-radius:12px !important;
+    background:rgba(79,42,143,.25) !important;
+    color:#d8c7ff !important;
+    text-align:right !important;
+  }
+  main table tbody td:nth-child(15)::before {
+    content:"ИТОГО С ДОСТАВКОЙ";
+    float:left;
+    padding-top:4px;
+    font-size:10px;
+    font-weight:900;
+    color:#a98cff;
+  }
+  main table tbody td:nth-child(15) * {
+    font-size:18px !important;
+    font-weight:900 !important;
+  }
+
+  /* Вес */
+  main table tbody td:nth-child(17) {
+    padding:4px 0 !important;
+    text-align:right !important;
+  }
+  main table tbody td:nth-child(17) input {
+    min-height:38px !important;
+    max-width:100px !important;
+    box-sizing:border-box !important;
+    font-size:14px !important;
+  }
+
+  /* Дата */
+  main table tbody td:nth-child(18) { font-size:11px !important; color:#9fb0c3 !important; }
+
+  /* Действия */
+  main table tbody td:nth-child(19) {
+    padding-top:10px !important;
+    border-top:1px solid rgba(71,85,105,.45) !important;
+  }
+  main table tbody td:nth-child(19) > div { justify-content:stretch !important; width:100% !important; gap:8px !important; }
+  main table tbody td:nth-child(19) button {
+    flex:1 !important;
+    min-height:42px !important;
+    border-radius:10px !important;
+    background:rgba(15,23,42,.8) !important;
+  }
+
+  /* Не растягивать checkbox глобальным правилом */
+  main table input[type="checkbox"] { width:20px !important; max-width:20px !important; height:20px !important; }
+
+  /* Никаких длинных вылезших слов */
+  main table input, main table select, main table textarea { max-width:100% !important; }
+  main table a { overflow-wrap:anywhere !important; }
+
+  /* Фильтры и панели */
+  main .overflow-x-auto { max-width:100% !important; }
+}
+
+@media (max-width:390px) {
+  main { padding:8px !important; }
+  main .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 { grid-template-columns:1fr !important; }
+  main table tbody tr { padding:10px !important; border-radius:14px !important; }
+  main table tbody td:nth-child(2) { min-height:120px !important; }
+  main table tbody td:nth-child(2) > div { width:130px !important; height:112px !important; }
+  main table tbody td:nth-child(3) > div > div:first-child { font-size:16px !important; }
+}
