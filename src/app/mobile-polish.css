@@ -18,15 +18,6 @@
     padding:12px !important;
   }
 
-  /* Контейнер таблицы перестаёт быть горизонтальным скроллом */
-  main .w-full.max-w-\\[1500px\\].mx-auto.overflow-x-auto {
-    overflow:visible !important;
-    border:0 !important;
-    background:transparent !important;
-    box-shadow:none !important;
-    border-radius:0 !important;
-  }
-
   main table {
     display:block !important;
     width:100% !important;
