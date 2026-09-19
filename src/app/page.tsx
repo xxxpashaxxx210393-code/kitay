@@ -2267,7 +2267,8 @@ export default function OrderTracker() {
             </button>
           </div>
         ) : (
-          <div className="mobile-orders-only">
+          <>
+            <div className="mobile-orders-only">
             <MobileOrderCards
               orders={sortedOrders}
               defaultRate={defaultRate}
@@ -2283,9 +2284,9 @@ export default function OrderTracker() {
               handleDeleteClick={handleDeleteClick}
               statusOptions={STATUS_OPTIONS}
             />
-          </div>
+            </div>
 
-          <div className="desktop-orders-table w-full max-w-[1500px] mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
+            <div className="desktop-orders-table w-full max-w-[1500px] mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
             <table className="w-full text-left border-collapse table-auto text-xs min-w-[1700px]">
               <thead>
                 <tr className="bg-slate-800 border-b border-slate-700/80 text-[11px] text-slate-300 font-bold uppercase tracking-wider">
@@ -2521,7 +2522,8 @@ export default function OrderTracker() {
                 </tr>
               </tfoot>
             </table>
-          </div>
+            </div>
+          </>
         )}
 
         {previewImage && (
