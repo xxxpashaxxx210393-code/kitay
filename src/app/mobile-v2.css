@@ -1,0 +1,323 @@
+/* Mobile-only refinement for the approved 8f6db47 dashboard. Desktop is untouched. */
+
+@media (max-width: 650px) {
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden !important;
+  }
+
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Keep the existing 8f6 dashboard cards, just make them breathe on phones. */
+  main .space-y-6 > div:nth-child(2) {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  main .space-y-6 > div:nth-child(2) > div {
+    min-width: 0 !important;
+    min-height: 94px !important;
+    padding: 12px !important;
+  }
+
+  /* Orders: the existing table becomes a real readable card. */
+  main table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  main table thead {
+    display: none !important;
+  }
+
+  main table tbody {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  main table tbody tr {
+    display: grid !important;
+    grid-template-columns: 30px 72px minmax(0, 1fr) !important;
+    gap: 0 7px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 10px !important;
+    border: 1px solid #294965 !important;
+    border-radius: 14px !important;
+    background: linear-gradient(145deg, #0b2238, #081a2b) !important;
+    box-shadow: 0 8px 22px rgba(0,0,0,.20) !important;
+  }
+
+  main table tbody td {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 4px 0 !important;
+    border: 0 !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    color: #dce7f4 !important;
+  }
+
+  /* Checkbox */
+  main table tbody td:nth-child(1) {
+    grid-column: 1 !important;
+    grid-row: 1 / span 4 !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding-top: 4px !important;
+  }
+
+  /* Product photo */
+  main table tbody td:nth-child(2) {
+    grid-column: 2 !important;
+    grid-row: 1 / span 4 !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+  }
+
+  main table tbody td:nth-child(2) > div {
+    width: 68px !important;
+    height: 68px !important;
+    min-width: 68px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Product name */
+  main table tbody td:nth-child(3) {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    padding: 0 !important;
+  }
+
+  main table tbody td:nth-child(3) > div {
+    max-width: 100% !important;
+  }
+
+  main table tbody td:nth-child(3) .font-extrabold {
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Recipient */
+  main table tbody td:nth-child(4) {
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+  }
+
+  main table tbody td:nth-child(4)::before {
+    content: "Для кого";
+    flex: 0 0 auto;
+    color: #718aa4;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  main table tbody td:nth-child(4) input {
+    min-width: 0 !important;
+    width: 100% !important;
+    height: 30px !important;
+    font-size: 11px !important;
+  }
+
+  /* Track */
+  main table tbody td:nth-child(5) {
+    grid-column: 3 !important;
+    grid-row: 3 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+  }
+
+  main table tbody td:nth-child(5)::before {
+    content: "Трек";
+    flex: 0 0 auto;
+    color: #718aa4;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  main table tbody td:nth-child(5) input {
+    min-width: 0 !important;
+    width: 100% !important;
+    height: 30px !important;
+    font-size: 10px !important;
+  }
+
+  /* Delivery status gets its own full-width bright row. */
+  main table tbody td:nth-child(6) {
+    grid-column: 1 / -1 !important;
+    grid-row: 5 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+    padding: 8px 0 0 !important;
+    border-top: 1px solid rgba(54,88,118,.45) !important;
+  }
+
+  main table tbody td:nth-child(6)::before {
+    content: "Статус";
+    flex: 0 0 auto;
+    color: #8fa4bf;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  main table tbody td:nth-child(6) > div {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  main table tbody td:nth-child(6) select {
+    width: 100% !important;
+    min-height: 42px !important;
+    height: auto !important;
+    border-radius: 11px !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    white-space: normal !important;
+  }
+
+  /* All financial/quantity information becomes labelled rows. */
+  main table tbody td:nth-child(n+7) {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    border-top: 1px solid rgba(54,88,118,.28) !important;
+    padding: 7px 0 0 !important;
+  }
+
+  main table tbody td:nth-child(n+7)::before {
+    flex: 0 0 auto;
+    color: #718aa4;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  main table tbody td:nth-child(7)::before { content: "Количество"; }
+  main table tbody td:nth-child(8)::before { content: "Цена CNY"; }
+  main table tbody td:nth-child(9)::before { content: "Сумма CNY"; }
+  main table tbody td:nth-child(10)::before { content: "Курс"; }
+  main table tbody td:nth-child(11)::before { content: "Цена / ед. BYN"; }
+  main table tbody td:nth-child(12)::before { content: "Сумма BYN"; }
+  main table tbody td:nth-child(13)::before { content: "Карго"; }
+  main table tbody td:nth-child(14)::before { content: "Доставка РБ"; }
+  main table tbody td:nth-child(15)::before { content: "Итого"; }
+  main table tbody td:nth-child(16)::before { content: "Себестоимость"; }
+  main table tbody td:nth-child(17)::before { content: "Вес"; }
+  main table tbody td:nth-child(18)::before { content: "Действия"; }
+
+  main table tbody td:nth-child(n+7) input,
+  main table tbody td:nth-child(n+7) select {
+    max-width: 58% !important;
+    min-width: 0 !important;
+    height: 34px !important;
+    font-size: 11px !important;
+  }
+
+  /* Make the important money numbers visually dominant. */
+  main table tbody td:nth-child(12),
+  main table tbody td:nth-child(15),
+  main table tbody td:nth-child(16) {
+    font-size: 13px !important;
+    font-weight: 900 !important;
+  }
+
+  main table tbody td:nth-child(15) {
+    color: #b9a6ff !important;
+    background: rgba(99,70,200,.10) !important;
+    padding: 9px 8px !important;
+    border-radius: 9px !important;
+  }
+
+  /* Actions */
+  main table tbody td:nth-child(18) {
+    justify-content: flex-end !important;
+  }
+
+  main table tbody td:nth-child(18) > div {
+    display: flex !important;
+    gap: 6px !important;
+  }
+
+  main table tbody td:nth-child(18) button {
+    width: 40px !important;
+    height: 40px !important;
+    border: 1px solid #294965 !important;
+    background: #0b2035 !important;
+  }
+
+  /* Aggregation row is not useful on a narrow screen. */
+  main table tfoot {
+    display: none !important;
+  }
+
+  /* Filters */
+  main > div:first-child {
+    max-width: 100% !important;
+  }
+
+  #people-stats-widget .grid,
+  #status-counters-widget .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* The large calculation/detail panel stacks vertically. */
+  main .grid.grid-cols-1.lg\\:grid-cols-12 {
+    grid-template-columns: 1fr !important;
+  }
+
+  main .flex.flex-col.md\\:flex-row {
+    flex-direction: column !important;
+  }
+}
+
+@media (max-width: 390px) {
+  main {
+    padding: 8px !important;
+  }
+
+  main table tbody tr {
+    grid-template-columns: 27px 62px minmax(0, 1fr) !important;
+    padding: 8px !important;
+  }
+
+  main table tbody td:nth-child(2) > div {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+  }
+
+  main table tbody td:nth-child(3) .font-extrabold {
+    font-size: 13px !important;
+  }
+}
