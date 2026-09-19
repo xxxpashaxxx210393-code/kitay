@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import "./cargo-ui.css";
 import "./design-experiment.css";
+import "./mobile-v2.css";
 import ChinaDesignShell from "./china-design-shell";
 
 export const metadata: Metadata = {
