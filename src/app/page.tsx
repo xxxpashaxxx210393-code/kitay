@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import MobileOrderCards from "./mobile-order-cards";
 import * as XLSX from "xlsx";
 import {
   Package,
@@ -2266,7 +2267,25 @@ export default function OrderTracker() {
             </button>
           </div>
         ) : (
-          <div className="w-full max-w-[1500px] mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
+          <div className="mobile-orders-only">
+            <MobileOrderCards
+              orders={sortedOrders}
+              defaultRate={defaultRate}
+              cargoShippingUsdPerKg={cargoShippingUsdPerKg}
+              selectedOrderIds={selectedOrderIds}
+              toggleOrderSelection={toggleOrderSelection}
+              updateOrderStatus={updateOrderStatus}
+              updateInlineOrderField={updateInlineOrderField}
+              setOrders={setOrders}
+              getEmbeddedImage={getEmbeddedImage}
+              setPreviewImage={setPreviewImage}
+              handleEditClick={handleEditClick}
+              handleDeleteClick={handleDeleteClick}
+              statusOptions={STATUS_OPTIONS}
+            />
+          </div>
+
+          <div className="desktop-orders-table w-full max-w-[1500px] mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
             <table className="w-full text-left border-collapse table-auto text-xs min-w-[1700px]">
               <thead>
                 <tr className="bg-slate-800 border-b border-slate-700/80 text-[11px] text-slate-300 font-bold uppercase tracking-wider">
