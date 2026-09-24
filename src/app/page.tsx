@@ -339,7 +339,7 @@ export default function OrderTracker() {
   };
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     name: "",
     imageUrl: "",
     itemUrl: "",
@@ -953,12 +953,12 @@ export default function OrderTracker() {
       forWhom: "Родители",
       trackNumber: "",
       status: "В пути на склад Китая",
-      quantity: 1,
-      priceCny: 0,
-      shippingChinaCny: 0,
-      shippingBelarusByn: 0,
+      quantity: "",
+      priceCny: "",
+      shippingChinaCny: "",
+      shippingBelarusByn: "",
       rateCnyByn: defaultRate,
-      weight: 0,
+      weight: "",
       plannedDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], // default +14 days
       receivedDate: "",
       notes: ""
@@ -2070,16 +2070,16 @@ export default function OrderTracker() {
                       <div className="absolute right-0 bottom-full mb-2 w-72 p-2 rounded-2xl bg-slate-950 border border-slate-700 shadow-2xl z-50">
                         <button onClick={()=>exportOrders("all")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">📦 Весь проект</button>
                         <button onClick={()=>exportOrders("all", true)} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-emerald-300 font-bold">🖼️ Весь проект + картинки</button>
-                        <button onClick={()=>exportOrders("filtered")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">🔎 Текущий фильтр</button>
-                        <button onClick={()=>exportOrders("selected")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">☑ Только выбранные</button>
+                        <button onClick={()=>exportOrders("filtered", true)} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-emerald-300 font-bold">🔎 Текущий фильтр</button>
+                        <button onClick={()=>exportOrders("selected", true)} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-emerald-300 font-bold">☑ Только выбранные</button>
                         <div className="p-2">
                           <select value={exportRecipient} onChange={e=>setExportRecipient(e.target.value)} className="w-full px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs">
                             <option value="Все">Все получатели</option>
                             {uniqueForWhomOptions.map(x=><option key={x}>{x}</option>)}
                           </select>
-                          <button onClick={()=>exportOrders("recipient")} className="w-full mt-2 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold">Экспорт по получателю</button>
+                          <button onClick={()=>exportOrders("recipient", true)} className="w-full mt-2 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold">Экспорт по получателю</button>
                         </div>
-                        <button onClick={()=>exportOrders("tracks")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">🔢 Только трек-номера</button>
+                        <button onClick={()=>exportOrders("tracks", true)} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-emerald-300 font-bold">🔢 Только трек-номера</button>
                       </div>
                     )}
                   </div>
@@ -2876,7 +2876,7 @@ export default function OrderTracker() {
                       min="0"
                        value={formData.priceCny}
                       onFocus={(e) => e.currentTarget.select()}
-                      onChange={(e) => setFormData({ ...formData, priceCny: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setFormData({ ...formData, priceCny: e.target.value })}
                       placeholder="0.00"
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
@@ -2892,7 +2892,7 @@ export default function OrderTracker() {
                       min="1"
                        value={formData.quantity}
                       onFocus={(e) => e.currentTarget.select()}
-                      onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -2906,7 +2906,7 @@ export default function OrderTracker() {
                       type="number"
                       step="0.01"
                       value={formData.shippingChinaCny}
-                      onChange={(e) => setFormData({ ...formData, shippingChinaCny: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setFormData({ ...formData, shippingChinaCny: e.target.value })}
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -2920,7 +2920,7 @@ export default function OrderTracker() {
                       type="number"
                       step="0.01"
                       value={formData.shippingBelarusByn}
-                      onChange={(e) => setFormData({ ...formData, shippingBelarusByn: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setFormData({ ...formData, shippingBelarusByn: e.target.value })}
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -2948,7 +2948,7 @@ export default function OrderTracker() {
                       type="number"
                       step="0.01"
                       value={formData.weight}
-                      onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
