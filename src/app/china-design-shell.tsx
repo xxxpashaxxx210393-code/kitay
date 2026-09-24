@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { BarChart3, Boxes, ClipboardList, Menu, Package, Search, Settings2, Truck, Users, X } from "lucide-react";
 
 function setNativeInputValue(input: HTMLInputElement, value: string) {
@@ -13,6 +13,35 @@ function setNativeInputValue(input: HTMLInputElement, value: string) {
 export default function ChinaDesignShell({ children }: { children: React.ReactNode }) {
   const [search, setSearch] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [globalResults, setGlobalResults] = useState<Array<{id:number;projectId:number;name:string;forWhom:string|null;trackNumber:string|null;status:string;projectName:string|null}>>([]);
+  const [globalSearching, setGlobalSearching] = useState(false);
+
+  useEffect(() => {
+    const value = search.trim();
+    if (value.length < 2) {
+      setGlobalResults([]);
+      setGlobalSearching(false);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      try {
+        setGlobalSearching(true);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`, { cache: "no-store" });
+        const json = await res.json();
+        setGlobalResults(json.success ? json.data : []);
+      } catch {
+        setGlobalResults([]);
+      } finally {
+        setGlobalSearching(false);
+      }
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const openGlobalResult = (projectId: number) => {
+    localStorage.setItem("cargo_current_project", String(projectId));
+    window.location.reload();
+  };
 
   const focusSearch = (value: string) => {
     const input = document.querySelector<HTMLInputElement>('main input[placeholder*="Поиск"]');
@@ -56,7 +85,21 @@ export default function ChinaDesignShell({ children }: { children: React.ReactNo
         <div className="cx-topbar">
           <button className="cx-menu-btn" onClick={() => setMobileNavOpen(true)} aria-label="Открыть меню"><Menu size={21}/></button>
           <div className="cx-top-brand"><div className="cx-flag">🇨🇳</div><div><h1>Китай → Беларусь</h1><span>Мои покупки и заказы</span></div></div>
-          <div className="cx-search"><Search size={18}/><input value={search} onChange={e => focusSearch(e.currentTarget.value)} placeholder="Поиск по товарам, получателям, трек-номерам..."/><kbd>⌘ K</kbd></div>
+          <div className="cx-search-wrap">
+            <div className="cx-search"><Search size={18}/><input value={search} onChange={e => focusSearch(e.currentTarget.value)} placeholder="Поиск по всем базам: товар, получатель, трек..."/><kbd>⌘ K</kbd></div>
+            {search.trim().length >= 2 && (
+              <div className="cx-global-results">
+                {globalSearching && <div className="cx-global-empty">Ищу по всем базам…</div>}
+                {!globalSearching && globalResults.length === 0 && <div className="cx-global-empty">Ничего не найдено во всех базах</div>}
+                {!globalSearching && globalResults.map(item => (
+                  <button key={`${item.projectId}-${item.id}`} type="button" className="cx-global-result" onClick={() => openGlobalResult(item.projectId)}>
+                    <div className="cx-global-result-main"><b>{item.name}</b><span>{item.trackNumber || "Без трека"} · {item.forWhom || "Без получателя"}</span></div>
+                    <div className="cx-global-result-project">{item.projectName || `База #${item.projectId}`}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {children}
       </div>
