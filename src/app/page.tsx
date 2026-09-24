@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import MobileOrderCards from "./mobile-order-cards";
 import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import {
   Package,
   Search,
@@ -1246,7 +1247,7 @@ export default function OrderTracker() {
   };
   const clearSelection = () => setSelectedOrderIds([]);
 
-  const exportOrders = (mode:"all"|"filtered"|"selected"|"recipient"|"tracks") => {
+  const exportOrders = async (mode:"all"|"filtered"|"selected"|"recipient"|"tracks", withImages = false) => {
     try {
       let rows = mode === "all"
         ? calculatedOrders
@@ -1258,51 +1259,126 @@ export default function OrderTracker() {
         ? calculatedOrders.filter(o=>o.trackNumber)
         : sortedOrders;
 
-      const data = mode === "tracks"
-        ? rows.map(o=>({"Трек-номер":o.trackNumber || ""}))
-        : rows.map(o=>({
-            "Название":o.name,
-            "Для кого":o.forWhom||"",
-            "Трек-номер":o.trackNumber||"",
-            "Статус":o.status,
-            "Количество":o.quantity,
-            "Цена CNY":o.priceCny,
-            "Общая CNY":o.itemTotalCny,
-            "Доставка Китай CNY":o.shippingChinaCny||0,
-            "Доставка РБ BYN":o.shippingBelarusByn||0,
-            "Итого BYN":o.totalWithShippingByn,
-            "Вес кг":o.weight||0,
-            "Дата":o.createdAt
-          }));
-
-      if (!data.length) {
+      if (!rows.length) {
         showAlert("Нет данных для выгрузки", "info");
         return;
       }
 
-      const sheet = XLSX.utils.json_to_sheet(data);
-      const book = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(book, sheet, "Заказы");
       const project = projects.find(p=>p.id===currentProjectId)?.name || "проект";
       const safe = project.replace(/[^a-zа-яё0-9_-]+/gi,"_");
-      const filename = `cargo_${safe}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`;
 
-      // Use a Blob + temporary link instead of XLSX.writeFile. This is more reliable
-      // in Vercel/Chrome/Safari and makes the downloaded file an actual .xlsx file.
-      const arrayBuffer = XLSX.write(book, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      if (withImages) {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = "Китай → Беларусь";
+        const sheet = workbook.addWorksheet("Заказы");
+        sheet.columns = [
+          {header:"Фото", key:"image", width:14},
+          {header:"Название", key:"name", width:32},
+          {header:"Для кого", key:"forWhom", width:18},
+          {header:"Трек-номер", key:"track", width:22},
+          {header:"Статус", key:"status", width:25},
+          {header:"Количество", key:"quantity", width:12},
+          {header:"Цена CNY", key:"priceCny", width:14},
+          {header:"Общая CNY", key:"totalCny", width:15},
+          {header:"Доставка Китай CNY", key:"shippingChinaCny", width:20},
+          {header:"Доставка РБ BYN", key:"shippingBelarusByn", width:18},
+          {header:"Итого BYN", key:"totalByn", width:16},
+          {header:"Вес кг", key:"weight", width:12},
+          {header:"Дата", key:"date", width:18},
+        ];
+        sheet.getRow(1).font = {bold:true,color:{argb:"FFFFFFFF"}};
+        sheet.getRow(1).height = 24;
+
+        const toDataUrl = async (src:string) => {
+          if (src.startsWith("data:")) return src;
+          const response = await fetch(src);
+          if (!response.ok) throw new Error("image fetch failed");
+          const blob = await response.blob();
+          return await new Promise<string>((resolve,reject)=>{
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        };
+
+        for (const o of rows) {
+          const row = sheet.addRow({
+            image:"",
+            name:o.name,
+            forWhom:o.forWhom||"",
+            track:o.trackNumber||"",
+            status:o.status,
+            quantity:o.quantity,
+            priceCny:o.priceCny,
+            totalCny:o.itemTotalCny,
+            shippingChinaCny:o.shippingChinaCny||0,
+            shippingBelarusByn:o.shippingBelarusByn||0,
+            totalByn:o.totalWithShippingByn,
+            weight:o.weight||0,
+            date:o.createdAt
+          });
+          row.height = 64;
+          const image = o.imageUrl || getEmbeddedImage(o);
+          if (image) {
+            try {
+              const dataUrl = await toDataUrl(image);
+              const match = dataUrl.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,/i);
+              if (match) {
+                const extension = match[1].toLowerCase()==="jpg" ? "jpeg" : match[1].toLowerCase();
+                const imageId = workbook.addImage({base64:dataUrl, extension: extension as any});
+                sheet.addImage(imageId, {tl:{col:0,row:row.number-1},ext:{width:72,height:72}});
+              }
+            } catch {
+              row.getCell(1).value = "Фото недоступно";
+            }
+          }
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href=url;
+        link.download=`cargo_${safe}_${mode}_с_картинками_${new Date().toISOString().slice(0,10)}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1500);
+      } else {
+        const data = mode === "tracks"
+          ? rows.map(o=>({"Трек-номер":o.trackNumber || ""}))
+          : rows.map(o=>({
+              "Название":o.name,
+              "Для кого":o.forWhom||"",
+              "Трек-номер":o.trackNumber||"",
+              "Статус":o.status,
+              "Количество":o.quantity,
+              "Цена CNY":o.priceCny,
+              "Общая CNY":o.itemTotalCny,
+              "Доставка Китай CNY":o.shippingChinaCny||0,
+              "Доставка РБ BYN":o.shippingBelarusByn||0,
+              "Итого BYN":o.totalWithShippingByn,
+              "Вес кг":o.weight||0,
+              "Дата":o.createdAt
+            }));
+        const sheet = XLSX.utils.json_to_sheet(data);
+        const book = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(book, sheet, "Заказы");
+        const arrayBuffer = XLSX.write(book, {bookType:"xlsx", type:"array"});
+        const blob = new Blob([arrayBuffer], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href=url;
+        link.download=`cargo_${safe}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1500);
+      }
 
       setIsExportMenuOpen(false);
-      showAlert(`Файл Excel готов: ${rows.length} позиций`, "success");
+      showAlert(`Файл Excel готов: ${rows.length} позиций${withImages ? " с картинками" : ""}`, "success");
     } catch (e:any) {
       console.error("Export error", e);
       showAlert("Не удалось создать Excel-файл: " + (e?.message || "неизвестная ошибка"), "error");
@@ -2797,7 +2873,8 @@ export default function OrderTracker() {
                       type="number"
                       step="0.01"
                       min="0"
-                      value={formData.priceCny}
+                       value={formData.priceCny}
+                      onFocus={(e) => e.currentTarget.select()}
                       onChange={(e) => setFormData({ ...formData, priceCny: parseFloat(e.target.value) || 0 })}
                       placeholder="0.00"
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
@@ -2812,7 +2889,8 @@ export default function OrderTracker() {
                     <input
                       type="number"
                       min="1"
-                      value={formData.quantity}
+                       value={formData.quantity}
+                      onFocus={(e) => e.currentTarget.select()}
                       onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
