@@ -86,40 +86,40 @@ const getStatusBadgeStyles = (status: string) => {
   switch (status) {
     case "В пути на склад Китая":
       return {
-        bg: "bg-blue-50 text-blue-700 border-blue-200",
-        bgHover: "hover:bg-blue-100",
+        bg: "bg-blue-500/20 text-blue-300 border-blue-400/60",
+        bgHover: "hover:bg-blue-500/30",
         dot: "bg-blue-500",
         rowBg: "bg-blue-50/20",
         colorText: "text-blue-800"
       };
     case "На складе в Китае":
       return {
-        bg: "bg-amber-50 text-amber-800 border-amber-200",
-        bgHover: "hover:bg-amber-100",
+        bg: "bg-amber-500/20 text-amber-300 border-amber-400/60",
+        bgHover: "hover:bg-amber-500/30",
         dot: "bg-amber-500",
         rowBg: "bg-amber-50/20",
         colorText: "text-amber-900"
       };
     case "Едет в РБ":
       return {
-        bg: "bg-indigo-50 text-indigo-700 border-indigo-200",
-        bgHover: "hover:bg-indigo-100",
+        bg: "bg-violet-500/20 text-violet-300 border-violet-400/60",
+        bgHover: "hover:bg-violet-500/30",
         dot: "bg-indigo-500",
         rowBg: "bg-indigo-50/20",
         colorText: "text-indigo-800"
       };
     case "Прибыло в РБ":
       return {
-        bg: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        bgHover: "hover:bg-emerald-100",
+        bg: "bg-emerald-500/20 text-emerald-300 border-emerald-400/60",
+        bgHover: "hover:bg-emerald-500/30",
         dot: "bg-emerald-500",
         rowBg: "bg-emerald-50/25",
         colorText: "text-emerald-800"
       };
     case "Выдано / Получено":
       return {
-        bg: "bg-slate-100 text-slate-700 border-slate-200",
-        bgHover: "hover:bg-slate-200",
+        bg: "bg-slate-500/20 text-slate-300 border-slate-400/50",
+        bgHover: "hover:bg-slate-500/30",
         dot: "bg-slate-400",
         rowBg: "bg-slate-50/10",
         colorText: "text-slate-800"
@@ -2069,6 +2069,7 @@ export default function OrderTracker() {
                     {isExportMenuOpen && (
                       <div className="absolute right-0 bottom-full mb-2 w-72 p-2 rounded-2xl bg-slate-950 border border-slate-700 shadow-2xl z-50">
                         <button onClick={()=>exportOrders("all")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">📦 Весь проект</button>
+                        <button onClick={()=>exportOrders("all", true)} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-emerald-300 font-bold">🖼️ Весь проект + картинки</button>
                         <button onClick={()=>exportOrders("filtered")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">🔎 Текущий фильтр</button>
                         <button onClick={()=>exportOrders("selected")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">☑ Только выбранные</button>
                         <div className="p-2">
