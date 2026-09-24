@@ -43,13 +43,6 @@ export default function ChinaDesignShell({ children }: { children: React.ReactNo
     window.location.reload();
   };
 
-  const focusSearch = (value: string) => {
-    const input = document.querySelector<HTMLInputElement>('main input[placeholder*="Поиск"]');
-    setSearch(value);
-    if (!input) return;
-    setNativeInputValue(input, value);
-  };
-
   const scrollTo = (selector: string) => {
     document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block: "start" });
     setMobileNavOpen(false);
@@ -86,7 +79,7 @@ export default function ChinaDesignShell({ children }: { children: React.ReactNo
           <button className="cx-menu-btn" onClick={() => setMobileNavOpen(true)} aria-label="Открыть меню"><Menu size={21}/></button>
           <div className="cx-top-brand"><div className="cx-flag">🇨🇳</div><div><h1>Китай → Беларусь</h1><span>Мои покупки и заказы</span></div></div>
           <div className="cx-search-wrap">
-            <div className="cx-search"><Search size={18}/><input value={search} onChange={e => focusSearch(e.currentTarget.value)} placeholder="Поиск по всем базам: товар, получатель, трек..."/><kbd>⌘ K</kbd></div>
+            <div className="cx-search"><Search size={18}/><input value={search} onChange={e => setSearch(e.currentTarget.value)} placeholder="Поиск по всем базам: товар, получатель, трек..."/><kbd>⌘ K</kbd></div>
             {search.trim().length >= 2 && (
               <div className="cx-global-results">
                 {globalSearching && <div className="cx-global-empty">Ищу по всем базам…</div>}
