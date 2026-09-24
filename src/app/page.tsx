@@ -2313,7 +2313,7 @@ export default function OrderTracker() {
               {STATUS_OPTIONS.map(st=><option key={st}>{st}</option>)}
             </select>
             <button onClick={bulkUpdateSelectedStatus} disabled={isBatchUpdating} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black">{isBatchUpdating?"Сохраняю…":"Изменить статус выбранных"}</button>
-            <button onClick={()=>exportOrders("selected")} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">Экспорт выбранных</button>
+            <button onClick={()=>exportOrders("selected", true)} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">Экспорт выбранных + фото</button>
             <button onClick={clearSelection} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm">Снять выбор</button>
           </div>
         )}
@@ -2470,11 +2470,11 @@ export default function OrderTracker() {
 
                       {/* Interactive Status Selector Badge */}
                       <td className="p-3 text-center whitespace-nowrap">
-                        <div className="relative inline-block text-left">
+                        <div className={`relative inline-block text-left rounded-xl border shadow-sm ${statusStyles.bg} ${statusStyles.bgHover}`}>
                           <select
                             value={o.status}
                             onChange={(e) => updateOrderStatus(o.id, e.target.value)}
-                            className={`px-3 py-1.5 rounded-xl border text-[11px] font-extrabold cursor-pointer transition-all outline-none ${statusStyles.bg} ${statusStyles.bgHover} shadow-sm`}
+                            className="px-3 py-1.5 rounded-xl bg-transparent text-white border-0 text-[11px] font-extrabold cursor-pointer transition-all outline-none shadow-none"
                           >
                             {STATUS_OPTIONS.map((status) => (
                               <option key={status} value={status} className="bg-slate-900 text-slate-100 text-xs font-semibold">
