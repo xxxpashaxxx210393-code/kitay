@@ -86,40 +86,40 @@ const getStatusBadgeStyles = (status: string) => {
   switch (status) {
     case "В пути на склад Китая":
       return {
-        bg: "bg-blue-500/20 text-blue-300 border-blue-400/60",
-        bgHover: "hover:bg-blue-500/30",
+        bg: "bg-blue-600 text-white border-blue-300",
+        bgHover: "hover:bg-blue-500",
         dot: "bg-blue-500",
         rowBg: "bg-blue-50/20",
         colorText: "text-blue-800"
       };
     case "На складе в Китае":
       return {
-        bg: "bg-amber-500/20 text-amber-300 border-amber-400/60",
-        bgHover: "hover:bg-amber-500/30",
+        bg: "bg-orange-500 text-white border-orange-300",
+        bgHover: "hover:bg-orange-400",
         dot: "bg-amber-500",
         rowBg: "bg-amber-50/20",
         colorText: "text-amber-900"
       };
     case "Едет в РБ":
       return {
-        bg: "bg-violet-500/20 text-violet-300 border-violet-400/60",
-        bgHover: "hover:bg-violet-500/30",
+        bg: "bg-violet-600 text-white border-violet-300",
+        bgHover: "hover:bg-violet-500",
         dot: "bg-indigo-500",
         rowBg: "bg-indigo-50/20",
         colorText: "text-indigo-800"
       };
     case "Прибыло в РБ":
       return {
-        bg: "bg-emerald-500/20 text-emerald-300 border-emerald-400/60",
-        bgHover: "hover:bg-emerald-500/30",
+        bg: "bg-emerald-600 text-white border-emerald-300",
+        bgHover: "hover:bg-emerald-500",
         dot: "bg-emerald-500",
         rowBg: "bg-emerald-50/25",
         colorText: "text-emerald-800"
       };
     case "Выдано / Получено":
       return {
-        bg: "bg-slate-500/20 text-slate-300 border-slate-400/50",
-        bgHover: "hover:bg-slate-500/30",
+        bg: "bg-slate-600 text-white border-slate-300",
+        bgHover: "hover:bg-slate-500",
         dot: "bg-slate-400",
         rowBg: "bg-slate-50/10",
         colorText: "text-slate-800"
