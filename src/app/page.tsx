@@ -346,12 +346,12 @@ export default function OrderTracker() {
     forWhom: "Родители",
     trackNumber: "",
     status: "В пути на склад Китая",
-    quantity: 1,
-    priceCny: 0,
-    shippingChinaCny: 0,
-    shippingBelarusByn: 0,
+    quantity: "",
+    priceCny: "",
+    shippingChinaCny: "",
+    shippingBelarusByn: "",
     rateCnyByn: 0.4800,
-    weight: 0,
+    weight: "",
     plannedDate: "",
     receivedDate: "",
     notes: ""
@@ -2474,7 +2474,7 @@ export default function OrderTracker() {
                           <select
                             value={o.status}
                             onChange={(e) => updateOrderStatus(o.id, e.target.value)}
-                            className="px-3 py-1.5 rounded-xl bg-transparent text-white border-0 text-[11px] font-extrabold cursor-pointer transition-all outline-none shadow-none"
+                            data-status={o.status} className="status-select-desktop px-3 py-1.5 rounded-xl bg-transparent text-white border-0 text-[11px] font-extrabold cursor-pointer transition-all outline-none shadow-none"
                           >
                             {STATUS_OPTIONS.map((status) => (
                               <option key={status} value={status} className="bg-slate-900 text-slate-100 text-xs font-semibold">
