@@ -28,3 +28,11 @@ main [data-cargo-center]{background:linear-gradient(145deg,#0b2034,#081a2a)!impo
  .cx-global-result{align-items:flex-start;flex-direction:column;gap:4px}
  .cx-global-result-project{max-width:none;text-align:left}
 }
+
+
+/* Strong desktop delivery status colors, overriding generic table select styling. */
+main table select.status-select-desktop[data-status="В пути на склад Китая"]{background:#2563eb!important;color:#fff!important;border:1px solid #60a5fa!important}
+main table select.status-select-desktop[data-status="На складе в Китае"]{background:#f97316!important;color:#fff!important;border:1px solid #fdba74!important}
+main table select.status-select-desktop[data-status="Едет в РБ"]{background:#7c3aed!important;color:#fff!important;border:1px solid #a78bfa!important}
+main table select.status-select-desktop[data-status="Прибыло в РБ"]{background:#059669!important;color:#fff!important;border:1px solid #34d399!important}
+main table select.status-select-desktop[data-status="Выдано / Получено"]{background:#475569!important;color:#fff!important;border:1px solid #94a3b8!important}
