@@ -286,6 +286,7 @@ export default function OrderTracker() {
     matchedTracks: string[];
   } | null>(null);
   const [isBatchUpdating, setIsBatchUpdating] = useState(false);
+  const [moveTargetProjectId, setMoveTargetProjectId] = useState<number | "">("");
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1397,6 +1398,49 @@ export default function OrderTracker() {
     finally{setIsBatchUpdating(false);}
   };
 
+  const moveSelectedToProject = async () => {
+    if (selectedOrderIds.length === 0) {
+      showAlert("Сначала выберите товары", "info");
+      return;
+    }
+    const targetId = Number(moveTargetProjectId);
+    if (!targetId || targetId === currentProjectId) {
+      showAlert("Выберите другой проект", "info");
+      return;
+    }
+    const target = projects.find(p => p.id === targetId);
+    if (!target) {
+      showAlert("Проект назначения не найден", "error");
+      return;
+    }
+    if (!confirm(`Перенести ${selectedOrderIds.length} товаров в проект «${target.name}»?`)) return;
+
+    try {
+      setIsBatchUpdating(true);
+      const res = await fetch("/api/orders/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderIds: selectedOrderIds,
+          fromProjectId: currentProjectId,
+          toProjectId: targetId
+        })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Не удалось перенести товары");
+
+      const moved = Number(json.movedCount || 0);
+      setOrders(prev => prev.filter(o => !selectedOrderIds.includes(o.id)));
+      setSelectedOrderIds([]);
+      setMoveTargetProjectId("");
+      showAlert(`Перенесено товаров: ${moved}`, "success");
+    } catch (e: any) {
+      showAlert(e?.message || "Не удалось перенести товары", "error");
+    } finally {
+      setIsBatchUpdating(false);
+    }
+  };
+
   // Totals calculations
   const stats = useMemo(() => {
     let totalItemsCount = 0;
@@ -2313,6 +2357,25 @@ export default function OrderTracker() {
               {STATUS_OPTIONS.map(st=><option key={st}>{st}</option>)}
             </select>
             <button onClick={bulkUpdateSelectedStatus} disabled={isBatchUpdating} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black">{isBatchUpdating?"Сохраняю…":"Изменить статус выбранных"}</button>
+            <div className="flex items-center gap-2">
+              <select
+                value={moveTargetProjectId}
+                onChange={e=>setMoveTargetProjectId(e.target.value ? Number(e.target.value) : "")}
+                disabled={isBatchUpdating || projects.length < 2}
+                className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold"
+                title="Проект назначения"
+              >
+                <option value="">Перенести в проект…</option>
+                {projects.filter(p=>p.id!==currentProjectId).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <button
+                onClick={moveSelectedToProject}
+                disabled={isBatchUpdating || !moveTargetProjectId}
+                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-black"
+              >
+                Перенести
+              </button>
+            </div>
             <button onClick={()=>exportOrders("selected", true)} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">Экспорт выбранных + фото</button>
             <button onClick={clearSelection} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm">Снять выбор</button>
           </div>
