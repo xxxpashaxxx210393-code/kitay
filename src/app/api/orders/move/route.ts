@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { orders, projects } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       .update(orders)
       .set({ projectId: toProjectId })
       .where(
-        inArray(orders.id, orderIds)
+        and(eq(orders.projectId, fromProjectId), inArray(orders.id, orderIds))
       )
       .returning({ id: orders.id });
 
