@@ -31,3 +31,82 @@ main form,main [role="dialog"]{border-radius:18px!important}main .rounded-lg,mai
 @media (min-width:901px) and (max-width:1199px){main table th{font-size:9px!important;padding:8px 4px!important}main table td{font-size:10px!important;padding:6px 4px!important}main table input:not([type="checkbox"]),main table select{font-size:9px!important;min-width:0!important}}
 @media (max-width:900px){main{padding:12px 8px 28px!important}main table{min-width:0!important}main table th{font-size:8px!important;padding:6px 3px!important}main table td{font-size:9px!important;padding:5px 3px!important}main table input:not([type="checkbox"]),main table select{font-size:9px!important}#cargo-usd-settings{grid-template-columns:1fr!important}}
 @media print{body{background:#fff!important;color:#111!important}main{max-width:none!important;padding:0!important}main .overflow-x-auto{overflow:visible!important}main table{min-width:0!important;font-size:8px!important}}
+
+
+/* Desktop order table: keep every column readable instead of squeezing the grid. */
+@media (min-width:651px){
+  main .desktop-orders-table{
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    overflow-x:auto!important;
+    overflow-y:visible!important;
+    scrollbar-width:thin!important;
+    scrollbar-color:#466487 #0a1728!important;
+  }
+  main .desktop-orders-table>table{
+    display:table!important;
+    width:max-content!important;
+    min-width:1900px!important;
+    max-width:none!important;
+    table-layout:auto!important;
+    overflow:visible!important;
+  }
+  main .desktop-orders-table table th,
+  main .desktop-orders-table table td{
+    min-width:76px!important;
+    padding:10px 9px!important;
+    overflow:visible!important;
+    vertical-align:middle!important;
+  }
+  main .desktop-orders-table table thead th{
+    min-width:92px!important;
+    white-space:normal!important;
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+    line-height:1.25!important;
+    font-size:10px!important;
+    padding:12px 9px!important;
+  }
+  main .desktop-orders-table table thead th:nth-child(1),
+  main .desktop-orders-table table tbody td:nth-child(1){min-width:42px!important;width:42px!important}
+  main .desktop-orders-table table thead th:nth-child(2),
+  main .desktop-orders-table table tbody td:nth-child(2){min-width:108px!important;width:108px!important}
+  main .desktop-orders-table table thead th:nth-child(3),
+  main .desktop-orders-table table tbody td:nth-child(3){min-width:220px!important;width:220px!important}
+  main .desktop-orders-table table thead th:nth-child(4),
+  main .desktop-orders-table table tbody td:nth-child(4){min-width:112px!important}
+  main .desktop-orders-table table thead th:nth-child(5),
+  main .desktop-orders-table table tbody td:nth-child(5){min-width:150px!important}
+  main .desktop-orders-table table thead th:nth-child(6),
+  main .desktop-orders-table table tbody td:nth-child(6){min-width:160px!important}
+  main .desktop-orders-table table thead th:nth-child(7),
+  main .desktop-orders-table table tbody td:nth-child(7){min-width:82px!important;width:82px!important}
+  main .desktop-orders-table table thead th:nth-child(8),
+  main .desktop-orders-table table tbody td:nth-child(8){min-width:112px!important}
+  main .desktop-orders-table table thead th:nth-child(9),
+  main .desktop-orders-table table tbody td:nth-child(9){min-width:128px!important}
+  main .desktop-orders-table table thead th:nth-child(10),
+  main .desktop-orders-table table tbody td:nth-child(10){display:table-cell!important;min-width:90px!important}
+  main .desktop-orders-table table thead th:nth-child(11),
+  main .desktop-orders-table table tbody td:nth-child(11){min-width:120px!important}
+  main .desktop-orders-table table thead th:nth-child(12),
+  main .desktop-orders-table table tbody td:nth-child(12){min-width:130px!important}
+  main .desktop-orders-table table thead th:nth-child(13),
+  main .desktop-orders-table table tbody td:nth-child(13){min-width:120px!important}
+  main .desktop-orders-table table thead th:nth-child(14),
+  main .desktop-orders-table table tbody td:nth-child(14){min-width:120px!important}
+  main .desktop-orders-table table thead th:nth-child(15),
+  main .desktop-orders-table table tbody td:nth-child(15){min-width:145px!important}
+  main .desktop-orders-table table thead th:nth-child(16),
+  main .desktop-orders-table table tbody td:nth-child(16){min-width:130px!important}
+  main .desktop-orders-table table thead th:nth-child(17),
+  main .desktop-orders-table table tbody td:nth-child(17){min-width:82px!important}
+  main .desktop-orders-table table thead th:nth-child(18),
+  main .desktop-orders-table table tbody td:nth-child(18){display:table-cell!important;min-width:86px!important}
+  main .desktop-orders-table table thead th:nth-child(19),
+  main .desktop-orders-table table tbody td:nth-child(19){min-width:90px!important}
+  main .desktop-orders-table table td:nth-child(7)>input{width:64px!important;min-width:64px!important;max-width:64px!important;margin:0 auto!important}
+  main .desktop-orders-table table td:nth-child(6) select{min-width:140px!important;width:100%!important}
+  main .desktop-orders-table table td:nth-child(3) .space-y-1{min-width:0!important}
+}
