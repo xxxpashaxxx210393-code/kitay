@@ -35,7 +35,7 @@ main form,main [role="dialog"]{border-radius:18px!important}main .rounded-lg,mai
 
 /* Desktop order table: keep every column readable instead of squeezing the grid. */
 @media (min-width:651px){
-  main .desktop-orders-table{
+  main div.desktop-orders-table{
     width:100%!important;
     max-width:none!important;
     min-width:0!important;
