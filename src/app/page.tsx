@@ -1287,8 +1287,12 @@ export default function OrderTracker() {
           {header:"Вес кг", key:"weight", width:12},
           {header:"Дата", key:"date", width:18},
         ];
+        const exportHeaders = ["Фото","Название","Для кого","Трек-номер","Статус","Количество","Цена CNY","Общая CNY","Доставка Китай CNY","Доставка РБ BYN","Итого BYN","Вес кг","Дата"];
+        sheet.getRow(1).values = exportHeaders;
         sheet.getRow(1).font = {bold:true,color:{argb:"FFFFFFFF"}};
-        sheet.getRow(1).height = 24;
+        sheet.getRow(1).height = 28;
+        sheet.views = [{state:"frozen", ySplit:1}];
+        sheet.autoFilter = {from:"A1",to:"M1"};
 
         const toDataUrl = async (src:string) => {
           if (src.startsWith("data:")) return src;
@@ -1363,7 +1367,14 @@ export default function OrderTracker() {
               "Вес кг":o.weight||0,
               "Дата":o.createdAt
             }));
-        const sheet = XLSX.utils.json_to_sheet(data);
+        const exportHeaders = mode === "tracks"
+          ? ["Трек-номер"]
+          : ["Название","Для кого","Трек-номер","Статус","Количество","Цена CNY","Общая CNY","Доставка Китай CNY","Доставка РБ BYN","Итого BYN","Вес кг","Дата"];
+        const exportRows = data.map((item:any) => exportHeaders.map(header => item[header] ?? ""));
+        const sheet = XLSX.utils.aoa_to_sheet([exportHeaders, ...exportRows]);
+        sheet["!cols"] = exportHeaders.map((header) => ({ wch: Math.max(14, Math.min(30, header.length + 4)) }));
+        sheet["!autofilter"] = { ref: `A1:${XLSX.utils.encode_col(exportHeaders.length - 1)}1` };
+        sheet["!freeze"] = { xSplit: 0, ySplit: 1 };
         const book = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(book, sheet, "Заказы");
         const arrayBuffer = XLSX.write(book, {bookType:"xlsx", type:"array"});
@@ -2426,7 +2437,7 @@ export default function OrderTracker() {
             />
             </div>
 
-            <div className="desktop-orders-table w-full max-w-[1500px] mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
+            <div className="desktop-orders-table w-full max-w-none mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
             <table className="w-full text-left border-collapse table-auto text-xs min-w-[1700px]">
               <thead>
                 <tr className="bg-slate-800 border-b border-slate-700/80 text-[11px] text-slate-300 font-bold uppercase tracking-wider">
