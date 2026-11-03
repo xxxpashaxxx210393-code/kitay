@@ -2447,8 +2447,8 @@ export default function OrderTracker() {
             />
             </div>
 
-            <div className="desktop-orders-table w-full max-w-none mx-auto overflow-x-auto rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
-            <table className="w-full text-left border-collapse table-auto text-xs min-w-[1700px]">
+            <div className="desktop-orders-table w-full max-w-none mx-auto overflow-visible rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
+            <table className="w-full text-left border-collapse table-fixed text-xs min-w-0">
               <thead>
                 <tr className="bg-slate-800 border-b border-slate-700/80 text-[11px] text-slate-300 font-bold uppercase tracking-wider">
                   <th className="p-3 w-12 text-center">
