@@ -233,3 +233,80 @@ main table select.status-select-desktop[data-status="Выдано / Получе
   main .desktop-orders-table table tbody td{font-size:8px!important;padding:4px 1px!important}
   main .desktop-orders-table table td:nth-child(6) select{font-size:7px!important}
 }
+
+
+/* Compact, centered desktop table refinements. */
+@media (min-width:651px){
+  /* Let the page own vertical scrolling so sticky headings remain visible. */
+  main .desktop-orders-table{
+    overflow:visible!important;
+    max-height:none!important;
+  }
+  main .desktop-orders-table>table{
+    overflow:visible!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    table-layout:fixed!important;
+  }
+  main .desktop-orders-table table thead{
+    position:sticky!important;
+    top:0!important;
+    z-index:80!important;
+  }
+  main .desktop-orders-table table thead th{
+    position:sticky!important;
+    top:0!important;
+    z-index:81!important;
+    background:#142943!important;
+    text-align:center!important;
+  }
+  main .desktop-orders-table table tbody td{
+    text-align:center!important;
+    vertical-align:middle!important;
+  }
+  /* Slightly larger product previews. */
+  main .desktop-orders-table table th:nth-child(2),
+  main .desktop-orders-table table td:nth-child(2){width:5%!important}
+  main .desktop-orders-table table td:nth-child(2)>div{
+    width:clamp(48px,4.2vw,72px)!important;
+    height:clamp(48px,4.2vw,72px)!important;
+    margin:0 auto!important;
+  }
+  main .desktop-orders-table table td:nth-child(2) img{
+    width:100%!important;height:100%!important;object-fit:contain!important;
+  }
+  /* Quantity field sized for ordinary values, but can grow for larger quantities. */
+  main .desktop-orders-table table th:nth-child(7),
+  main .desktop-orders-table table td:nth-child(7){width:3%!important}
+  main .desktop-orders-table table td:nth-child(7) input{
+    display:block!important;
+    width:5ch!important;
+    min-width:3ch!important;
+    max-width:100%!important;
+    margin:0 auto!important;
+    padding:5px 1px!important;
+    text-align:center!important;
+    font-variant-numeric:tabular-nums!important;
+    box-sizing:content-box!important;
+  }
+  main .desktop-orders-table table th:nth-child(3),
+  main .desktop-orders-table table td:nth-child(3){text-align:center!important}
+  main .desktop-orders-table table td:nth-child(3)>div{
+    align-items:center!important;
+    text-align:center!important;
+  }
+  main .desktop-orders-table table td:nth-child(3) a,
+  main .desktop-orders-table table td:nth-child(3) span{
+    text-align:center!important;
+  }
+  main .desktop-orders-table table td input:not([type="checkbox"]),
+  main .desktop-orders-table table td select{
+    text-align:center!important;
+  }
+  main .desktop-orders-table table th,
+  main .desktop-orders-table table td{
+    padding-left:3px!important;
+    padding-right:3px!important;
+  }
+}
