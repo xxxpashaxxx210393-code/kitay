@@ -310,3 +310,105 @@ main table select.status-select-desktop[data-status="Выдано / Получе
     padding-right:3px!important;
   }
 }
+
+
+/* Correct sticky header, quantity cell and weight visibility on desktop. */
+@media (min-width:651px){
+  /* cargo-ui.css previously forced overflow:hidden on every overflow-x-auto wrapper.
+     Explicitly release this table so sticky headings attach to the page scroll. */
+  main div.desktop-orders-table.overflow-visible{
+    overflow:visible!important;
+    overflow-x:visible!important;
+    overflow-y:visible!important;
+    max-height:none!important;
+    contain:none!important;
+  }
+  main .desktop-orders-table>table{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    table-layout:fixed!important;
+    overflow:visible!important;
+  }
+  main .desktop-orders-table table thead th{
+    position:sticky!important;
+    top:0!important;
+    z-index:100!important;
+    background:#142943!important;
+    transform:translateZ(0);
+  }
+  main .desktop-orders-table table thead{
+    position:static!important;
+  }
+  /* Keep selection and photo columns tight, reserve real width for weight/actions. */
+  main .desktop-orders-table table th:nth-child(1),
+  main .desktop-orders-table table td:nth-child(1){width:2%!important}
+  main .desktop-orders-table table th:nth-child(2),
+  main .desktop-orders-table table td:nth-child(2){width:5%!important}
+  main .desktop-orders-table table th:nth-child(3),
+  main .desktop-orders-table table td:nth-child(3){width:14%!important}
+  main .desktop-orders-table table th:nth-child(4),
+  main .desktop-orders-table table td:nth-child(4){width:4%!important}
+  main .desktop-orders-table table th:nth-child(5),
+  main .desktop-orders-table table td:nth-child(5){width:8%!important}
+  main .desktop-orders-table table th:nth-child(6),
+  main .desktop-orders-table table td:nth-child(6){width:10%!important}
+  main .desktop-orders-table table th:nth-child(7),
+  main .desktop-orders-table table td:nth-child(7){width:3%!important;min-width:0!important}
+  main .desktop-orders-table table th:nth-child(8),
+  main .desktop-orders-table table td:nth-child(8){width:5%!important}
+  main .desktop-orders-table table th:nth-child(9),
+  main .desktop-orders-table table td:nth-child(9){width:6%!important}
+  main .desktop-orders-table table th:nth-child(10),
+  main .desktop-orders-table table td:nth-child(10){width:3%!important}
+  main .desktop-orders-table table th:nth-child(11),
+  main .desktop-orders-table table td:nth-child(11){width:5%!important}
+  main .desktop-orders-table table th:nth-child(12),
+  main .desktop-orders-table table td:nth-child(12){width:6%!important}
+  main .desktop-orders-table table th:nth-child(13),
+  main .desktop-orders-table table td:nth-child(13){width:5%!important}
+  main .desktop-orders-table table th:nth-child(14),
+  main .desktop-orders-table table td:nth-child(14){width:4%!important}
+  main .desktop-orders-table table th:nth-child(15),
+  main .desktop-orders-table table td:nth-child(15){width:7%!important}
+  main .desktop-orders-table table th:nth-child(16),
+  main .desktop-orders-table table td:nth-child(16){width:6%!important}
+  main .desktop-orders-table table th:nth-child(17),
+  main .desktop-orders-table table td:nth-child(17){width:5%!important;min-width:58px!important}
+  main .desktop-orders-table table th:nth-child(18),
+  main .desktop-orders-table table td:nth-child(18){width:2%!important;min-width:42px!important}
+  /* Remove the card-like styling applied globally to the quantity cell. */
+  main .desktop-orders-table table tbody td:nth-child(7){
+    background:rgba(15,28,48,.92)!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    padding:6px 2px!important;
+    overflow:visible!important;
+  }
+  main .desktop-orders-table table td:nth-child(7)>input{
+    display:block!important;
+    width:4ch!important;
+    min-width:3ch!important;
+    max-width:6ch!important;
+    height:34px!important;
+    margin:0 auto!important;
+    padding:4px 1px!important;
+    border:1px solid #294765!important;
+    border-radius:8px!important;
+    background:#0a1d31!important;
+    text-align:center!important;
+    box-sizing:content-box!important;
+  }
+  /* Weight must have enough room for values such as 0.75 or 12.50. */
+  main .desktop-orders-table table td:nth-child(17)>input{
+    width:5ch!important;
+    min-width:5ch!important;
+    max-width:100%!important;
+    margin:0 auto!important;
+    padding:5px 2px!important;
+    text-align:center!important;
+  }
+  main .desktop-orders-table table th:nth-child(17){white-space:normal!important}
+  main .desktop-orders-table table td:nth-child(18){white-space:nowrap!important}
+}
