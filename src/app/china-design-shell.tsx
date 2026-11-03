@@ -41,8 +41,9 @@ export default function ChinaDesignShell({ children }: { children: React.ReactNo
     return () => window.clearTimeout(timer);
   }, [search]);
 
-  const openGlobalResult = (projectId: number) => {
+  const openGlobalResult = (projectId: number, orderId: number) => {
     localStorage.setItem("cargo_current_project", String(projectId));
+    localStorage.setItem("cargo_focus_order_id", String(orderId));
     window.location.reload();
   };
 
@@ -88,7 +89,7 @@ export default function ChinaDesignShell({ children }: { children: React.ReactNo
                 {globalSearching && <div className="cx-global-empty">Ищу по всем базам…</div>}
                 {!globalSearching && globalResults.length === 0 && <div className="cx-global-empty">Ничего не найдено во всех базах</div>}
                 {!globalSearching && globalResults.map(item => (
-                  <button key={`${item.projectId}-${item.id}`} type="button" className="cx-global-result" onClick={() => openGlobalResult(item.projectId)}>
+                  <button key={`${item.projectId}-${item.id}`} type="button" className="cx-global-result" onClick={() => openGlobalResult(item.projectId, item.id)}>
                     <div className="cx-global-result-main"><b>{item.name}</b><span>{item.trackNumber || "Без трека"} · {item.forWhom || "Без получателя"}</span></div>
                     <div className="cx-global-result-project">{item.projectName || `База #${item.projectId}`}</div>
                   </button>
