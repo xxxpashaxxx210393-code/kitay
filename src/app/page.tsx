@@ -2642,7 +2642,7 @@ export default function OrderTracker() {
                       </td>
 
                       {/* Weight */}
-                      <td className="p-2 text-center"><input type="number" min="0" step="0.01" value={Number(o.weight ?? 0).toFixed(2)} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,weight:e.currentTarget.value === "" ? 0 : Number(e.currentTarget.value)}:x))} onBlur={e=>updateInlineOrderField(o.id,"weight",e.currentTarget.value)} className="w-20 mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-amber-300 font-mono text-xs text-center focus:outline-none focus:border-amber-500" /></td>
+                      <td className="p-2 text-center"><input type="number" min="0" step="0.01" value={o.weight ?? 0} onChange={e=>{const raw=e.currentTarget.value;const value=raw === "" ? 0 : Number(raw);setOrders(prev=>prev.map(x=>x.id===o.id?{...x,weight:value}:x))}} onBlur={e=>updateInlineOrderField(o.id,"weight",e.currentTarget.value)} className="w-24 min-w-[88px] mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-amber-300 font-mono text-xs text-center focus:outline-none focus:border-amber-500" /></td>
 
                       {/* Date */}
                       <td className="p-3 text-center whitespace-nowrap">
