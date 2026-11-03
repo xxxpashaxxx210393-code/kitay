@@ -14,6 +14,8 @@ export default function BarcodeScanner({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
+  const onDetectedRef = useRef(onDetected);
+  onDetectedRef.current = onDetected;
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -25,8 +27,8 @@ export default function BarcodeScanner({
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error("Камера недоступна. Откройте сайт по HTTPS и разрешите доступ к камере.");
         }
-        const controls = await reader.decodeFromVideoDevice(
-          undefined,
+        const controls = await reader.decodeFromConstraints(
+          { video: { facingMode: { ideal: "environment" } }, audio: false },
           videoRef.current!,
           (result) => {
             if (!result || cancelled) return;
@@ -34,7 +36,7 @@ export default function BarcodeScanner({
             if (!value) return;
             cancelled = true;
             controlsRef.current?.stop();
-            onDetected(value);
+            onDetectedRef.current(value);
           }
         );
         if (cancelled) controls.stop();
@@ -50,7 +52,7 @@ export default function BarcodeScanner({
       controlsRef.current?.stop();
       controlsRef.current = null;
     };
-  }, [onDetected]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
