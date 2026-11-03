@@ -2582,7 +2582,7 @@ export default function OrderTracker() {
 
                       {/* Exchange Rate */}
                       <td className="p-3 text-right font-mono text-slate-400 text-[11px]">
-                        {defaultRate.toFixed(4)}
+                        {defaultRate.toFixed(2)}
                       </td>
 
                       {/* Price per unit, BYN (New field) */}
