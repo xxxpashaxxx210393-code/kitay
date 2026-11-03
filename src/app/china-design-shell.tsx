@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import BarcodeScanner from "./barcode-scanner";
+import { Camera } from "lucide-react";
 import { BarChart3, Boxes, ClipboardList, Menu, Package, Search, Settings2, Truck, Users, X } from "lucide-react";
 
 function setNativeInputValue(input: HTMLInputElement, value: string) {
@@ -15,6 +17,7 @@ export default function ChinaDesignShell({ children }: { children: React.ReactNo
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [globalResults, setGlobalResults] = useState<Array<{id:number;projectId:number;name:string;forWhom:string|null;trackNumber:string|null;status:string;projectName:string|null}>>([]);
   const [globalSearching, setGlobalSearching] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
     const value = search.trim();
@@ -79,7 +82,7 @@ export default function ChinaDesignShell({ children }: { children: React.ReactNo
           <button className="cx-menu-btn" onClick={() => setMobileNavOpen(true)} aria-label="Открыть меню"><Menu size={21}/></button>
           <div className="cx-top-brand"><div className="cx-flag">🇨🇳</div><div><h1>Китай → Беларусь</h1><span>Мои покупки и заказы</span></div></div>
           <div className="cx-search-wrap">
-            <div className="cx-search"><Search size={18}/><input value={search} onChange={e => setSearch(e.currentTarget.value)} placeholder="Поиск по всем базам: товар, получатель, трек..."/><kbd>⌘ K</kbd></div>
+            <div className="cx-search"><Search size={18}/><input value={search} onChange={e => setSearch(e.currentTarget.value)} placeholder="Поиск по всем базам: товар, получатель, трек..."/><button type="button" className="cx-scan-button" title="Сканировать штрих-код" onClick={() => setScannerOpen(true)}><Camera size={17}/></button><kbd>⌘ K</kbd></div>
             {search.trim().length >= 2 && (
               <div className="cx-global-results">
                 {globalSearching && <div className="cx-global-empty">Ищу по всем базам…</div>}
@@ -96,6 +99,7 @@ export default function ChinaDesignShell({ children }: { children: React.ReactNo
         </div>
         {children}
       </div>
+      {scannerOpen && <BarcodeScanner onDetected={(value) => { setSearch(value); setScannerOpen(false); }} onClose={() => setScannerOpen(false)} /> }
     </div>
   );
 }
