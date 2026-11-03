@@ -1244,6 +1244,35 @@ export default function OrderTracker() {
     });
   }, [filteredOrders, sortBy, sortOrder]);
 
+  // Open a globally searched product directly in its row after switching projects.
+  useEffect(() => {
+    if (loading || orders.length === 0) return;
+    const rawId = localStorage.getItem("cargo_focus_order_id");
+    if (!rawId) return;
+    const target = orders.find(order => order.id === Number(rawId));
+    if (!target) return;
+    setActiveTab("all");
+    setStatusFilter("Все");
+    setForWhomFilter("Все");
+    setMonthFilter("Все");
+    setSearchQuery(target.trackNumber || target.name);
+  }, [loading, orders]);
+
+  useEffect(() => {
+    if (loading || !searchQuery.trim()) return;
+    const rawId = localStorage.getItem("cargo_focus_order_id");
+    if (!rawId) return;
+    const target = sortedOrders.find(order => order.id === Number(rawId));
+    if (!target) return;
+    const timer = window.setTimeout(() => {
+      const row = document.querySelector('tr[data-order-id="' + target.id + '"]');
+      row?.scrollIntoView({ behavior: "smooth", block: "center" });
+      row?.classList.add("global-search-target");
+      localStorage.removeItem("cargo_focus_order_id");
+      window.setTimeout(() => row?.classList.remove("global-search-target"), 3200);
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [loading, searchQuery, sortedOrders]);
   // Row selection + export
   const toggleOrderSelection = (id:number) => setSelectedOrderIds(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev,id]);
   const allVisibleSelected = sortedOrders.length > 0 && sortedOrders.every(o=>selectedOrderIds.includes(o.id));
@@ -2495,7 +2524,8 @@ export default function OrderTracker() {
 
                   return (
                     <tr 
-                      key={o.id} 
+                      key={o.id}
+                      data-order-id={o.id}
                       className={`hover:bg-slate-800/65 transition-colors group ${statusStyles.rowBg}`}
                     >
                       <td className="p-3 text-center whitespace-nowrap">
