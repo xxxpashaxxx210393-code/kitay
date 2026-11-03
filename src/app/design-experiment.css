@@ -143,3 +143,5 @@ main table select.status-select-desktop[data-status="Выдано / Получе
 .cx-search input{min-width:0!important}
 .cx-scan-button{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;border:1px solid #355477!important;border-radius:8px!important;background:#0c7490!important;color:white!important;cursor:pointer!important}
 .cx-scan-button:hover{background:#0e8aaa!important}
+
+@media (min-width:651px){main .desktop-orders-table>table{overflow:visible!important}}
