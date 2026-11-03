@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import MobileOrderCards from "./mobile-order-cards";
+import BarcodeScanner from "./barcode-scanner";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import {
@@ -32,7 +33,8 @@ import {
   FileUp,
   Loader2,
   MoreVertical,
-  Download
+  Download,
+  Camera
 } from "lucide-react";
 
 interface Order {
@@ -147,6 +149,7 @@ export default function OrderTracker() {
   const [isPeopleModalOpen, setIsPeopleModalOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [localScannerOpen, setLocalScannerOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("Все");
   const [forWhomFilter, setForWhomFilter] = useState("Все");
   const [copiedTrack, setCopiedTrack] = useState<string | null>(null);
@@ -1180,10 +1183,12 @@ export default function OrderTracker() {
       }
 
       // 2. Search text matches Name, Track, ForWhom, or Notes
-      const searchLower = searchQuery.toLowerCase();
-      const matchesSearch =
+      const searchLower = searchQuery.toLowerCase().trim();
+      const normalizedSearch = normalizeTrack(searchQuery);
+      const matchesSearch = !searchLower ||
         o.name.toLowerCase().includes(searchLower) ||
         (o.trackNumber || "").toLowerCase().includes(searchLower) ||
+        (!!normalizedSearch && normalizeTrack(o.trackNumber).includes(normalizedSearch)) ||
         (o.forWhom || "").toLowerCase().includes(searchLower) ||
         (o.notes || "").toLowerCase().includes(searchLower);
 
@@ -1288,7 +1293,7 @@ export default function OrderTracker() {
           {header:"Дата", key:"date", width:18},
         ];
         const exportHeaders = ["Фото","Название","Для кого","Трек-номер","Статус","Количество","Цена CNY","Общая CNY","Доставка Китай CNY","Доставка РБ BYN","Итого BYN","Вес кг","Дата"];
-        sheet.getRow(1).values = exportHeaders;
+        exportHeaders.forEach((header, index) => { sheet.getCell(1, index + 1).value = header; });
         sheet.getRow(1).font = {bold:true,color:{argb:"FFFFFFFF"}};
         sheet.getRow(1).height = 28;
         sheet.views = [{state:"frozen", ySplit:1}];
@@ -1586,6 +1591,8 @@ export default function OrderTracker() {
           <div className="ml-auto text-xs text-slate-400">Товаров в проекте: <b className="text-white">{orders.length}</b></div>
         </div>
         
+        {localScannerOpen && <BarcodeScanner onDetected={(value) => { setSearchQuery(value); setLocalScannerOpen(false); }} onClose={() => setLocalScannerOpen(false)} />}
+
         {/* ALERT NOTIFICATION */}
         {alertMessage && (
           <div className={`p-4 rounded-xl border flex items-start gap-3 animate-fadeIn shadow-lg ${
@@ -2271,16 +2278,19 @@ export default function OrderTracker() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск по названию товара, трек-номеру, получателю..."
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm focus:border-blue-500 focus:outline-none placeholder-slate-500 text-white"
+                className="w-full pl-10 pr-24 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm focus:border-blue-500 focus:outline-none placeholder-slate-500 text-white"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white bg-slate-800 px-1.5 py-0.5 rounded"
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white bg-slate-800 px-1.5 py-0.5 rounded"
                 >
                   очистить
                 </button>
               )}
+              <button type="button" onClick={() => setLocalScannerOpen(true)} title="Сканировать штрих-код" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white">
+                <Camera className="w-4 h-4"/>
+              </button>
             </div>
 
             {/* Quick dropdown filters */}
