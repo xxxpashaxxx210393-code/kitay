@@ -41,6 +41,10 @@ const replacements = [
     'onChange={e=>saveCargoRates(cargoShippingUsdPerKg, Number(e.target.value))}',
     'onChange={e=>{const raw=e.currentTarget.value;setUsdBynRateInput(raw);const value=Number(raw.replace(",","."));if(Number.isFinite(value)&&value>0){setUsdBynRate(value);localStorage.setItem("cargo_usd_byn_rate",String(value));}}}',
   ],
+  [
+    'onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,weight:e.currentTarget.value === "" ? 0 : Number(e.currentTarget.value)}:x))}',
+    'onChange={e=>{const raw=e.currentTarget.value;const value=raw === "" ? 0 : Number(raw);setOrders(prev=>prev.map(x=>x.id===o.id?{...x,weight:value}:x))}}',
+  ],
 ];
 
 let fixed = 0;
