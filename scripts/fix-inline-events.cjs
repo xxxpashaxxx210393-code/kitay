@@ -120,7 +120,7 @@ const required = [
 ];
 if (!required.every(x => output.includes(x))) throw new Error("Cargo rate input migration is incomplete");
 
-const allExpected = replacements.every(([, after]) => output.includes(after));
+const allExpected = replacements.every(([before, after]) => !source.includes(before) || output.includes(after));
 if (!allExpected) throw new Error("Expected inline or cargo-rate handlers were not found");
 
 fs.writeFileSync(file, output, "utf8");
