@@ -412,3 +412,42 @@ main table select.status-select-desktop[data-status="Выдано / Получе
   main .desktop-orders-table table th:nth-child(17){white-space:normal!important}
   main .desktop-orders-table table td:nth-child(18){white-space:nowrap!important}
 }
+
+
+/* Final sticky header setup: the app top bar remains at 0, table labels stick directly beneath it. */
+@media (min-width:651px){
+  html,body{overflow-x:clip!important}
+  main div.desktop-orders-table{
+    overflow:visible!important;
+    overflow-x:visible!important;
+    overflow-y:visible!important;
+    max-height:none!important;
+    contain:none!important;
+  }
+  main .desktop-orders-table>table{
+    overflow:visible!important;
+    border-radius:0 0 16px 16px!important;
+  }
+  main .desktop-orders-table table thead th{
+    position:sticky!important;
+    top:78px!important;
+    z-index:35!important;
+    background:#142943!important;
+  }
+  main .desktop-orders-table table th:nth-child(17),
+  main .desktop-orders-table table td:nth-child(17){
+    width:6%!important;
+    min-width:82px!important;
+  }
+  main .desktop-orders-table table td:nth-child(17)>input{
+    width:6ch!important;
+    min-width:6ch!important;
+    max-width:100%!important;
+    padding-left:5px!important;
+    padding-right:5px!important;
+    text-align:center!important;
+  }
+}
+@media (min-width:651px) and (max-width:900px){
+  main .desktop-orders-table table thead th{top:62px!important}
+}
