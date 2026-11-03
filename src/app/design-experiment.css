@@ -145,3 +145,91 @@ main table select.status-select-desktop[data-status="Выдано / Получе
 .cx-scan-button:hover{background:#0e8aaa!important}
 
 @media (min-width:651px){main .desktop-orders-table>table{overflow:visible!important}}
+
+
+/* Final desktop table tuning: compact selection/photo, readable status, no clipped columns. */
+@media (min-width:651px){
+  main .desktop-orders-table{width:100%!important;max-width:100%!important;overflow:visible!important}
+  main .desktop-orders-table>table{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    table-layout:fixed!important;
+  }
+  /* Planned/received date is available in the edit dialog; reclaim its width for useful fields. */
+  main .desktop-orders-table table thead th:nth-child(18),
+  main .desktop-orders-table table tbody td:nth-child(18){display:none!important}
+  main .desktop-orders-table table th,
+  main .desktop-orders-table table td{
+    padding:6px 3px!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+  }
+  main .desktop-orders-table table th:nth-child(1),main .desktop-orders-table table td:nth-child(1){width:2%!important;text-align:center!important}
+  main .desktop-orders-table table th:nth-child(2),main .desktop-orders-table table td:nth-child(2){width:4%!important;text-align:center!important}
+  main .desktop-orders-table table th:nth-child(3),main .desktop-orders-table table td:nth-child(3){width:15%!important}
+  main .desktop-orders-table table th:nth-child(4),main .desktop-orders-table table td:nth-child(4){width:5%!important}
+  main .desktop-orders-table table th:nth-child(5),main .desktop-orders-table table td:nth-child(5){width:8%!important}
+  main .desktop-orders-table table th:nth-child(6),main .desktop-orders-table table td:nth-child(6){width:10%!important}
+  main .desktop-orders-table table th:nth-child(7),main .desktop-orders-table table td:nth-child(7){width:4%!important;text-align:center!important}
+  main .desktop-orders-table table th:nth-child(8),main .desktop-orders-table table td:nth-child(8){width:5%!important}
+  main .desktop-orders-table table th:nth-child(9),main .desktop-orders-table table td:nth-child(9){width:6%!important}
+  main .desktop-orders-table table th:nth-child(10),main .desktop-orders-table table td:nth-child(10){width:3%!important}
+  main .desktop-orders-table table th:nth-child(11),main .desktop-orders-table table td:nth-child(11){width:5%!important}
+  main .desktop-orders-table table th:nth-child(12),main .desktop-orders-table table td:nth-child(12){width:6%!important}
+  main .desktop-orders-table table th:nth-child(13),main .desktop-orders-table table td:nth-child(13){width:5%!important}
+  main .desktop-orders-table table th:nth-child(14),main .desktop-orders-table table td:nth-child(14){width:4%!important}
+  main .desktop-orders-table table th:nth-child(15),main .desktop-orders-table table td:nth-child(15){width:7%!important}
+  main .desktop-orders-table table th:nth-child(16),main .desktop-orders-table table td:nth-child(16){width:6%!important}
+  main .desktop-orders-table table th:nth-child(17),main .desktop-orders-table table td:nth-child(17){width:3%!important;text-align:center!important}
+  main .desktop-orders-table table th:nth-child(19),main .desktop-orders-table table td:nth-child(19){width:2%!important;text-align:center!important}
+  main .desktop-orders-table table thead th{
+    font-size:clamp(7px,.48vw,10px)!important;
+    line-height:1.12!important;
+    padding:8px 2px!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+  main .desktop-orders-table table tbody td{font-size:clamp(8px,.55vw,11px)!important;line-height:1.2!important}
+  /* Selection checkbox hugs the left edge; photo sits immediately beside it. */
+  main .desktop-orders-table table td:nth-child(1),
+  main .desktop-orders-table table th:nth-child(1){padding-left:2px!important;padding-right:1px!important}
+  main .desktop-orders-table table td:nth-child(2),
+  main .desktop-orders-table table th:nth-child(2){padding-left:1px!important;padding-right:1px!important}
+  main .desktop-orders-table table td:nth-child(2)>div{
+    width:clamp(34px,3.1vw,58px)!important;
+    height:clamp(34px,3.1vw,58px)!important;
+    margin:0 auto!important;
+  }
+  main .desktop-orders-table table td:nth-child(2) img{width:100%!important;height:100%!important;object-fit:contain!important}
+  /* Status gets a full-width badge and can wrap cleanly instead of being cut off. */
+  main .desktop-orders-table table td:nth-child(6){white-space:normal!important}
+  main .desktop-orders-table table td:nth-child(6)>div{
+    display:block!important;width:100%!important;max-width:100%!important;
+    min-width:0!important;box-sizing:border-box!important;
+  }
+  main .desktop-orders-table table td:nth-child(6) select{
+    display:block!important;width:100%!important;max-width:100%!important;
+    min-width:0!important;white-space:normal!important;
+    font-size:clamp(8px,.52vw,10px)!important;
+    line-height:1.12!important;padding:6px 2px!important;
+    text-overflow:clip!important;
+  }
+  /* Quantity is a compact numeric field, not a wide column. */
+  main .desktop-orders-table table td:nth-child(7) input{
+    display:block!important;width:100%!important;max-width:54px!important;
+    min-width:0!important;margin:0 auto!important;padding:5px 2px!important;
+    font-size:10px!important;
+  }
+  main .desktop-orders-table table td input:not([type="checkbox"]),
+  main .desktop-orders-table table td select{
+    min-width:0!important;max-width:100%!important;box-sizing:border-box!important;
+  }
+  main .desktop-orders-table table td:nth-child(5) input{font-size:clamp(8px,.5vw,10px)!important;padding:5px 2px!important}
+  main .desktop-orders-table table td:nth-child(4) input{font-size:clamp(8px,.5vw,10px)!important;padding:5px 2px!important}
+  main .desktop-orders-table table td:nth-child(19) button{padding:3px!important}
+}
+@media (min-width:651px) and (max-width:1100px){
+  main .desktop-orders-table table thead th{font-size:7px!important;padding:6px 1px!important}
+  main .desktop-orders-table table tbody td{font-size:8px!important;padding:4px 1px!important}
+  main .desktop-orders-table table td:nth-child(6) select{font-size:7px!important}
+}
