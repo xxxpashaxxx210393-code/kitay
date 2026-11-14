@@ -1711,7 +1711,7 @@
       showToast('Получатель «' + recipient.name + '» добавлен', 'success');
     }
 
-    function renderProjectsSidebar() {    function renderProjectsSidebar() {
+    function renderProjectsSidebar() {
       const listEl = document.getElementById('projectList');
       listEl.innerHTML = state.projects.map(p => {
         const isActive = p.id === state.activeProjectId;
