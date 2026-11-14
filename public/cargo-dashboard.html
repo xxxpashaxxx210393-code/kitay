@@ -1279,6 +1279,9 @@
       };
     }
     async function apiJson(url, options) {
+      // Keep preview shareable-link authorization on API calls made inside the iframe.
+      const bypass = new URLSearchParams(window.location.search).get("x-vercel-protection-bypass");
+      if (bypass) url += (url.includes("?") ? "&" : "?") + "x-vercel-protection-bypass=" + encodeURIComponent(bypass);
       const response = await fetch(url, { cache:"no-store", ...options, headers:{ "Content-Type":"application/json", ...(options && options.headers || {}) } });
       const json = await response.json();
       if (!response.ok || json.success === false) throw new Error(json.error || "Ошибка сохранения данных");
