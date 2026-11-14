@@ -2415,239 +2415,78 @@ export default function OrderTracker() {
             <div className="desktop-orders-table w-full max-w-none mx-auto overflow-visible rounded-3xl border border-slate-800 shadow-xl bg-slate-900">
             <table className="w-full text-left border-collapse table-fixed text-xs min-w-0">
               <thead>
-                <tr className="bg-slate-800 border-b border-slate-700/80 text-[11px] text-slate-300 font-bold uppercase tracking-wider">
-                  <th className="p-3 w-12 text-center">
-                    <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} title="Выбрать все видимые" className="w-4 h-4 accent-blue-500 cursor-pointer" />
-                  </th>
-                  <th className="p-3 w-24 min-w-[100px] text-center">Фото товара</th>
-                  
-                  <th className="p-3 min-w-[230px] w-[230px] cursor-pointer hover:bg-slate-700/50 transition-colors" onClick={() => toggleSort("name")}>
-                    <div className="flex items-center gap-1">
-                      <span>Название товара</span>
-                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-                    </div>
-                  </th>
-                  
-                  <th className="p-3 text-center">Для кого</th>
-                  <th className="p-3">Трек-номер Китая</th>
-                  <th className="p-3 text-center">Статус доставки (Клик для смены)</th>
-                  <th className="p-3 text-center bg-slate-700/40 text-white font-black">Кол-во</th>
-                  
-                  {/* CNY block */}
-                  <th className="p-3 text-right text-amber-400 bg-slate-950/30">Цена за ед., CNY</th>
-                  <th className="p-3 text-right text-amber-300 bg-slate-950/30">Общая стоимость, CNY</th>
-                  
-                  <th className="p-3 text-right">Курс BYN</th>
-                  
-                  {/* BYN Block explicitly added as requested */}
-                  <th className="p-3 text-right text-blue-300 bg-blue-950/40 font-extrabold border-l border-blue-900/40">Цена за ед., BYN</th>
-                  <th className="p-3 text-right text-emerald-300 bg-emerald-950/20 font-black border-r border-emerald-900/20">Общая стоимость, BYN</th>
-                  
-                  <th className="p-3 text-right text-orange-300 bg-orange-950/20">Доставка Китай ($)</th>
-                  <th className="p-3 text-right">Доставка РБ (BYN)</th>
-                  <th className="p-3 text-right font-extrabold text-indigo-300 bg-indigo-950/20">Итого с доставкой, BYN</th>
-                  <th className="p-3 text-right font-semibold text-teal-300 bg-teal-950/20">Себест. 1 ед., BYN</th>
-                  <th className="p-3 text-center">Вес (кг)</th>
-                  <th className="p-3 w-20 text-center">Действия</th>
+                <tr>
+                  <th className="p-3 w-10 text-center"><input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} title="Выбрать все видимые" className="w-4 h-4 accent-indigo-600 cursor-pointer" /></th>
+                  <th className="p-3 w-[34%]">Фото, товар и трек-номер</th>
+                  <th className="p-3 w-[7%] text-center">Кол-во</th>
+                  <th className="p-3 w-[11%] text-center">Закуп + дост. ¥</th>
+                  <th className="p-3 w-[9%] text-center">Вес / объём</th>
+                  <th className="p-3 w-[10%] text-center">Себест. 1 ед.</th>
+                  <th className="p-3 w-[10%] text-center">Итого партия</th>
+                  <th className="p-3 w-[9%] text-center">Для кого</th>
+                  <th className="p-3 w-[13%] text-center">Статус доставки</th>
+                  <th className="p-3 w-[7%] text-center">Действия</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody>
                 {sortedOrders.map((o) => {
                   const statusStyles = getStatusBadgeStyles(o.status);
                   const displayImage = o.imageUrl || getEmbeddedImage(o);
-                  // explicit single price in BYN
-                  const unitPriceByn = o.priceCny * defaultRate;
-
+                  const unitCost = o.unitCostByn;
                   return (
-                    <tr 
-                      key={o.id}
-                      data-order-id={o.id}
-                      className={`hover:bg-slate-800/65 transition-colors group ${statusStyles.rowBg}`}
-                    >
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <input type="checkbox" checked={selectedOrderIds.includes(o.id)} onChange={()=>toggleOrderSelection(o.id)} title="Выбрать товар" className="w-4 h-4 accent-blue-500 cursor-pointer" />
-                      </td>
-                      {/* Beautiful larger image widget with magnifier styling */}
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-700/80 mx-auto flex items-center justify-center group-hover:border-blue-500/80 transition-all shadow-md">
-                          {displayImage ? (
-                            <img 
-                              src={displayImage} 
-                              alt={o.name}
-                              onClick={(e)=>{e.stopPropagation();setPreviewImage({src:displayImage!,name:o.name})}}
-                              className="w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-105 cursor-zoom-in"
-                              onError={(e) => {
-                                (e.target as any).src = "https://images.unsplash.com/photo-1595079676339-1534801ad6cf?w=120&auto=format&fit=crop";
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                              <span className="text-xs font-black text-slate-400 uppercase">
-                                {o.name.substring(0, 2)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Name & link */}
-                      <td className="p-3 font-semibold text-slate-100 min-w-[230px] w-[230px] max-w-[230px] align-top">
-                        <div className="space-y-1">
-                          <div className="font-extrabold text-[12px] leading-[1.25] text-white tracking-tight group-hover:text-blue-300 transition-colors whitespace-normal break-words">
-                            {o.name}
+                    <tr key={o.id} data-order-id={o.id} className={`transition-colors group ${statusStyles.rowBg}`}>
+                      <td className="p-2 text-center align-middle"><input type="checkbox" checked={selectedOrderIds.includes(o.id)} onChange={()=>toggleOrderSelection(o.id)} title="Выбрать товар" className="w-4 h-4 accent-indigo-600 cursor-pointer" /></td>
+                      <td className="p-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-12 h-12 shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
+                            {displayImage ? <img src={displayImage} alt={o.name} onClick={(e)=>{e.stopPropagation();setPreviewImage({src:displayImage!,name:o.name})}} className="w-full h-full object-contain p-0.5 cursor-zoom-in" onError={(e)=>(e.target as HTMLImageElement).style.opacity="0"} /> : <span className="text-xs font-bold text-slate-400">{o.name.substring(0,2)}</span>}
                           </div>
-                          {o.itemUrl ? (
-                            <a 
-                              href={o.itemUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="inline-flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 hover:underline font-mono"
-                            >
-                              <span>Открыть на YangKeDuo</span>
-                              <ExternalLink className="w-2.5 h-2.5 shrink-0" />
-                            </a>
-                          ) : (
-                            <span className="text-[10px] text-slate-500 italic block">Нет ссылки</span>
-                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-800 text-[12px] leading-4 truncate" title={o.name}>{o.name}</div>
+                            {o.notes && <div className="text-[10px] text-slate-500 truncate mt-0.5">{o.notes}</div>}
+                            <div className="flex items-center gap-2 mt-1 min-w-0">
+                              <input value={o.trackNumber || ""} placeholder="Трек-номер" onChange={e=>{const value=e.currentTarget.value;setOrders(prev=>prev.map(x=>x.id===o.id?{...x,trackNumber:value}:x))}} onBlur={e=>updateInlineOrderField(o.id,"trackNumber",e.currentTarget.value)} className="w-40 max-w-full px-2 py-1 rounded-md bg-slate-50 border border-slate-200 text-slate-600 font-mono text-[10px] focus:outline-none focus:border-indigo-400" />
+                              {o.itemUrl && <a href={o.itemUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 hover:underline shrink-0">Товар ↗</a>}
+                            </div>
+                          </div>
                         </div>
                       </td>
-
-                      {/* For whom badge */}
-                      <td className="p-2 text-center whitespace-nowrap"><input value={o.forWhom || "Родители"} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,forWhom:e.currentTarget.value}:x))} onBlur={e=>updateInlineOrderField(o.id,"forWhom",e.currentTarget.value)} className="w-full min-w-[86px] px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white text-[10px] font-bold text-center focus:outline-none focus:border-blue-500" /></td>
-
-                      {/* Track number with copy */}
-                      <td className="p-2"><input value={o.trackNumber || ""} placeholder="трек" onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,trackNumber:e.currentTarget.value}:x))} onBlur={e=>updateInlineOrderField(o.id,"trackNumber",e.currentTarget.value)} className="w-full min-w-[125px] px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-[10px] focus:outline-none focus:border-blue-500" /></td>
-
-                      {/* Interactive Status Selector Badge */}
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <div className={`relative inline-block text-left rounded-xl border shadow-sm ${statusStyles.bg} ${statusStyles.bgHover}`}>
-                          <select
-                            value={o.status}
-                            onChange={(e) => updateOrderStatus(o.id, e.target.value)}
-                            data-status={o.status} className="status-select-desktop px-3 py-1.5 rounded-xl bg-transparent text-white border-0 text-[11px] font-extrabold cursor-pointer transition-all outline-none shadow-none"
-                          >
-                            {STATUS_OPTIONS.map((status) => (
-                              <option key={status} value={status} className="bg-slate-900 text-slate-100 text-xs font-semibold">
-                                {status}
-                              </option>
-                            ))}
+                      <td className="p-2 text-center"><input type="number" min="1" step="1" value={o.quantity} onChange={e=>{const value=Number(e.currentTarget.value)||0;setOrders(prev=>prev.map(x=>x.id===o.id?{...x,quantity:value}:x))}} onBlur={e=>updateInlineOrderField(o.id,"quantity",e.currentTarget.value)} className="w-14 px-2 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-800 text-xs font-bold text-center focus:outline-none focus:border-indigo-400" /></td>
+                      <td className="p-2 text-center">
+                        <div className="font-mono font-bold text-slate-800">{o.priceCny.toFixed(2)} ¥</div>
+                        <div className="text-[10px] text-slate-500 mt-1">+ {Number(o.shippingChinaCny||0).toFixed(2)} ¥ доставка</div>
+                      </td>
+                      <td className="p-2 text-center">
+                        <input type="number" min="0" step="0.01" value={o.weight ?? 0} onChange={e=>{const raw=e.currentTarget.value;const value=raw===""?0:Number(raw);setOrders(prev=>prev.map(x=>x.id===o.id?{...x,weight:value}:x))}} onBlur={e=>updateInlineOrderField(o.id,"weight",e.currentTarget.value)} className="w-[6.5rem] max-w-full px-2 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-800 font-mono text-xs text-center focus:outline-none focus:border-indigo-400" />
+                        <div className="text-[10px] text-orange-600 font-semibold mt-1">{(o.shippingUsd||0).toFixed(2)} $ карго</div>
+                      </td>
+                      <td className="p-2 text-center"><div className="font-mono font-bold text-indigo-600">{unitCost.toFixed(2)} <span className="text-[9px]">BYN</span></div><div className="text-[10px] text-slate-400 mt-1">за 1 ед.</div></td>
+                      <td className="p-2 text-center"><div className="font-mono font-bold text-slate-800">{o.totalWithShippingByn.toFixed(2)} <span className="text-[9px] text-slate-500">BYN</span></div></td>
+                      <td className="p-2 text-center"><input value={o.forWhom || "Родители"} onChange={e=>{const value=e.currentTarget.value;setOrders(prev=>prev.map(x=>x.id===o.id?{...x,forWhom:value}:x))}} onBlur={e=>updateInlineOrderField(o.id,"forWhom",e.currentTarget.value)} className="w-full min-w-0 px-2 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-[10px] font-semibold text-center focus:outline-none focus:border-indigo-400" /></td>
+                      <td className="p-2 text-center">
+                        <div className={`inline-flex max-w-full rounded-lg border px-1.5 py-1 ${statusStyles.bg} ${statusStyles.bgHover}`}>
+                          <select value={o.status} onChange={e=>updateOrderStatus(o.id,e.currentTarget.value)} data-status={o.status} className="status-select-desktop max-w-full bg-transparent border-0 text-[10px] font-bold cursor-pointer outline-none">
+                            {STATUS_OPTIONS.map(status=><option key={status} value={status}>{status}</option>)}
                           </select>
                         </div>
                       </td>
-
-                      {/* Quantity */}
-                      <td className="p-2 text-center bg-slate-800/40"><input type="number" min="1" step="1" value={o.quantity} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,quantity:Number(e.currentTarget.value)||0}:x))} onBlur={e=>updateInlineOrderField(o.id,"quantity",e.currentTarget.value)} className="w-16 mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white text-xs font-black text-center focus:outline-none focus:border-blue-500" /></td>
-
-                      {/* Price CNY */}
-                      <td className="p-2 text-right bg-slate-950/20"><input type="number" min="0" step="0.01" value={o.priceCny} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,priceCny:Number(e.currentTarget.value)||0}:x))} onBlur={e=>updateInlineOrderField(o.id,"priceCny",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-xs text-right focus:outline-none focus:border-amber-500" /></td>
-
-                      {/* Total CNY */}
-                      <td className="p-3 text-right font-mono font-bold text-amber-400 bg-slate-950/20">
-                        ¥ {o.itemTotalCny.toFixed(2)}
-                      </td>
-
-                      {/* Exchange Rate */}
-                      <td className="p-3 text-right font-mono text-slate-400 text-[11px]">
-                        {defaultRate.toFixed(2)}
-                      </td>
-
-                      {/* Price per unit, BYN (New field) */}
-                      <td className="p-3 text-right font-mono font-bold text-blue-300 bg-blue-950/20 border-l border-blue-900/40">
-                        {unitPriceByn.toFixed(2)} <span className="text-[9px] text-slate-400 font-normal">BYN</span>
-                      </td>
-
-                      {/* Total cost in BYN (New field) */}
-                      <td className="p-3 text-right font-mono font-black text-emerald-300 bg-emerald-950/10 border-r border-emerald-900/20">
-                        {o.itemCostByn.toFixed(2)} <span className="text-[9px] text-slate-400 font-normal">BYN</span>
-                      </td>
-
-                      {/* China delivery = weight × cargo tariff */}
-                      <td className="p-2 text-right bg-orange-950/10"><div className="font-mono font-black text-orange-300 text-[11px] whitespace-nowrap">$ {o.shippingUsd.toFixed(2)}</div><div className="text-[8px] text-slate-500 whitespace-nowrap">{(o.weight || 0).toFixed(2)} кг × {cargoShippingUsdPerKg.toFixed(2)}</div></td>
-
-                      {/* Delivery Belarus BYN */}
-                      <td className="p-2 text-right"><input type="number" min="0" step="0.01" value={o.shippingBelarusByn ?? 0} onChange={e=>setOrders(prev=>prev.map(x=>x.id===o.id?{...x,shippingBelarusByn:Number(e.currentTarget.value)||0}:x))} onBlur={e=>updateInlineOrderField(o.id,"shippingBelarusByn",e.currentTarget.value)} className="w-24 ml-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-white font-mono text-xs text-right focus:outline-none focus:border-blue-500" /></td>
-
-                      {/* Total With Shipping BYN */}
-                      <td className="p-3 text-right font-mono font-black text-indigo-300 bg-indigo-950/20 text-xs">
-                        {o.totalWithShippingByn.toFixed(2)} <span className="text-[9px] font-normal text-slate-400">BYN</span>
-                      </td>
-
-                      {/* Unit Cost Price BYN */}
-                      <td className="p-3 text-right font-mono font-black text-teal-300 bg-teal-950/10 text-xs">
-                        {o.unitCostByn.toFixed(2)} <span className="text-[9px] font-normal text-slate-400">BYN</span>
-                      </td>
-
-                      {/* Weight */}
-                      <td className="p-2 text-center"><input type="number" min="0" step="0.01" value={o.weight ?? 0} onChange={e=>{const raw=e.currentTarget.value;const value=raw === "" ? 0 : Number(raw);setOrders(prev=>prev.map(x=>x.id===o.id?{...x,weight:value}:x))}} onBlur={e=>updateInlineOrderField(o.id,"weight",e.currentTarget.value)} className="w-24 min-w-[88px] mx-auto px-2 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-amber-300 font-mono text-xs text-center focus:outline-none focus:border-amber-500" /></td>
-
-                      {/* Date */}
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <div className="space-y-0.5 text-[10px]">
-                          {o.receivedDate ? (
-                            <div className="text-emerald-400 font-bold flex items-center justify-center gap-0.5">
-                              <CheckCircle className="w-3 h-3" />
-                              <span>Получен: {o.receivedDate}</span>
-                            </div>
-                          ) : o.plannedDate ? (
-                            <div className="text-slate-400">
-                              <span>План: <strong>{o.plannedDate}</strong></span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-600">—</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Action buttons */}
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => handleEditClick(o)}
-                            title="Изменить данные"
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(o.id, o.name)}
-                            title="Удалить товар"
-                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                      <td className="p-2 text-center"><div className="flex items-center justify-center gap-1">
+                        <button onClick={()=>handleEditClick(o)} title="Изменить данные" className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"><Edit2 className="w-3.5 h-3.5"/></button>
+                        <button onClick={()=>handleDeleteClick(o.id,o.name)} title="Удалить товар" className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-3.5 h-3.5"/></button>
+                      </div></td>
                     </tr>
                   );
                 })}
               </tbody>
-              
-              {/* Aggregation Row */}
-              <tfoot>
-                <tr className="bg-slate-800 font-bold border-t-2 border-slate-700 text-slate-200">
-                  <td colSpan={6} className="p-3 text-right font-black">ИТОГО ПО ФИЛЬТРУ:</td>
-                  <td className="p-3 text-center font-black text-sm text-white bg-slate-700">{filteredOrders.reduce((sum, o) => sum + o.quantity, 0)} шт</td>
-                  <td className="p-3"></td>
-                  <td className="p-3 text-right font-mono text-amber-300">¥ {filteredOrders.reduce((sum, o) => sum + o.itemTotalCny, 0).toFixed(2)}</td>
-                  <td className="p-3"></td>
-                  <td className="p-3 text-right font-mono text-blue-300 bg-blue-950/40 border-l border-blue-900/40">
-                    {(filteredOrders.reduce((sum, o) => sum + (o.priceCny * o.rateCnyByn), 0) / (filteredOrders.length || 1)).toFixed(2)} BYN <span className="text-[8px] font-normal block text-slate-400">(ср.цена)</span>
-                  </td>
-                  <td className="p-3 text-right font-mono text-emerald-300 bg-emerald-950/10 border-r border-emerald-900/20 text-xs">
-                    {(filteredOrders.reduce((sum, o) => sum + o.itemCostByn, 0)).toFixed(2)} BYN
-                  </td>
-                  <td className="p-3 text-right font-mono text-slate-300">¥ {filteredOrders.reduce((sum, o) => sum + o.shippingUsd, 0).toFixed(2)} $</td>
-                  <td className="p-3 text-right font-mono text-slate-300">{filteredOrders.reduce((sum, o) => sum + (o.shippingBelarusByn || 0), 0).toFixed(2)} BYN</td>
-                  <td className="p-3 text-right font-mono font-black text-indigo-300 bg-indigo-950/40 text-sm">
-                    {filteredOrders.reduce((sum, o) => sum + o.totalWithShippingByn, 0).toFixed(2)} BYN
-                  </td>
-                  <td className="p-3"></td>
-                  <td className="p-3 text-center font-mono font-black text-amber-400">
-                    {filteredOrders.reduce((sum, o) => sum + (o.weight || 0), 0).toFixed(2)} кг
-                  </td>
-                  <td colSpan={2} className="p-3"></td>
-                </tr>
-              </tfoot>
+              <tfoot><tr className="font-bold">
+                <td colSpan={2} className="p-3 text-right text-slate-600">ИТОГО ПО ФИЛЬТРУ</td>
+                <td className="p-3 text-center text-slate-800">{filteredOrders.reduce((sum,o)=>sum+o.quantity,0)} шт</td>
+                <td className="p-3 text-center font-mono text-slate-700">¥ {filteredOrders.reduce((sum,o)=>sum+o.itemTotalCny+(o.shippingChinaCny||0),0).toFixed(2)}</td>
+                <td className="p-3 text-center font-mono text-slate-700">{filteredOrders.reduce((sum,o)=>sum+(o.weight||0),0).toFixed(2)} кг</td>
+                <td className="p-3 text-center font-mono text-indigo-600">{(filteredOrders.reduce((sum,o)=>sum+o.unitCostByn,0)/(filteredOrders.length||1)).toFixed(2)} BYN</td>
+                <td className="p-3 text-center font-mono text-slate-800">{filteredOrders.reduce((sum,o)=>sum+o.totalWithShippingByn,0).toFixed(2)} BYN</td>
+                <td colSpan={3}></td>
+              </tr></tfoot>
             </table>
             </div>
           </>
@@ -2707,18 +2546,18 @@ export default function OrderTracker() {
       {/* CREATE & EDIT MODAL - REDESIGNED HEIGHT TO FIT COMFORTABLY WITH INTERNALLY SCROLLING GRID */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-2xl w-full max-h-[94vh] sm:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-scaleIn">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scaleIn">
             
             {/* FIXED Header */}
-            <div className="bg-slate-800 p-4 sm:p-5 border-b border-slate-700/80 flex items-center justify-between shrink-0">
-              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+            <div className="bg-slate-50 p-5 sm:p-6 border-b border-slate-200 flex items-center justify-between shrink-0">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                 <Package className="w-5 h-5 text-blue-500" />
                 {editingOrder ? `Редактирование: ${formData.name}` : "Добавить новый заказ из Китая"}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white transition-all cursor-pointer p-1.5 rounded-lg hover:bg-slate-700"
+                className="text-slate-500 hover:text-slate-900 transition-all cursor-pointer p-1.5 rounded-lg hover:bg-slate-700"
               >
                 ✕
               </button>
@@ -2734,7 +2573,7 @@ export default function OrderTracker() {
                   
                   {/* Name */}
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       Название товара *
                     </label>
                     <input
@@ -2743,7 +2582,7 @@ export default function OrderTracker() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Например: Пылесос для автомобиля, Фен черный"
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -2757,7 +2596,7 @@ export default function OrderTracker() {
                       value={formData.trackNumber}
                       onChange={(e) => setFormData({ ...formData, trackNumber: e.target.value })}
                       placeholder="Например: 4655594672890"
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-500 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -2772,7 +2611,7 @@ export default function OrderTracker() {
                         value={formData.forWhom}
                         onChange={(e) => setFormData({ ...formData, forWhom: e.target.value })}
                         placeholder="Например: Родители, Клиент..."
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                        className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                       />
                       <select
                         onChange={(e) => {
@@ -2780,7 +2619,7 @@ export default function OrderTracker() {
                             setFormData({ ...formData, forWhom: e.target.value });
                           }
                         }}
-                        className="px-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs cursor-pointer focus:outline-none"
+                        className="px-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-700 text-xs cursor-pointer focus:outline-none"
                       >
                         <option value="">Варианты</option>
                         {uniqueForWhomOptions.map((p) => (
@@ -2798,7 +2637,7 @@ export default function OrderTracker() {
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 cursor-pointer"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
                       {STATUS_OPTIONS.map((status) => (
                         <option key={status} value={status}>
@@ -2818,7 +2657,7 @@ export default function OrderTracker() {
                       value={formData.itemUrl}
                       onChange={(e) => setFormData({ ...formData, itemUrl: e.target.value })}
                       placeholder="https://mobile.yangkeduo.com/..."
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -2928,7 +2767,7 @@ export default function OrderTracker() {
                       onFocus={(e) => e.currentTarget.select()}
                       onChange={(e) => setFormData({ ...formData, priceCny: e.target.value })}
                       placeholder="0.00"
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -2943,7 +2782,7 @@ export default function OrderTracker() {
                        value={formData.quantity}
                       onFocus={(e) => e.currentTarget.select()}
                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -2957,7 +2796,7 @@ export default function OrderTracker() {
                       step="0.01"
                       value={formData.shippingChinaCny}
                       onChange={(e) => setFormData({ ...formData, shippingChinaCny: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -2971,7 +2810,7 @@ export default function OrderTracker() {
                       step="0.01"
                       value={formData.shippingBelarusByn}
                       onChange={(e) => setFormData({ ...formData, shippingBelarusByn: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -2985,7 +2824,7 @@ export default function OrderTracker() {
                       step="0.0001"
                       value={formData.rateCnyByn}
                       onChange={(e) => setFormData({ ...formData, rateCnyByn: parseFloat(e.target.value) || defaultRate })}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -2999,7 +2838,7 @@ export default function OrderTracker() {
                       step="0.01"
                       value={formData.weight}
                       onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -3012,7 +2851,7 @@ export default function OrderTracker() {
                       type="date"
                       value={formData.plannedDate}
                       onChange={(e) => setFormData({ ...formData, plannedDate: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -3025,7 +2864,7 @@ export default function OrderTracker() {
                       type="date"
                       value={formData.receivedDate}
                       onChange={(e) => setFormData({ ...formData, receivedDate: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
@@ -3038,7 +2877,7 @@ export default function OrderTracker() {
                       value={formData.notes}
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       placeholder="Например: Посылка в мешке с наклейкой 'AUTO', договорились на скидку"
-                      className="w-full h-14 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 resize-none"
+                      className="w-full h-14 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 resize-none"
                     ></textarea>
                   </div>
 
@@ -3086,7 +2925,7 @@ export default function OrderTracker() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black cursor-pointer shadow transition-all active:scale-95"
+                  className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-slate-800 text-xs sm:text-sm font-black cursor-pointer shadow transition-all active:scale-95"
                 >
                   {editingOrder ? "Сохранить изменения" : "Добавить товар в базу"}
                 </button>
@@ -3144,7 +2983,7 @@ export default function OrderTracker() {
                   <button
                     type="button"
                     onClick={() => excelInputRef.current?.click()}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-800 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
                   >
                     Выбрать файл на диске
                   </button>
@@ -3244,7 +3083,7 @@ export default function OrderTracker() {
                   type="button"
                   disabled={excelLoading || excelPreview.length === 0}
                   onClick={saveImportedRows}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-black cursor-pointer shadow transition-all active:scale-95 disabled:bg-slate-800 disabled:text-slate-500"
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-800 text-xs sm:text-sm font-black cursor-pointer shadow transition-all active:scale-95 disabled:bg-slate-800 disabled:text-slate-500"
                 >
                   {importProgress ? (
                     <span>Импорт ({importProgress.current}/{importProgress.total})</span>
