@@ -2094,7 +2094,7 @@ export default function OrderTracker() {
                       <Download className="w-4 h-4 text-blue-400" /><span>Экспорт</span>
                     </button>
                     {isExportMenuOpen && (
-                      <div className="absolute right-0 bottom-full mb-2 w-72 p-2 rounded-2xl bg-slate-950 border border-slate-700 shadow-2xl z-50">
+                      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"><div className="w-full max-w-2xl rounded-2xl bg-white border border-slate-200 shadow-2xl p-5 text-slate-800"><div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4"><div><h3 className="text-base font-extrabold text-slate-900">Центр экспорта данных и фото</h3><p className="text-xs text-slate-500 mt-1">Выберите состав выгрузки. Для таблицы с фотографиями используйте Excel.</p></div><button type="button" onClick={()=>setIsExportMenuOpen(false)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100">✕</button></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <button onClick={()=>exportOrders("all")} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-white">📦 Весь проект</button>
                         <button onClick={()=>exportOrders("all", true)} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-emerald-300 font-bold">🖼️ Весь проект + картинки</button>
                         <button onClick={()=>exportOrders("filtered", true)} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-emerald-300 font-bold">🔎 Текущий фильтр</button>
@@ -2107,7 +2107,7 @@ export default function OrderTracker() {
                           <button onClick={()=>exportOrders("recipient", true)} className="w-full mt-2 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold">Экспорт по получателю</button>
                         </div>
                         <button onClick={()=>exportOrders("tracks", true)} className="w-full text-left p-2.5 rounded-xl hover:bg-slate-800 text-sm text-emerald-300 font-bold">🔢 Только трек-номера</button>
-                      </div>
+                      </div></div></div>
                     )}
                   </div>
                 </div>
