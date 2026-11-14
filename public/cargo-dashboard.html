@@ -1257,7 +1257,7 @@
         track: row.trackNumber || "", qty: Number(row.quantity)||1,
         priceCny: Number(row.priceCny)||0, chinaShipCny: Number(row.shippingChinaCny)||0,
         weightKg: Number(row.weight)||0, dims: meta.dims || {l:0,w:0,h:0},
-        retailByn: Number(meta.retailByn)||0, recipient: row.forWhom || "Себе",
+        retailByn: Number(meta.retailByn)||0, recipient: row.forWhom || "",
         status: dbStatusToHtml(row.status), createdAt: meta.createdAt || new Date(row.createdAt).getTime(),
         itemUrl: row.itemUrl || "", shippingChinaUsd: Number(row.shippingChinaUsd)||0,
         shippingBelarusByn: Number(row.shippingBelarusByn)||0, rateCnyByn: Number(row.rateCnyByn)||0.48,
