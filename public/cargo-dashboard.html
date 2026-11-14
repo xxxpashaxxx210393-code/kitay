@@ -2922,11 +2922,7 @@
     }
 
     function resetToDemoData() {
-      state = getInitialDemoState();
-      selectedItemIds.clear();
-      saveState();
-      renderAll();
-      showToast('Загружены демонстрационные данные', 'info');
+      showToast("Демонстрационный сброс отключён: используются реальные данные базы.", "info");
     }
 
     function showToast(message, type = 'info') {
