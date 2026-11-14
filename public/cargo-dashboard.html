@@ -1268,7 +1268,7 @@
       return {
         projectId: Number(projectId), name: item.name || "Товар без названия",
         imageUrl: item.photo || null, itemUrl: item.itemUrl || null,
-        forWhom: item.recipient || "Себе", trackNumber: item.track || null,
+        forWhom: item.recipient || null, trackNumber: item.track || null,
         status: htmlStatusToDb(item.status), quantity: Math.max(1, Number(item.qty)||1),
         priceCny: Number(item.priceCny)||0, shippingChinaCny: Number(item.chinaShipCny)||0,
         shippingChinaUsd: Number(item.shippingChinaUsd)||0,
