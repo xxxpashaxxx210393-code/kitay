@@ -451,3 +451,36 @@ main table select.status-select-desktop[data-status="Выдано / Получе
 @media (min-width:651px) and (max-width:900px){
   main .desktop-orders-table table thead th{top:62px!important}
 }
+
+
+/* Compact, readable order workspace inspired by the supplied reference. */
+@media (min-width:901px){
+  main .desktop-orders-table{background:#fff!important;border:1px solid #dce5ef!important;border-radius:16px!important;box-shadow:0 8px 28px rgba(15,35,60,.06)!important;overflow:visible!important}
+  main .desktop-orders-table table{background:#fff!important;color:#17243a!important;border-collapse:separate!important;border-spacing:0!important}
+  main .desktop-orders-table table thead th{background:#f5f8fc!important;color:#63748e!important;border-bottom:1px solid #e4eaf2!important;font-size:10px!important;letter-spacing:.045em!important;padding:12px 7px!important;white-space:normal!important}
+  main .desktop-orders-table table tbody tr{background:#fff!important;height:76px!important}
+  main .desktop-orders-table table tbody tr:hover{background:#f8fbff!important}
+  main .desktop-orders-table table tbody td{color:#1e293b!important;border-bottom:1px solid #e9eef5!important;font-size:11px!important;padding:8px 6px!important;vertical-align:middle!important}
+  main .desktop-orders-table table tbody td:nth-child(2)>div{width:48px!important;height:48px!important;border-radius:12px!important;border:1px solid #e5eaf1!important;background:#f8fafc!important;box-shadow:none!important}
+  main .desktop-orders-table table tbody td:nth-child(3){color:#18243a!important}
+  main .desktop-orders-table table tbody td:nth-child(3) .font-extrabold{color:#17243a!important;font-size:11px!important}
+  main .desktop-orders-table table tbody td:nth-child(3) a{color:#7185a3!important}
+  main .desktop-orders-table table tbody td:nth-child(8),
+  main .desktop-orders-table table tbody td:nth-child(9),
+  main .desktop-orders-table table tbody td:nth-child(12),
+  main .desktop-orders-table table tbody td:nth-child(15),
+  main .desktop-orders-table table tbody td:nth-child(16),
+  main .desktop-orders-table table tbody td:nth-child(17){font-variant-numeric:tabular-nums!important}
+  main .desktop-orders-table table tbody td:nth-child(10),
+  main .desktop-orders-table table thead th:nth-child(10),
+  main .desktop-orders-table table tbody td:nth-child(11),
+  main .desktop-orders-table table thead th:nth-child(11),
+  main .desktop-orders-table table tbody td:nth-child(14),
+  main .desktop-orders-table table thead th:nth-child(14),
+  main .desktop-orders-table table tbody td:nth-child(18),
+  main .desktop-orders-table table thead th:nth-child(18){display:none!important}
+  main .desktop-orders-table table td input:not([type="checkbox"]){background:#fff!important;color:#26364c!important;border:1px solid #dbe4ef!important;border-radius:7px!important}
+  main .desktop-orders-table table td:nth-child(17)>input{min-width:8ch!important;width:8ch!important;color:#b76b00!important}
+  main .desktop-orders-table table td:nth-child(7)>input{background:#f4f7fb!important;color:#1f2c40!important;border-color:#dbe4ef!important}
+  main .desktop-orders-table table td:nth-child(6) select{max-width:100%!important}
+}
