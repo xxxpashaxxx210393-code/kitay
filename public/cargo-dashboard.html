@@ -1207,11 +1207,29 @@
       }));
       try { localStorage.setItem("cargo_html_item_meta", JSON.stringify(current)); } catch(e) { console.warn("Extra item metadata storage failed",e); }
     }
+    const ITEM_META_MARKER = "__CARGO_ITEM_META_V1__";
     function parseMeta(notes, itemId) {
+      const raw = String(notes || "");
+      if (raw.startsWith(ITEM_META_MARKER)) {
+        try {
+          const stored = JSON.parse(raw.slice(ITEM_META_MARKER.length));
+          return {
+            note:String(stored.note || ""), category:stored.category || "📦",
+            dims:{ l:Number(stored.dims?.l)||0, w:Number(stored.dims?.w)||0, h:Number(stored.dims?.h)||0 },
+            retailByn:Number(stored.retailByn)||0, createdAt:Number(stored.createdAt)||Date.now()
+          };
+        } catch (error) { console.warn("Item metadata could not be decoded", error); }
+      }
       const extras = readExtraMeta()[String(itemId)] || {};
-      return { note:String(notes || ""), category:extras.category || "📦", dims:extras.dims || {l:0,w:0,h:0}, retailByn:Number(extras.retailByn)||0, createdAt:extras.createdAt || Date.now() };
+      return { note:raw, category:extras.category || "📦", dims:extras.dims || {l:0,w:0,h:0}, retailByn:Number(extras.retailByn)||0, createdAt:extras.createdAt || Date.now() };
     }
-    function packMeta(item) { return item.note || ""; }
+    function packMeta(item) {
+      return ITEM_META_MARKER + JSON.stringify({
+        note:item.note || "", category:item.category || "📦",
+        dims:{l:Number(item.dims?.l)||0,w:Number(item.dims?.w)||0,h:Number(item.dims?.h)||0},
+        retailByn:Number(item.retailByn)||0, createdAt:Number(item.createdAt)||Date.now()
+      });
+    }
     function dbStatusToHtml(value) {
       const s = String(value || "").toLowerCase();
       if (s.includes("выдан") || s.includes("архив")) return "delivered";
