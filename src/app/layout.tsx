@@ -1,22 +1,16 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
-import "./cargo-ui.css";
-import "./design-experiment.css";
-import "./mobile-v2.css";
-import ChinaDesignShell from "./china-design-shell";
 
 export const metadata: Metadata = {
-  title: "Китай → Беларусь | Мои покупки и заказы",
-  description: "Учет заказов из Китая, трек-номеров и себестоимости в Беларуси",
+  title: "КАРГО-КОНТРОЛЬ 🇨🇳 → 🇧🇾",
+  description: "Учет заказов из Китая, трек-номеров и себестоимости",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
-      <body className="antialiased">
-        <ChinaDesignShell>{children}</ChinaDesignShell>
-      </body>
+      <body style={{ margin: 0, padding: 0, overflow: "hidden" }}>{children}</body>
     </html>
   );
 }
