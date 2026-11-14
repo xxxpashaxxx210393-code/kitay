@@ -428,48 +428,48 @@ export default function OrderTracker() {
 
   // Deterministic Russian speech parser. Only fills fields when an explicit marker/value is present.
   const parseVoiceText = (text: string) => {
-    const original = text.replace(/\\s+/g, " ").trim();
+    const original = text.replace(/\s+/g, " ").trim();
     const lower = original.toLowerCase();
     const numberWords: Record<string, number> = {
       "ноль":0,"один":1,"одна":1,"одно":1,"одну":1,"два":2,"две":2,"три":3,"четыре":4,"пять":5,
       "шесть":6,"семь":7,"восемь":8,"девять":9,"десять":10,"одиннадцать":11,"двенадцать":12,
       "полтора":1.5,"полторы":1.5,"трёх":3,"трех":3,"четырёх":4,"четырех":4,"пяти":5,"двух":2
     };
-    const numberPattern = "(\\d+(?:[.,]\\d+)?|" + Object.keys(numberWords).join("|") + ")";
+    const numberPattern = "(\d+(?:[.,]\d+)?|" + Object.keys(numberWords).join("|") + ")";
     const toNumber = (raw?: string) => raw ? (numberWords[raw.toLowerCase()] ?? Number(raw.replace(",", "."))) : 0;
     const matchNumber = (rx: RegExp) => { const m=lower.match(rx); return m ? toNumber(m[1]) : 0; };
 
-    let priceCny = matchNumber(new RegExp("(?:цена|стоимость|по цене)\\s*(?:за штуку|за единицу)?\\s*" + numberPattern + "\\s*(?:юан(?:ей|я|и|ь)?|юэн(?:ей|я|и|ь)?|cny|yuan)?", "i"));
-    if (!priceCny) priceCny = matchNumber(new RegExp("(\\d+(?:[.,]\\d+)?)\\s*(?:юан(?:ей|я|и|ь)?|юэн(?:ей|я|и|ь)?|cny|yuan)\\b", "i"));
+    let priceCny = matchNumber(new RegExp("(?:цена|стоимость|по цене)\s*(?:за штуку|за единицу)?\s*" + numberPattern + "\s*(?:юан(?:ей|я|и|ь)?|юэн(?:ей|я|и|ь)?|cny|yuan)?", "i"));
+    if (!priceCny) priceCny = matchNumber(new RegExp("(\d+(?:[.,]\d+)?)\s*(?:юан(?:ей|я|и|ь)?|юэн(?:ей|я|и|ь)?|cny|yuan)\b", "i"));
 
-    const quantity = matchNumber(new RegExp("(?:количество|кол-во|в количестве|штук|\\bшт\\.?\\s*)\\s*" + numberPattern + "|(" + numberPattern + ")\\s*(?:шт\\.?|штук(?:и)?|единиц(?:ы)?)", "i")) || 1;
-    const weight = matchNumber(new RegExp("(?:вес|весит)\\s*(?:" + numberPattern + ")\\s*(?:кг|килограмм(?:а|ов)?|kg)?", "i"));
-    const shippingChinaCny = matchNumber(new RegExp("(?:доставка по Китаю|доставка в Китае|доставка Китай|доставка внутри Китая)\\s*(?:около|примерно)?\\s*" + numberPattern + "\\s*(?:юан(?:ей|я|и|ь)?|cny)?", "i"));
-    const shippingBelarusByn = matchNumber(new RegExp("(?:доставка в Беларусь|доставка по Беларуси|доставка РБ|доставка в РБ)\\s*(?:около|примерно)?\\s*" + numberPattern + "\\s*(?:byn|бел(?:орусских)? руб(?:лей|ля)?|руб(?:лей|ля)?)?", "i"));
+    const quantity = matchNumber(new RegExp("(?:количество|кол-во|в количестве|штук|\bшт\.?\s*)\s*" + numberPattern + "|(" + numberPattern + ")\s*(?:шт\.?|штук(?:и)?|единиц(?:ы)?)", "i")) || 1;
+    const weight = matchNumber(new RegExp("(?:вес|весит)\s*(?:" + numberPattern + ")\s*(?:кг|килограмм(?:а|ов)?|kg)?", "i"));
+    const shippingChinaCny = matchNumber(new RegExp("(?:доставка по Китаю|доставка в Китае|доставка Китай|доставка внутри Китая)\s*(?:около|примерно)?\s*" + numberPattern + "\s*(?:юан(?:ей|я|и|ь)?|cny)?", "i"));
+    const shippingBelarusByn = matchNumber(new RegExp("(?:доставка в Беларусь|доставка по Беларуси|доставка РБ|доставка в РБ)\s*(?:около|примерно)?\s*" + numberPattern + "\s*(?:byn|бел(?:орусских)? руб(?:лей|ля)?|руб(?:лей|ля)?)?", "i"));
 
     let trackNumber = "";
-    const track = original.match(/(?:трек(?:-номер)?|номер отслеживания|трек)\\s*[:№#-]?\\s*([a-zа-я0-9]{6,30})/i)
-      || original.match(/\\b([A-Z]{2}\\d{8,22}[A-Z]{0,2})\\b/i);
+    const track = original.match(/(?:трек(?:-номер)?|номер отслеживания|трек)\s*[:№#-]?\s*([a-zа-я0-9]{6,30})/i)
+      || original.match(/\b([A-Z]{2}\d{8,22}[A-Z]{0,2})\b/i);
     if (track) trackNumber = track[1].toUpperCase();
 
     let forWhom = "Родители";
     const recipientRules: Array<[RegExp,string]> = [
-      [/(?:для\\s+)?родител(?:ей|ям|и)\\b/i,"Родители"],[/(?:для\\s+)?себя\\b/i,"Себе"],
-      [/(?:для\\s+)?клиент(?:а|у)?\\b/i,"Клиент"],[/(?:для\\s+)?друз(?:ей|ьям)\\b/i,"Друзьям"],
-      [/(?:на\\s+)?подарок\\b/i,"Подарок"],[/(?:в\\s+)?продаж(?:у|а|е)?\\b/i,"В продажу"]
+      [/(?:для\s+)?родител(?:ей|ям|и)\b/i,"Родители"],[/(?:для\s+)?себя\b/i,"Себе"],
+      [/(?:для\s+)?клиент(?:а|у)?\b/i,"Клиент"],[/(?:для\s+)?друз(?:ей|ьям)\b/i,"Друзьям"],
+      [/(?:на\s+)?подарок\b/i,"Подарок"],[/(?:в\s+)?продаж(?:у|а|е)?\b/i,"В продажу"]
     ];
     for (const [rx,value] of recipientRules) if (rx.test(lower)) { forWhom=value; break; }
-    const customRecipient=original.match(/(?:для|кому|получатель)\\s+([А-ЯЁA-Z][а-яёa-z-]+)/i);
+    const customRecipient=original.match(/(?:для|кому|получатель)\s+([А-ЯЁA-Z][а-яёa-z-]+)/i);
     if (customRecipient && !recipientRules.some(([rx])=>rx.test(lower))) forWhom=customRecipient[1];
 
-    const urlMatch=original.match(/https?:\\/\\/[^\\s]+/i);
+    const urlMatch=original.match(/https?:\/\/[^\s]+/i);
     let productPart=original;
-    const markers=/(?:для\\s+(?:родител|себя|клиент|друз)|кому\\s+|получатель\\s+|в количестве|количество|кол-во|цена|стоимость|по цене|вес(?:ит)?|доставка по Китаю|доставка в Китае|доставка Китай|доставка внутри Китая|доставка в Беларусь|доставка по Беларуси|доставка РБ|доставка в РБ|трек(?:-номер)?|номер отслеживания|https?:\\/\\/)/i;
+    const markers=/(?:для\s+(?:родител|себя|клиент|друз)|кому\s+|получатель\s+|в количестве|количество|кол-во|цена|стоимость|по цене|вес(?:ит)?|доставка по Китаю|доставка в Китае|доставка Китай|доставка внутри Китая|доставка в Беларусь|доставка по Беларуси|доставка РБ|доставка в РБ|трек(?:-номер)?|номер отслеживания|https?:\/\/)/i;
     const marker=productPart.match(markers);
     if(marker?.index!==undefined) productPart=productPart.slice(0,marker.index);
     productPart=productPart
-      .replace(/\\b(?:добавь|добавить|создай|создать|запиши|записать|новый|новая|новое|товар|купил|купить|мне|пожалуйста|давай|нужно|нужен|нужна)\\b/gi," ")
-      .replace(/^[\\s,;:.-]+|[\\s,;:.-]+$/g,"").replace(/\\s+/g," ").trim();
+      .replace(/\b(?:добавь|добавить|создай|создать|запиши|записать|новый|новая|новое|товар|купил|купить|мне|пожалуйста|давай|нужно|нужен|нужна)\b/gi," ")
+      .replace(/^[\s,;:.-]+|[\s,;:.-]+$/g,"").replace(/\s+/g," ").trim();
     const name=productPart ? productPart.charAt(0).toUpperCase()+productPart.slice(1) : "Новый товар";
     return {name,priceCny,quantity,forWhom,trackNumber,weight,shippingChinaCny,shippingBelarusByn,itemUrl:urlMatch?.[0]||""};
   };
