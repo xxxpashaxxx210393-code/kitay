@@ -283,3 +283,141 @@ main table td input:not([type=checkbox]),main table td select{font-size:12px!imp
   #smartAddModal #manualItemForm input:not([type=hidden]):not([type=file]),
   #smartAddModal #manualItemForm select{min-height:40px!important;padding:8px 10px!important;font-size:13px!important}
 }
+
+
+/* === Layout correction: preserve the reference proportions, never compress columns === */
+@media (min-width: 768px) {
+  main > div.p-3, main > div[class*="p-3"] {
+    width: 100% !important;
+    max-width: 1720px !important;
+    margin-inline: auto !important;
+    padding: 26px clamp(22px, 2.2vw, 38px) 52px !important;
+    gap: 20px !important;
+  }
+  main section.grid > div {
+    min-height: 118px !important;
+    padding: 18px 20px !important;
+  }
+  #recipientCardsGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  #recipientCardsGrid > div {
+    min-width: 0 !important;
+    min-height: 88px !important;
+    padding: 14px !important;
+  }
+  main section.hidden.md\\:block, main section[class*="md:block"] {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  main section.hidden.md\\:block > div, main section[class*="md:block"] > div {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+  main table {
+    width: 100% !important;
+    min-width: 1370px !important;
+    table-layout: auto !important;
+  }
+  main table th, main table td {
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+  }
+  main table th:nth-child(1), main table td:nth-child(1) { min-width: 38px !important; width: 38px !important; }
+  main table th:nth-child(2), main table td:nth-child(2) { min-width: 290px !important; width: 290px !important; }
+  main table th:nth-child(3), main table td:nth-child(3) { min-width: 78px !important; }
+  main table th:nth-child(4), main table td:nth-child(4) { min-width: 118px !important; }
+  main table th:nth-child(5), main table td:nth-child(5) { min-width: 108px !important; }
+  main table th:nth-child(6), main table td:nth-child(6) { min-width: 112px !important; }
+  main table th:nth-child(7), main table td:nth-child(7) { min-width: 112px !important; }
+  main table th:nth-child(8), main table td:nth-child(8) { min-width: 122px !important; }
+  main table th:nth-child(9), main table td:nth-child(9) { min-width: 132px !important; }
+  main table th:nth-child(10), main table td:nth-child(10) { min-width: 165px !important; }
+  main table th:nth-child(11), main table td:nth-child(11) { min-width: 92px !important; }
+  main table td:nth-child(2) input:not([type=checkbox]) {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  main table td { padding: 13px 11px !important; font-size: 12.5px !important; }
+  main table th { padding: 14px 11px !important; font-size: 11px !important; }
+}
+@media (min-width: 1200px) {
+  body { font-size: 14px !important; }
+  main section.grid > div .text-xl, main section.grid > div .text-2xl {
+    font-size: 26px !important;
+  }
+}
+
+/* Add/edit dialog: one consistent light surface, clear labels and non-overlapping fields */
+#smartAddModal, #smartAddModal * { color-scheme: light !important; }
+#smartAddModal > div {
+  width: min(1080px, calc(100vw - 48px)) !important;
+  max-width: 1080px !important;
+  background: #fff !important;
+  color: #1c2739 !important;
+  overflow: hidden !important;
+}
+#smartAddModal #manualItemForm {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+#smartAddModal #manualItemForm > div {
+  background: #f4f7fb !important;
+  border: 1px solid #d8e1ed !important;
+  border-radius: 14px !important;
+}
+#smartAddModal #manualItemForm label {
+  display: block !important;
+  color: #344258 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  font-weight: 700 !important;
+  white-space: normal !important;
+}
+#smartAddModal #manualItemForm input:not([type=hidden]):not([type=file]),
+#smartAddModal #manualItemForm select,
+#smartAddModal #manualItemForm textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  background: #fff !important;
+  color: #172033 !important;
+  border: 1px solid #cbd6e4 !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+}
+#smartAddModal #manualItemForm .grid {
+  min-width: 0 !important;
+  align-items: end !important;
+  gap: 13px !important;
+}
+#smartAddModal #manualItemForm .grid > div,
+#smartAddModal #manualItemForm .grid > label {
+  min-width: 0 !important;
+}
+#smartAddModal #manualItemForm .text-slate-500,
+#smartAddModal #manualItemForm .text-slate-600,
+#smartAddModal #manualItemForm .text-slate-700,
+#smartAddModal #manualItemForm [class*="dark:text-"] {
+  color: #536176 !important;
+}
+#smartAddModal #manualItemForm [class*="dark:bg-"] {
+  background: #f4f7fb !important;
+}
+#smartAddModal #manualItemForm [class*="dark:border-"] {
+  border-color: #d8e1ed !important;
+}
+#smartAddModal #liveCostPreview {
+  color: #34405b !important;
+  background: #e9edff !important;
+  border: 1px solid #c4ceff !important;
+}
+@media (max-width: 767px) {
+  #smartAddModal > div { width: 100% !important; max-width: 100% !important; }
+  #smartAddModal #manualItemForm .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  #smartAddModal #manualItemForm label { font-size: 12px !important; }
+}
