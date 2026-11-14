@@ -150,3 +150,18 @@ button.border-slate-200,button.border-slate-300{border-color:#e0e6ef!important}
  #mobileCardsContainer>div{padding:13px!important}
  main table{min-width:980px!important}
 }
+
+
+/* Inline editing controls: tap a number and change it without opening the full form */
+.cc-detail-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.cc-detail-edit-grid label,.cc-mobile-edit{display:flex;flex-direction:column;gap:5px;min-width:0;color:#68758b;font-size:11px;font-weight:700}
+.cc-detail-edit-grid input,.cc-mobile-edit input{width:100%;min-width:0;padding:9px 10px!important;background:#fff!important;color:#172033!important;border:1px solid #dce3ed!important;border-radius:8px!important;font-family:"JetBrains Mono",monospace!important;font-size:13px!important;font-weight:700!important}
+.cc-detail-edit-grid input:focus,.cc-mobile-edit input:focus{border-color:#818cf8!important;box-shadow:0 0 0 3px #6366f11a!important}
+.cc-volume-readout{grid-column:1/-1;padding:10px 12px;border-radius:9px;background:#eef2ff;color:#4338ca;font-size:12px;font-weight:700}
+.cc-volume-readout span{display:block;margin-top:3px;color:#77849a;font-size:10px;font-weight:500}
+.cc-mobile-edit{background:#fff;border:1px solid #e4e9f1;border-radius:9px;padding:8px}
+.cc-mobile-edit input{padding:7px 8px!important}
+@media(max-width:767px){
+ .cc-detail-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .cc-detail-edit-grid input{padding:8px!important}
+}
