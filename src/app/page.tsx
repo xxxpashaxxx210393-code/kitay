@@ -374,11 +374,8 @@ export default function OrderTracker() {
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [parsedVoiceData, setParsedVoiceData] = useState({
-    name: "Новый товар",
-    priceCny: 0,
-    quantity: 1,
-    forWhom: "Родители",
-    trackNumber: ""
+    name: "Новый товар", priceCny: 0, quantity: 1, forWhom: "Родители",
+    trackNumber: "", weight: 0, shippingChinaCny: 0, shippingBelarusByn: 0, itemUrl: ""
   });
   const [recognitionObj, setRecognitionObj] = useState<any>(null);
 
@@ -429,113 +426,52 @@ export default function OrderTracker() {
     }
   }, []);
 
-  // Natural Language Parser for Russian cargo-oriented commands
-  // The parser deliberately treats the first product phrase as the name and
-  // everything after recipient/quantity/price/track markers as metadata.
-  // Example: "фен для родителей в количестве трёх штук цена 350 юаней"
-  // -> Фен / Родители / 3 / 350 CNY.
+  // Deterministic Russian speech parser. Only fills fields when an explicit marker/value is present.
   const parseVoiceText = (text: string) => {
-    const original = text.replace(/\s+/g, " ").trim();
+    const original = text.replace(/\\s+/g, " ").trim();
     const lower = original.toLowerCase();
-
-    let name = "";
-    let priceCny = 0;
-    let quantity = 1;
-    let forWhom = "Родители";
-    let trackNumber = "";
-
-    // Price: "350 юаней", "350 юань", "цена 350", "стоимость 350 CNY".
-    const priceCurrency = lower.match(/(\d+(?:[\.,]\d+)?)\s*(?:юан(?:ей|я|и|ь)?|юэн(?:ей|я|и|ь)?|cny|yuan)\b/i);
-    const priceByKeyword = lower.match(/(?:цена|стоимость|стоить|по\s+цене)\s*(?:в\s*сумме\s*)?(\d+(?:[\.,]\d+)?)/i);
-    if (priceCurrency) priceCny = Number(priceCurrency[1].replace(",", "."));
-    else if (priceByKeyword) priceCny = Number(priceByKeyword[1].replace(",", "."));
-
-    // Quantity: digits as well as Russian number words.
     const numberWords: Record<string, number> = {
-      "ноль": 0, "один": 1, "одна": 1, "одно": 1,
-      "два": 2, "две": 2, "три": 3, "четыре": 4, "пять": 5,
-      "шесть": 6, "шести": 6, "шестью": 6, "семь": 7, "семи": 7, "восемь": 8, "восьми": 8, "девять": 9, "девяти": 9, "десять": 10, "трёх": 3, "трех": 3, "четырёх": 4, "четырех": 4, "пяти": 5
+      "ноль":0,"один":1,"одна":1,"одно":1,"одну":1,"два":2,"две":2,"три":3,"четыре":4,"пять":5,
+      "шесть":6,"семь":7,"восемь":8,"девять":9,"десять":10,"одиннадцать":11,"двенадцать":12,
+      "полтора":1.5,"полторы":1.5,"трёх":3,"трех":3,"четырёх":4,"четырех":4,"пяти":5,"двух":2
     };
-    const qtyMatch = lower.match(/(?:в\s+)?количеств(?:е|ом)\s+(\d+|один|одна|одно|два|две|три|четыре|пять|шесть|шести|шестью|семь|семи|восемь|восьми|девять|девяти|десять|трёх|трех|четырёх|четырех|пяти)\s*(?:шт\.?|штук(?:и)?|единиц(?:ы)?|товар(?:а|ов)?)?/i)
-      || lower.match(/(\d+|один|одна|одно|два|две|три|четыре|пять|шесть|шести|шестью|семь|семи|восемь|восьми|девять|девяти|десять|трёх|трех|четырёх|четырех|пяти)\s*(?:шт\.?|штук(?:и)?|единиц(?:ы)?|товар(?:а|ов)?)/i);
-    if (qtyMatch) {
-      const rawQty = qtyMatch[1].toLowerCase();
-      quantity = numberWords[rawQty] ?? (Number(rawQty) || 1);
-    }
+    const numberPattern = "(\\d+(?:[.,]\\d+)?|" + Object.keys(numberWords).join("|") + ")";
+    const toNumber = (raw?: string) => raw ? (numberWords[raw.toLowerCase()] ?? Number(raw.replace(",", "."))) : 0;
+    const matchNumber = (rx: RegExp) => { const m=lower.match(rx); return m ? toNumber(m[1]) : 0; };
 
-    // Track number.
-    const trackMatch = lower.match(/(?:трек(?:-номер)?|номер|код)\s*[:№#-]?\s*([a-zа-я0-9]{6,25})/i);
-    const standaloneDigits = lower.match(/\b([0-9]{8,22})\b/);
-    if (trackMatch) trackNumber = trackMatch[1].toUpperCase();
-    else if (standaloneDigits) trackNumber = standaloneDigits[1];
+    let priceCny = matchNumber(new RegExp("(?:цена|стоимость|по цене)\\s*(?:за штуку|за единицу)?\\s*" + numberPattern + "\\s*(?:юан(?:ей|я|и|ь)?|юэн(?:ей|я|и|ь)?|cny|yuan)?", "i"));
+    if (!priceCny) priceCny = matchNumber(new RegExp("(\\d+(?:[.,]\\d+)?)\\s*(?:юан(?:ей|я|и|ь)?|юэн(?:ей|я|и|ь)?|cny|yuan)\\b", "i"));
 
-    // Recipient. Keep the original phrase so it can be removed from the name.
-    let foundForWhomPhrase = "";
-    const knownRecipients: Array<[RegExp, string]> = [
-      [/(?:для\s+)?родител(?:ей|ям|и)\b/i, "Родители"],
-      [/(?:для\s+)?себя\b/i, "Себе"],
-      [/(?:для\s+)?себе\b/i, "Себе"],
-      [/(?:для\s+)?клиент(?:а|у)?\b/i, "Клиент"],
-      [/(?:для\s+)?друзь(?:ей|ям)\b/i, "Друзьям"],
-      [/(?:на\s+)?подарок\b/i, "Подарок"],
-      [/(?:в\s+)?продаж(?:у|а|е)?\b/i, "В продажу"]
+    const quantity = matchNumber(new RegExp("(?:количество|кол-во|в количестве|штук|\\bшт\\.?\\s*)\\s*" + numberPattern + "|(" + numberPattern + ")\\s*(?:шт\\.?|штук(?:и)?|единиц(?:ы)?)", "i")) || 1;
+    const weight = matchNumber(new RegExp("(?:вес|весит)\\s*(?:" + numberPattern + ")\\s*(?:кг|килограмм(?:а|ов)?|kg)?", "i"));
+    const shippingChinaCny = matchNumber(new RegExp("(?:доставка по Китаю|доставка в Китае|доставка Китай|доставка внутри Китая)\\s*(?:около|примерно)?\\s*" + numberPattern + "\\s*(?:юан(?:ей|я|и|ь)?|cny)?", "i"));
+    const shippingBelarusByn = matchNumber(new RegExp("(?:доставка в Беларусь|доставка по Беларуси|доставка РБ|доставка в РБ)\\s*(?:около|примерно)?\\s*" + numberPattern + "\\s*(?:byn|бел(?:орусских)? руб(?:лей|ля)?|руб(?:лей|ля)?)?", "i"));
+
+    let trackNumber = "";
+    const track = original.match(/(?:трек(?:-номер)?|номер отслеживания|трек)\\s*[:№#-]?\\s*([a-zа-я0-9]{6,30})/i)
+      || original.match(/\\b([A-Z]{2}\\d{8,22}[A-Z]{0,2})\\b/i);
+    if (track) trackNumber = track[1].toUpperCase();
+
+    let forWhom = "Родители";
+    const recipientRules: Array<[RegExp,string]> = [
+      [/(?:для\\s+)?родител(?:ей|ям|и)\\b/i,"Родители"],[/(?:для\\s+)?себя\\b/i,"Себе"],
+      [/(?:для\\s+)?клиент(?:а|у)?\\b/i,"Клиент"],[/(?:для\\s+)?друз(?:ей|ьям)\\b/i,"Друзьям"],
+      [/(?:на\\s+)?подарок\\b/i,"Подарок"],[/(?:в\\s+)?продаж(?:у|а|е)?\\b/i,"В продажу"]
     ];
+    for (const [rx,value] of recipientRules) if (rx.test(lower)) { forWhom=value; break; }
+    const customRecipient=original.match(/(?:для|кому|получатель)\\s+([А-ЯЁA-Z][а-яёa-z-]+)/i);
+    if (customRecipient && !recipientRules.some(([rx])=>rx.test(lower))) forWhom=customRecipient[1];
 
-    for (const [rx, target] of knownRecipients) {
-      const match = lower.match(rx);
-      if (match) {
-        foundForWhomPhrase = match[0];
-        forWhom = target;
-        break;
-      }
-    }
-
-    if (!foundForWhomPhrase) {
-      const genericRecipient = lower.match(/(?:для|кому|получатель)\s+([а-яёa-z-]+)/i);
-      if (genericRecipient) {
-        foundForWhomPhrase = genericRecipient[0];
-        let rawName = genericRecipient[1];
-        // Basic normalization for common Russian cases: Саши -> Саша, Олега -> Олег.
-        if (/^[а-яё]+$/i.test(rawName)) {
-          if (rawName.endsWith("и") && rawName.length > 3) rawName = rawName.slice(0, -1) + "а";
-          else if (rawName.endsWith("ы") && rawName.length > 3) rawName = rawName.slice(0, -1) + "а";
-          else if (rawName.endsWith("у") && rawName.length > 3) rawName = rawName.slice(0, -1) + "а";
-          else if (rawName.endsWith("а") && !rawName.endsWith("ша") && rawName.length > 3) rawName = rawName.slice(0, -1);
-        }
-        forWhom = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-      }
-    }
-
-    // Product name: take the phrase BEFORE the first metadata marker.
-    // This prevents "в количестве трёх штук цена 350 юаней" from leaking into the name.
-    const markerRx = /\b(?:для|кому|получатель|в\s+количеств(?:е|ом)|количество|кол-во|цена|стоимость|стоить|по\s+цене|трек(?:-номер)?|номер|код)\b/i;
-    const markerMatch = original.match(markerRx);
-    let productPart = markerMatch ? original.slice(0, markerMatch.index) : original;
-
-    // If there was no early marker, remove metadata from the whole phrase.
-    productPart = productPart
-      .replace(/(?:трек(?:-номер)?|номер|код)\s*[:№#-]?\s*[a-zа-я0-9]{6,25}/gi, " ")
-      .replace(/\d+(?:[\.,]\d+)?\s*(?:юан(?:ей|я|и|ь)?|юэн(?:ей|я|и|ь)?|cny|yuan)\b/gi, " ")
-      .replace(/(?:цена|стоимость|стоить|по\s+цене)\s*\d+(?:[\.,]\d+)?/gi, " ")
-      .replace(/(?:в\s+)?количеств(?:е|ом)\s+(?:\d+|один|одна|одно|два|две|три|четыре|пять|шесть|шести|шестью|семь|семи|восемь|восьми|девять|девяти|десять|трёх|трех|четырёх|четырех|пяти)\s*(?:шт\.?|штук(?:и)?|единиц(?:ы)?|товар(?:а|ов)?)?/gi, " ")
-      .replace(/\b(?:\d+|один|одна|одно|два|две|три|четыре|пять|шесть|шести|шестью|семь|семи|восемь|восьми|девять|девяти|десять|трёх|трех|четырёх|четырех|пяти)\s*(?:шт\.?|штук(?:и)?|единиц(?:ы)?|товар(?:а|ов)?)\b/gi, " ");
-
-    if (foundForWhomPhrase) {
-      const escaped = foundForWhomPhrase.replace(/[-\\^$*+?.()|[\]{}]/g, "\\$&");
-      productPart = productPart.replace(new RegExp(escaped, "gi"), " ");
-    }
-
-    // Strip speech/command filler, but DO NOT strip ordinary product words.
-    productPart = productPart
-      .replace(/\b(?:добавь|добавить|создай|создать|запиши|записать|новый|новая|новое|товар|купил|купить|мне|пожалуйста|давай|ну|вот|там|такой|такая|такое|нужен|нужна|нужно|ещё|еще)\b/gi, " ")
-      .replace(/^[\s,;:.-]+|[\s,;:.-]+$/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    name = productPart || "Новый товар";
-    name = name.charAt(0).toUpperCase() + name.slice(1);
-
-    return { name, priceCny, quantity, forWhom, trackNumber };
+    const urlMatch=original.match(/https?:\\/\\/[^\\s]+/i);
+    let productPart=original;
+    const markers=/(?:для\\s+(?:родител|себя|клиент|друз)|кому\\s+|получатель\\s+|в количестве|количество|кол-во|цена|стоимость|по цене|вес(?:ит)?|доставка по Китаю|доставка в Китае|доставка Китай|доставка внутри Китая|доставка в Беларусь|доставка по Беларуси|доставка РБ|доставка в РБ|трек(?:-номер)?|номер отслеживания|https?:\\/\\/)/i;
+    const marker=productPart.match(markers);
+    if(marker?.index!==undefined) productPart=productPart.slice(0,marker.index);
+    productPart=productPart
+      .replace(/\\b(?:добавь|добавить|создай|создать|запиши|записать|новый|новая|новое|товар|купил|купить|мне|пожалуйста|давай|нужно|нужен|нужна)\\b/gi," ")
+      .replace(/^[\\s,;:.-]+|[\\s,;:.-]+$/g,"").replace(/\\s+/g," ").trim();
+    const name=productPart ? productPart.charAt(0).toUpperCase()+productPart.slice(1) : "Новый товар";
+    return {name,priceCny,quantity,forWhom,trackNumber,weight,shippingChinaCny,shippingBelarusByn,itemUrl:urlMatch?.[0]||""};
   };
 
   // Start recording voice
@@ -565,16 +501,16 @@ export default function OrderTracker() {
     setFormData({
       name: parsedVoiceData.name,
       imageUrl: "",
-      itemUrl: "",
+      itemUrl: parsedVoiceData.itemUrl || "",
       forWhom: parsedVoiceData.forWhom,
       trackNumber: parsedVoiceData.trackNumber,
       status: "В пути на склад Китая",
       quantity: parsedVoiceData.quantity || 1,
       priceCny: parsedVoiceData.priceCny || 0,
-      shippingChinaCny: 0,
-      shippingBelarusByn: 0,
+      shippingChinaCny: parsedVoiceData.shippingChinaCny || 0,
+      shippingBelarusByn: parsedVoiceData.shippingBelarusByn || 0,
       rateCnyByn: defaultRate,
-      weight: 0,
+      weight: parsedVoiceData.weight || 0,
       plannedDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       receivedDate: "",
       notes: "Добавлено через голосовой ввод"
