@@ -1773,10 +1773,20 @@
 
       const recGrid = document.getElementById('recipientCardsGrid');
       const clearBtn = document.getElementById('clearRecipientFilterBtn');
+
+      // Показываем только получателей, которым назначены товары в текущей партии.
+      // Новый получатель появится здесь сразу после назначения ему первой позиции.
+      const visibleRecipients = state.recipients.filter(cfg =>
+        (recipientStats[cfg.name]?.count || 0) > 0
+      );
+      if (state.filters.recipient !== 'ALL' &&
+          !visibleRecipients.some(cfg => cfg.name === state.filters.recipient)) {
+        state.filters.recipient = 'ALL';
+      }
       if (state.filters.recipient !== 'ALL') clearBtn.classList.remove('hidden');
       else clearBtn.classList.add('hidden');
 
-      recGrid.innerHTML = state.recipients.map(cfg => {
+      recGrid.innerHTML = visibleRecipients.map(cfg => {
         const stat = recipientStats[cfg.name] || { count: 0, units: 0, costByn: 0, profitByn: 0 };
         const isSelected = state.filters.recipient === cfg.name;
         return `
