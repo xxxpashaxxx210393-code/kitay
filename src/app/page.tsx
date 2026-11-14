@@ -3365,12 +3365,23 @@ export default function OrderTracker() {
                     <strong className="text-amber-400 block mt-0.5">¥ {parsedVoiceData.priceCny.toFixed(2)}</strong>
                   </div>
 
+                  <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-slate-500 block text-[10px]">Вес:</span>
+                    <strong className="text-amber-300 block mt-0.5">{parsedVoiceData.weight ? parsedVoiceData.weight + " кг" : "не указан"}</strong>
+                  </div>
+                  <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-slate-500 block text-[10px]">Доставка по Китаю:</span>
+                    <strong className="text-orange-300 block mt-0.5">{parsedVoiceData.shippingChinaCny ? "¥ " + parsedVoiceData.shippingChinaCny : "не указана"}</strong>
+                  </div>
+                  <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-slate-500 block text-[10px]">Доставка по РБ:</span>
+                    <strong className="text-orange-300 block mt-0.5">{parsedVoiceData.shippingBelarusByn ? parsedVoiceData.shippingBelarusByn + " BYN" : "не указана"}</strong>
+                  </div>
                   <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 col-span-2">
                     <span className="text-slate-500 block text-[10px]">Трек-номер Китая:</span>
-                    <strong className="text-white block mt-0.5 font-mono text-sm tracking-wider">
-                      {parsedVoiceData.trackNumber || <span className="text-rose-400 italic font-sans text-xs">не найден</span>}
-                    </strong>
+                    <strong className="text-white block mt-0.5 font-mono text-sm tracking-wider">{parsedVoiceData.trackNumber || <span className="text-slate-500 italic font-sans text-xs">не найден</span>}</strong>
                   </div>
+                  {parsedVoiceData.itemUrl && <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 col-span-2 min-w-0"><span className="text-slate-500 block text-[10px]">Ссылка:</span><strong className="text-blue-300 block mt-0.5 truncate">{parsedVoiceData.itemUrl}</strong></div>}
                 </div>
               </div>
 
