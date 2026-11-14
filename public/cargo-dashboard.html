@@ -1335,6 +1335,7 @@
         }
       }
       apiBaseline = { projects:JSON.parse(JSON.stringify(state.projects)), orders:JSON.parse(JSON.stringify(state.projects.flatMap(p=>p.items))) };
+      writeExtraMeta(state.projects);
     }
     function resetToDemoData() {
       showToast("Демо-данные отключены. Загружаются реальные позиции из базы.", "info");
