@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         name,
         imageUrl: imageUrl || null,
         itemUrl: itemUrl || null,
-        forWhom: forWhom || "Себе",
+        forWhom: forWhom || null,
         trackNumber: trackNumber || null,
         status: status || "В пути на склад Китая",
         quantity: quantity !== undefined ? Number(quantity) : 1,
