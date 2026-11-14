@@ -1,0 +1,2989 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>КАРГО-КОНТРОЛЬ 🇨🇳 ➔ 🇧🇾 — Учет заказов, треков и себестоимости</title>
+  
+  <!-- Шрифты Inter и JetBrains Mono для идеальной типографики цифр и трек-номеров -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          },
+          boxShadow: {
+            'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.25)',
+            'glow': '0 0 20px rgba(99, 102, 241, 0.25)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Плавные скроллбары в стиле macOS / Linear */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.45);
+    }
+
+    /* Убираем стрелки у числовых инпутов */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    .glass-panel {
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    @keyframes slideUpFade {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .animate-in {
+      animation: slideUpFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+
+<body class="bg-[#EEF2F6] text-slate-900 dark:bg-[#090B10] dark:text-slate-100 antialiased selection:bg-indigo-600 selection:text-white transition-colors duration-200 pb-20 lg:pb-0">
+
+  <!-- Контейнер приложения -->
+  <div class="min-h-screen flex flex-col lg:flex-row">
+
+    <!-- БОКОВАЯ ПАНЕЛЬ (Desktop & Mobile Drawer) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-auto transition-transform duration-300 ease-in-out bg-white dark:bg-[#10131A] border-r border-slate-300 dark:border-slate-800 shadow-xl lg:shadow-none flex flex-col justify-between">
+      <div>
+        <!-- Логотип -->
+        <div class="h-16 px-5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 flex items-center justify-center text-white shadow-glow font-bold text-sm tracking-tighter">
+              CN➔BY
+            </div>
+            <div>
+              <div class="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+                КАРГО-КОНТРОЛЬ
+              </div>
+              <div class="text-[11px] text-slate-600 dark:text-slate-400 font-semibold">
+                Китай 🇨🇳 ➔ Беларусь 🇧🇾
+              </div>
+            </div>
+          </div>
+          <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Выбор / Создание проектов -->
+        <div class="p-4">
+          <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Партии и проекты</span>
+            <button onclick="openNewProjectModal()" class="text-xs font-bold text-indigo-700 dark:text-indigo-400 hover:underline flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Новый
+            </button>
+          </div>
+          <div id="projectList" class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+            <!-- Рендерится через JS -->
+          </div>
+        </div>
+
+        <!-- Быстрые инструменты -->
+        <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-800">
+          <span class="block px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Инструменты логиста</span>
+          <div class="space-y-2">
+            <button onclick="openSmartAddModal('parser')" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/15 dark:hover:bg-indigo-500/25 text-indigo-900 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-500/30 transition-all text-left shadow-2xs">
+              <i data-lucide="mic" class="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400"></i>
+              <div>
+                <div class="font-bold">Голос и Умный парсер</div>
+                <div class="text-[10px] text-indigo-700/80 dark:text-indigo-300/80">Надиктовать или из 1688</div>
+              </div>
+            </button>
+
+            <button onclick="openBulkStatusModal()" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/70 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/70 transition-all text-left">
+              <i data-lucide="layers" class="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+              <div>
+                <div class="font-bold">Массовая смена статусов</div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400">Обновить списком треков</div>
+              </div>
+            </button>
+
+            <button onclick="openExportModal()" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-500/30 transition-all text-left">
+              <i data-lucide="download" class="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400"></i>
+              <div>
+                <div class="font-bold">Центр экспорта (с фото)</div>
+                <div class="text-[10px] text-amber-800/80 dark:text-amber-300/80">Excel, HTML с фото, трек-лист</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Нижняя панель настроек и сброса -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2 bg-slate-50/80 dark:bg-[#0D1017]">
+        <div class="flex items-center justify-between gap-2">
+          <button onclick="toggleTheme()" class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 transition-colors shadow-2xs">
+            <i data-lucide="sun" class="w-3.5 h-3.5 hidden dark:block text-amber-400"></i>
+            <i data-lucide="moon" class="w-3.5 h-3.5 block dark:hidden text-indigo-600"></i>
+            <span class="dark:hidden">Тёмная тема</span>
+            <span class="hidden dark:inline">Светлая тема</span>
+          </button>
+          <button onclick="resetToDemoData()" title="Загрузить демонстрационные данные" class="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shadow-2xs">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="text-[11px] text-center font-medium text-slate-500 dark:text-slate-400">
+          Автосохранение • v3.0 Global & Voice
+        </div>
+      </div>
+    </aside>
+
+    <!-- Оверлей для мобильного меню -->
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-30 hidden lg:hidden backdrop-blur-xs"></div>
+
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
+    <main class="flex-1 flex flex-col min-w-0">
+
+      <!-- ТОПБАР С КУРСАМИ ВАЛЮТ И ГЛОБАЛЬНЫМ ПОИСКОМ -->
+      <header class="sticky top-0 z-20 bg-white/95 dark:bg-[#0D1017]/95 glass-panel border-b border-slate-300 dark:border-slate-800 px-3 sm:px-4 lg:px-8 py-3 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+          
+          <!-- Левая часть: Кнопка меню + Заголовок проекта -->
+          <div class="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
+            <button onclick="toggleSidebar()" class="lg:hidden p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 shrink-0">
+              <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <input id="activeProjectTitle" type="text" onchange="renameActiveProject(this.value)" title="Нажмите, чтобы переименовать партию" class="text-sm sm:text-lg font-extrabold text-slate-900 dark:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/80 focus:bg-white dark:focus:bg-[#141821] px-1.5 -ml-1.5 py-0.5 rounded-lg border border-transparent focus:border-indigo-500 focus:outline-none truncate max-w-[190px] sm:max-w-md transition-colors" value="Сбор Ноябрь 2026 — Магазин и дом" />
+                <span id="projectItemsBadge" class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 shrink-0">0 поз.</span>
+              </div>
+              <input id="activeProjectSubtitle" type="text" onchange="updateActiveProjectDesc(this.value)" title="Нажмите, чтобы изменить описание партии" class="w-full text-[11px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/80 focus:bg-white dark:focus:bg-[#141821] px-1.5 -ml-1.5 py-0.5 rounded-md focus:outline-none truncate transition-colors" value="Авторасчет себестоимости в BYN с учетом карго и страховки" />
+            </div>
+          </div>
+
+          <!-- Правая часть: Курсы валют, Глобальный Поиск, Кнопки -->
+          <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-between xl:justify-end">
+            
+            <!-- Панель живых курсов (на мобильном сворачиваемая/компактная) -->
+            <div class="flex items-center flex-wrap gap-1.5 bg-slate-100 dark:bg-[#141821] p-1.5 rounded-xl border border-slate-300 dark:border-slate-700/80 text-xs w-full sm:w-auto justify-between sm:justify-start">
+              <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-[#1B202C] border border-slate-200 dark:border-slate-700 shadow-2xs" title="Курс 1 Китайского Юаня к Белорусскому Рублю">
+                <span class="text-slate-600 dark:text-slate-400 font-bold">¥ CNY:</span>
+                <input id="rateCnyInput" type="number" step="0.001" value="0.48" onchange="updateRates()" class="w-12 font-mono font-bold text-right bg-transparent focus:outline-none text-indigo-700 dark:text-indigo-400" />
+              </div>
+
+              <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-[#1B202C] border border-slate-200 dark:border-slate-700 shadow-2xs" title="Курс 1 Доллара США к Белорусскому Рублю">
+                <span class="text-slate-600 dark:text-slate-400 font-bold">$ USD:</span>
+                <input id="rateUsdInput" type="number" step="0.01" value="3.28" onchange="updateRates()" class="w-12 font-mono font-bold text-right bg-transparent focus:outline-none text-emerald-700 dark:text-emerald-400" />
+              </div>
+
+              <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-[#1B202C] border border-slate-200 dark:border-slate-700 shadow-2xs" title="Тариф карго за 1 кг в долларах">
+                <span class="text-slate-600 dark:text-slate-400 font-bold">$/кг:</span>
+                <input id="cargoRateInput" type="number" step="0.1" value="4.2" onchange="updateRates()" class="w-10 font-mono font-bold text-right bg-transparent focus:outline-none text-amber-700 dark:text-amber-400" />
+              </div>
+
+              <div class="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-[#1B202C] border border-slate-200 dark:border-slate-700 shadow-2xs" title="Тариф карго за 1 м³ для объемных грузов (плотность < 100 кг/м³)">
+                <span class="text-slate-600 dark:text-slate-400 font-bold">$/м³:</span>
+                <input id="cargoCubeRateInput" type="number" step="10" value="420" onchange="updateRates()" class="w-11 font-mono font-bold text-right bg-transparent focus:outline-none text-rose-600 dark:text-rose-400" />
+              </div>
+
+              <div class="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-[#1B202C] border border-slate-200 dark:border-slate-700 shadow-2xs" title="Страховка и упаковка (% от стоимости товара)">
+                <span class="text-slate-600 dark:text-slate-400 font-bold">Страх.:</span>
+                <input id="insuranceRateInput" type="number" step="0.5" value="3" onchange="updateRates()" class="w-8 font-mono font-bold text-right bg-transparent focus:outline-none text-slate-800 dark:text-slate-200" />
+                <span class="text-[10px] font-bold text-slate-500">%</span>
+              </div>
+            </div>
+
+            <!-- Поисковая строка с переключателем «Везде / Партия» -->
+            <div class="flex items-center gap-1.5 flex-1 sm:flex-initial">
+              <div class="relative flex-1 sm:w-64">
+                <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                <input id="searchInput" type="text" oninput="renderAll()" placeholder="Поиск товара или трека..." class="w-full pl-9 pr-16 py-2 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-500 rounded-xl bg-white dark:bg-[#141821] border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-2xs" />
+                <button type="button" id="globalSearchToggleBtn" onclick="toggleGlobalSearch()" title="Переключить область поиска: по всем партиям или только в текущей" class="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-colors bg-indigo-600 text-white">
+                  🌐 Везде
+                </button>
+              </div>
+
+              <!-- Кнопка голоса быстрого добавления -->
+              <button onclick="openSmartAddModal('parser', true)" title="Добавить товар голосом" class="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 transition-all shrink-0">
+                <i data-lucide="mic" class="w-4 h-4"></i>
+              </button>
+
+              <!-- Кнопка добавить товар (Desktop) -->
+              <button onclick="openSmartAddModal('manual')" class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white text-xs font-bold shadow-glow transition-all shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Добавить</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- БАННЕР РЕЗУЛЬТАТОВ ГЛОБАЛЬНОГО ПОИСКА (Показывается при вводе запроса в режиме "Везде") -->
+      <div id="globalSearchBanner" class="hidden bg-indigo-600 text-white px-4 lg:px-8 py-2.5 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 shadow-md">
+        <div class="flex items-center gap-2">
+          <i data-lucide="globe" class="w-4 h-4 shrink-0"></i>
+          <span id="globalSearchSummaryText">Глобальный поиск по всем партиям: найдено 0 совпадений</span>
+        </div>
+        <button onclick="document.getElementById('searchInput').value=''; renderAll();" class="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold">
+          Очистить поиск ✕
+        </button>
+      </div>
+
+      <!-- РАБОЧАЯ ОБЛАСТЬ -->
+      <div class="p-3 sm:p-4 lg:p-8 space-y-5 max-w-[1600px] w-full mx-auto">
+
+        <!-- 1. KPI КАРТОЧКИ ДАШБОРДА (Повышенный контраст на светлом и темном фоне) -->
+        <section class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-3.5">
+          
+          <!-- Карточка 1: Статус посылок -->
+          <div class="bg-white dark:bg-[#12161F] rounded-2xl p-3.5 sm:p-4 border border-slate-300/90 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-2">
+              <span class="font-bold">Позиции и путь</span>
+              <span class="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400"><i data-lucide="package" class="w-4 h-4"></i></span>
+            </div>
+            <div>
+              <div class="flex items-baseline gap-1.5">
+                <span id="kpiTotalUnits" class="text-xl sm:text-2xl font-extrabold font-mono tracking-tight text-slate-900 dark:text-white">0</span>
+                <span class="text-xs font-semibold text-slate-500">ед.</span>
+              </div>
+              <div id="kpiStatusBreakdown" class="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                <!-- Заполняется JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Карточка 2: Закупка в Китае -->
+          <div class="bg-white dark:bg-[#12161F] rounded-2xl p-3.5 sm:p-4 border border-slate-300/90 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-2">
+              <span class="font-bold">Закупка в Китае</span>
+              <span class="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400"><i data-lucide="shopping-bag" class="w-4 h-4"></i></span>
+            </div>
+            <div>
+              <div class="flex items-baseline gap-2">
+                <span id="kpiChinaCny" class="text-xl sm:text-2xl font-extrabold font-mono tracking-tight text-slate-900 dark:text-white">¥0</span>
+              </div>
+              <div class="mt-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                <span>В BYN:</span>
+                <span id="kpiChinaByn" class="font-mono font-bold text-slate-900 dark:text-slate-200">0.00 BYN</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Карточка 3: Карго, вес и объем -->
+          <div class="bg-white dark:bg-[#12161F] rounded-2xl p-3.5 sm:p-4 border border-slate-300/90 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-2">
+              <span class="font-bold">Карго + Страх.</span>
+              <span class="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400"><i data-lucide="truck" class="w-4 h-4"></i></span>
+            </div>
+            <div>
+              <div class="flex items-baseline gap-2">
+                <span id="kpiCargoUsd" class="text-xl sm:text-2xl font-extrabold font-mono tracking-tight text-slate-900 dark:text-white">$0.0</span>
+                <span id="kpiTotalWeight" class="text-xs font-mono text-amber-700 dark:text-amber-400 font-extrabold">0.0 кг</span>
+              </div>
+              <div class="mt-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                <span id="kpiTotalVolume">0.00 м³</span>
+                <span id="kpiCargoByn" class="font-mono font-bold text-slate-900 dark:text-slate-200">0.00 BYN</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Карточка 4: Итоговая себестоимость -->
+          <div class="bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-2xl p-3.5 sm:p-4 shadow-glow flex flex-col justify-between relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none"></div>
+            <div class="flex items-center justify-between text-xs text-indigo-100 mb-2">
+              <span class="font-bold">Итого в Минске</span>
+              <span class="p-1.5 rounded-lg bg-white/20"><i data-lucide="wallet" class="w-4 h-4"></i></span>
+            </div>
+            <div>
+              <div class="flex items-baseline gap-1.5">
+                <span id="kpiTotalCostByn" class="text-xl sm:text-2xl font-extrabold font-mono tracking-tight">0.00</span>
+                <span class="text-xs font-bold text-indigo-100">BYN</span>
+              </div>
+              <div class="mt-1.5 text-[11px] text-indigo-100 flex items-center justify-between font-medium">
+                <span>Нагрузка карго:</span>
+                <span id="kpiLogisticsShare" class="font-mono font-extrabold">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Карточка 5: Ожидаемая прибыль -->
+          <div class="col-span-2 sm:col-span-1 bg-white dark:bg-[#12161F] rounded-2xl p-3.5 sm:p-4 border border-slate-300/90 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-2">
+              <span class="font-bold">Прибыль (Продажа)</span>
+              <span class="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"><i data-lucide="trending-up" class="w-4 h-4"></i></span>
+            </div>
+            <div>
+              <div class="flex items-baseline gap-1.5">
+                <span id="kpiNetProfitByn" class="text-xl sm:text-2xl font-extrabold font-mono tracking-tight text-emerald-700 dark:text-emerald-400">+0.00</span>
+                <span class="text-xs font-bold text-slate-500">BYN</span>
+              </div>
+              <div class="mt-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                <span id="kpiExpectedRevenue">Выручка: 0 BYN</span>
+                <span id="kpiAvgRoi" class="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 font-mono text-[10px] font-extrabold">ROI 0%</span>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- 2. РАЗБИВКА ПО ПОЛУЧАТЕЛЯМ («ДЛЯ КОГО») -->
+        <section class="bg-white dark:bg-[#12161F] rounded-2xl p-3.5 sm:p-4 border border-slate-300/90 dark:border-slate-800 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="users" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+              <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Взаиморасчеты по получателям (нажмите для фильтра)</h2>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="openRecipientManagerModal()" class="text-xs text-indigo-700 dark:text-indigo-400 hover:underline font-bold flex items-center gap-1">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + Получатель
+              </button>
+              <button id="clearRecipientFilterBtn" onclick="setRecipientFilter('ALL')" class="hidden text-xs text-rose-600 dark:text-rose-400 hover:underline font-bold">
+                Сбросить фильтр ✕
+              </button>
+            </div>
+          </div>
+          <div id="recipientCardsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <!-- Генерируется динамически -->
+          </div>
+        </section>
+
+        <!-- 3. ПАНЕЛЬ ФИЛЬТРОВ ПО СТАТУСАМ + ПАНЕЛЬ МАССОВОГО ВЫБОРА -->
+        <section class="space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <!-- Вкладки статусов -->
+            <div id="statusFilterTabs" class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+              <!-- Генерируется JS -->
+            </div>
+
+            <!-- Переключатель архива и кнопка экспорта -->
+            <div class="flex items-center gap-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <label class="inline-flex items-center gap-2 cursor-pointer select-none bg-white dark:bg-[#12161F] px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-800 shadow-2xs">
+                <input id="showArchiveToggle" type="checkbox" checked onchange="toggleShowArchive(this.checked)" class="rounded border-slate-400 text-indigo-600 focus:ring-indigo-500" />
+                <span>Показывать архив</span>
+              </label>
+
+              <button onclick="openExportModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-amber-50 dark:hover:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold shadow-2xs transition-colors">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Экспорт</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Контекстная панель выделенных строк (появляется при выборе чекбоксов) -->
+          <div id="selectionActionBar" class="hidden bg-slate-900 dark:bg-indigo-950 text-white px-4 py-2.5 rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-lg animate-in">
+            <div class="flex items-center gap-2.5 text-xs font-bold">
+              <span class="px-2 py-0.5 rounded-lg bg-indigo-500 text-white font-mono" id="selectedCountBadge">0</span>
+              <span>позиций выбрано</span>
+              <button onclick="clearSelection()" class="text-slate-300 hover:text-white underline text-[11px] ml-1">Снять выделение</button>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="openExportModal('selected')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold flex items-center gap-1.5 transition-colors">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Экспортировать выбранные
+              </button>
+              <button onclick="deleteSelectedItems()" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Удалить
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4A. ТАБЛИЦА ТОВАРОВ И ТРЕКОВ (ДЛЯ ДЕСКТОПА И ПЛАНШЕТОВ md+) -->
+        <section class="hidden md:block bg-white dark:bg-[#12161F] rounded-2xl border border-slate-300/90 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-300 dark:border-slate-800 bg-slate-100/90 dark:bg-[#161B26] text-[11px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  <th class="py-3.5 pl-4 pr-2 w-9">
+                    <input id="selectAllCheckbox" type="checkbox" onchange="toggleSelectAllVisible(this.checked)" title="Выбрать все видимые позиции" class="rounded border-slate-400 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                  </th>
+                  <th class="py-3.5 px-3 min-w-[300px]">Фото, Товар и Трек-номер</th>
+                  <th class="py-3.5 px-2 text-center">Кол-во</th>
+                  <th class="py-3.5 px-2 text-right">Закуп + Дост. ¥</th>
+                  <th class="py-3.5 px-2 text-right">Вес / Объём</th>
+                  <th class="py-3.5 px-2 text-right">Себест. 1 ед.</th>
+                  <th class="py-3.5 px-2 text-right">Итого партия</th>
+                  <th class="py-3.5 px-2 text-right">Розница / Маржа</th>
+                  <th class="py-3.5 px-2 min-w-[135px]">Для кого</th>
+                  <th class="py-3.5 px-2 min-w-[160px]">Статус доставки</th>
+                  <th class="py-3.5 px-3 text-right">Действия</th>
+                </tr>
+              </thead>
+              <tbody id="itemsTableBody" class="divide-y divide-slate-200 dark:divide-slate-800/80 text-xs">
+                <!-- Строки рендерятся через JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 4B. МОБИЛЬНЫЕ КАРТОЧКИ ТОВАРОВ (ДЛЯ ТЕЛЕФОНОВ < md) -->
+        <section id="mobileCardsContainer" class="md:hidden space-y-3">
+          <!-- Карточки рендерятся через JS -->
+        </section>
+
+        <!-- Пустое состояние (Общее для таблицы и мобильных карточек) -->
+        <div id="emptyState" class="hidden bg-white dark:bg-[#12161F] rounded-2xl border border-slate-300 dark:border-slate-800 py-14 px-4 text-center shadow-sm">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="package-search" class="w-7 h-7"></i>
+          </div>
+          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white mb-1">Позиции не найдены</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-4">
+            Попробуйте изменить фильтры поиска или добавьте товары голосом, через умный парсер или вручную.
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <button onclick="openSmartAddModal('parser', true)" class="px-4 py-2.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-500 transition-colors flex items-center gap-1.5">
+              <i data-lucide="mic" class="w-4 h-4"></i> Надиктовать голосом
+            </button>
+            <button onclick="resetFilters()" class="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+              Сбросить фильтры
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ (< lg) -->
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-[#10131A]/95 glass-panel border-t border-slate-300 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-2xl">
+    <button onclick="toggleSidebar()" class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+      <i data-lucide="folder-kanban" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+      <span class="text-[10px] font-bold">Партии</span>
+    </button>
+    <button onclick="openSmartAddModal('parser', true)" class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+      <i data-lucide="mic" class="w-5 h-5 text-rose-600 dark:text-rose-400"></i>
+      <span class="text-[10px] font-bold">Голосом</span>
+    </button>
+    <button onclick="openSmartAddModal('manual')" class="flex items-center justify-center w-12 h-12 -mt-5 rounded-2xl bg-indigo-600 text-white shadow-glow border-2 border-white dark:border-[#10131A] active:scale-95 transition-transform">
+      <i data-lucide="plus" class="w-6 h-6"></i>
+    </button>
+    <button onclick="openBulkStatusModal()" class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+      <i data-lucide="layers" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
+      <span class="text-[10px] font-bold">Треки</span>
+    </button>
+    <button onclick="openExportModal()" class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+      <i data-lucide="download" class="w-5 h-5 text-amber-600 dark:text-amber-400"></i>
+      <span class="text-[10px] font-bold">Экспорт</span>
+    </button>
+  </nav>
+
+  <!-- ===================================================================== -->
+  <!-- МОДАЛЬНОЕ ОКНО 1: ДОБАВЛЕНИЕ ТОВАРА / УМНЫЙ ПАРСЕР + ГОЛОСОВОЙ ВВОД   -->
+  <!-- ===================================================================== -->
+  <div id="smartAddModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-xs">
+    <div class="bg-white dark:bg-[#131722] border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in">
+      
+      <!-- Шапка модалки -->
+      <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-[#10131A]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+            <i data-lucide="package-plus" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="modalTitle" class="text-sm font-extrabold text-slate-900 dark:text-white">Добавить позицию в партию</h3>
+            <p class="text-[11px] font-medium text-slate-600 dark:text-slate-400">Авторасчет себестоимости, объемного веса и голосовой ввод</p>
+          </div>
+        </div>
+        <button onclick="closeModal('smartAddModal')" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Переключатель режимов: Ручной ввод / Умный парсер и Голос -->
+      <div class="px-5 pt-3.5">
+        <div class="grid grid-cols-2 p-1 rounded-xl bg-slate-200/80 dark:bg-[#0D1017] text-xs font-bold">
+          <button id="tabBtnManual" onclick="switchAddTab('manual')" class="py-2 rounded-lg bg-white dark:bg-[#1A202E] shadow-xs text-indigo-700 dark:text-indigo-400 transition-all">
+            📝 Карточка товара
+          </button>
+          <button id="tabBtnParser" onclick="switchAddTab('parser')" class="py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all flex items-center justify-center gap-1.5">
+            <i data-lucide="mic" class="w-3.5 h-3.5 text-rose-500"></i> Голос и Парсер (1688)
+          </button>
+        </div>
+      </div>
+
+      <!-- Вкладка 1: Ручное добавление / редактирование -->
+      <form id="manualItemForm" onsubmit="saveItemFromForm(event)" class="p-5 space-y-3.5 max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="editItemId" value="" />
+        <input type="hidden" id="itemPhotoDataInput" value="" />
+
+        <!-- Блок загрузки и вставки ФОТО ТОВАРА -->
+        <div class="p-3 rounded-xl bg-slate-100/80 dark:bg-[#0D1017] border border-slate-300/80 dark:border-slate-800">
+          <div class="flex flex-col sm:flex-row items-center gap-3.5">
+            <!-- Превью фото -->
+            <div id="modalPhotoPreviewBox" onclick="document.getElementById('itemPhotoFileInput').click()" ondragover="event.preventDefault(); this.classList.add('ring-2','ring-indigo-500')" ondragleave="this.classList.remove('ring-2','ring-indigo-500')" ondrop="handlePhotoDrop(event)" title="Нажмите для выбора фото, перетащите файл или вставьте через Ctrl+V" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white dark:bg-[#151A24] border-2 border-dashed border-slate-400 dark:border-slate-700 hover:border-indigo-500 flex flex-col items-center justify-center cursor-pointer overflow-hidden shrink-0 relative group transition-all">
+              <img id="modalPhotoImg" src="" alt="Фото товара" class="hidden w-full h-full object-cover" />
+              <div id="modalPhotoPlaceholder" class="text-center p-2">
+                <i data-lucide="image-plus" class="w-6 h-6 text-slate-500 mx-auto mb-1 group-hover:text-indigo-600 transition-colors"></i>
+                <span class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-tight">Фото / Ctrl+V</span>
+              </div>
+            </div>
+
+            <!-- Управление фото -->
+            <div class="flex-1 w-full space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">Фотография товара</span>
+                <button type="button" id="clearPhotoBtn" onclick="clearModalPhoto()" class="hidden text-[11px] text-rose-600 dark:text-rose-400 hover:underline font-bold">Удалить фото ✕</button>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input id="itemPhotoFileInput" type="file" accept="image/*" onchange="handlePhotoFileSelect(event)" class="hidden" />
+                <button type="button" onclick="document.getElementById('itemPhotoFileInput').click()" class="px-3 py-1.5 rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 hover:border-indigo-500 text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 transition-colors">
+                  <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-600"></i> Загрузить с устройства
+                </button>
+                <span class="text-[11px] font-medium text-slate-500">или <kbd class="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] font-mono">Ctrl+V</kbd></span>
+              </div>
+              <div>
+                <input id="itemPhotoUrlInput" type="url" oninput="handlePhotoUrlInput(this.value)" placeholder="Или вставьте ссылку на картинку (https://...)" class="w-full px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Название товара *</label>
+            <input id="itemNameInput" type="text" required placeholder="Например: Гелиевые шары хром золото 12 дюймов" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Категория</label>
+            <select id="itemCategoryInput" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none">
+              <option value="🎈">🎈 Праздник и шары</option>
+              <option value="🧸">🧸 Игрушки и дети</option>
+              <option value="🏠">🏠 Дом и интерьер</option>
+              <option value="📱">📱 Гаджеты и техника</option>
+              <option value="👟">👟 Одежда и обувь</option>
+              <option value="📦">📦 Прочее карго</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Трек-номер (CN / Карго)</label>
+            <input id="itemTrackInput" type="text" placeholder="YT748392019283" class="w-full px-3 py-2 text-xs font-mono font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none uppercase" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Получатель («Для кого»)</label>
+            <select id="itemRecipientInput" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none">
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Статус доставки</label>
+            <select id="itemStatusInput" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none">
+              <option value="bought">🟡 Выкуплено в Китае</option>
+              <option value="china_transit">🟣 Едет по Китаю</option>
+              <option value="warehouse">🟠 На складе Карго (CN)</option>
+              <option value="transit">🔵 Едет в Беларусь</option>
+              <option value="arrived">🟢 Прибыло в Минск (РБ)</option>
+              <option value="delivered">⚪ Выдано / Архив</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Заметка / Характеристики (цвет, размер, поставщик)</label>
+          <input id="itemNoteInput" type="text" placeholder="Например: Цвет шампань, 2 коробки по 50 шт, поставщик Иу" class="w-full px-3 py-2 text-xs font-medium text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+        </div>
+
+        <!-- Финансовый блок -->
+        <div class="p-3.5 rounded-xl bg-slate-100/80 dark:bg-[#0D1017] border border-slate-300/80 dark:border-slate-800 space-y-3">
+          <div class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Закупка, вес и розничная цена</div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Количество (шт) *</label>
+              <input id="itemQtyInput" type="number" min="1" value="1" oninput="updateLiveFormPreview()" required class="w-full px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Цена за ВСЁ (¥ CNY) *</label>
+              <input id="itemPriceCnyInput" type="number" step="0.01" min="0" value="0" oninput="updateLiveFormPreview()" required class="w-full px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Доставка по CN (¥)</label>
+              <input id="itemChinaShipInput" type="number" step="0.01" min="0" value="0" oninput="updateLiveFormPreview()" class="w-full px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Общий вес (кг) *</label>
+              <input id="itemWeightInput" type="number" step="0.01" min="0" value="0.5" oninput="updateLiveFormPreview()" required class="w-full px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Габариты коробки Д×Ш×В (см)</label>
+              <div class="grid grid-cols-3 gap-1.5">
+                <input id="itemDimL" type="number" min="0" placeholder="Д см" oninput="updateLiveFormPreview()" class="px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:outline-none" />
+                <input id="itemDimW" type="number" min="0" placeholder="Ш см" oninput="updateLiveFormPreview()" class="px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:outline-none" />
+                <input id="itemDimH" type="number" min="0" placeholder="В см" oninput="updateLiveFormPreview()" class="px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:outline-none" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Цена продажи 1 ед. в РБ (BYN)</label>
+              <input id="itemRetailBynInput" type="number" step="0.01" min="0" value="0" oninput="updateLiveFormPreview()" placeholder="Для расчета прибыли" class="w-full px-3 py-1.5 text-xs font-mono font-bold text-slate-900 dark:text-white rounded-lg bg-white dark:bg-[#151A24] border border-slate-300 dark:border-slate-700 focus:border-emerald-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div id="liveFormPreview" class="p-3 rounded-xl bg-indigo-100/80 dark:bg-indigo-500/15 border border-indigo-300 dark:border-indigo-500/30 flex flex-wrap items-center justify-between gap-2 text-xs">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('smartAddModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800">Отмена</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-glow">Сохранить позицию</button>
+        </div>
+      </form>
+
+      <!-- Вкладка 2: Голосовой ввод и Умный парсер сырого текста -->
+      <div id="smartParserPane" class="hidden p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+        <!-- Блок голосового ввода -->
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-indigo-50 dark:from-rose-950/30 dark:to-indigo-950/30 border border-rose-200 dark:border-rose-500/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="space-y-1 text-center sm:text-left">
+            <div class="text-xs font-extrabold text-slate-900 dark:text-white flex items-center justify-center sm:justify-start gap-1.5">
+              <span>🎙️ Голосовое добавление товаров</span>
+              <span id="voiceStatusBadge" class="hidden px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] animate-pulse">Слушаю...</span>
+            </div>
+            <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300">
+              Нажмите на микрофон и продиктуйте: <i>«Шары хром золото 10 штук 280 юаней вес 3.8 кг»</i>.
+            </p>
+          </div>
+          <button type="button" id="voiceRecordBtn" onclick="toggleVoiceInput()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-md flex items-center gap-2 shrink-0 transition-all">
+            <i data-lucide="mic" class="w-4 h-4"></i>
+            <span id="voiceRecordBtnText">Начать диктовку</span>
+          </button>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Текст для распознавания (каждый товар с новой строки):</label>
+            <button type="button" onclick="fillParserExample()" class="text-[11px] font-bold text-indigo-700 dark:text-indigo-400 hover:underline">Вставить пример</button>
+          </div>
+          <textarea id="parserTextarea" rows="5" placeholder="Продиктуйте голосом или вставьте из 1688 / WeChat:
+Фольгированные шары цифры 40 дюймов 50шт 185ю вес 2.4кг трек YT7584930211
+Светодиодная гирлянда роса 100м 10шт 120ю 1.8кг SF1492837465" class="w-full p-3 text-xs font-mono font-medium text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Получатель по умолчанию</label>
+            <select id="parserDefaultRecipient" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700">
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Начальный статус</label>
+            <select id="parserDefaultStatus" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700">
+              <option value="bought">🟡 Выкуплено в Китае</option>
+              <option value="warehouse">🟠 На складе Карго (CN)</option>
+              <option value="transit">🔵 Едет в Беларусь</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('smartAddModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800">Отмена</button>
+          <button type="button" onclick="runSmartParser()" class="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-glow flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Распознать и добавить
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- МОДАЛЬНОЕ ОКНО 6: ЦЕНТР ГИБКОГО ЭКСПОРТА (С ФОТО И ВЫБОРОМ ТРЕКОВ)     -->
+  <!-- ===================================================================== -->
+  <div id="exportModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-xs">
+    <div class="bg-white dark:bg-[#131722] border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in">
+      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-[#10131A]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Центр экспорта данных и фото</h3>
+            <p class="text-[11px] font-medium text-slate-600 dark:text-slate-400">Выберите какие товары выгрузить и в каком формате</p>
+          </div>
+        </div>
+        <button onclick="closeModal('exportModal')" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 max-h-[82vh] overflow-y-auto">
+        <!-- Шаг 1: Что экспортируем -->
+        <div>
+          <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">1. Какие позиции включить в выгрузку:</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1017] cursor-pointer hover:border-indigo-500">
+              <input type="radio" name="exportScope" value="current_project" checked onchange="toggleExportTracksBox()" class="text-indigo-600" />
+              <div>
+                <div class="font-bold text-slate-900 dark:text-white">Вся текущая партия</div>
+                <div class="text-[10px] text-slate-500">Все товары активного проекта</div>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1017] cursor-pointer hover:border-indigo-500">
+              <input type="radio" name="exportScope" value="filtered" onchange="toggleExportTracksBox()" class="text-indigo-600" />
+              <div>
+                <div class="font-bold text-slate-900 dark:text-white">Текущий фильтр / поиск</div>
+                <div class="text-[10px] text-slate-500">Только то, что сейчас на экране</div>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1017] cursor-pointer hover:border-indigo-500">
+              <input type="radio" name="exportScope" value="selected" id="exportScopeSelectedRadio" onchange="toggleExportTracksBox()" class="text-indigo-600" />
+              <div>
+                <div class="font-bold text-slate-900 dark:text-white">Отмеченные чекбоксами (<span id="exportSelectedCountLabel">0</span>)</div>
+                <div class="text-[10px] text-slate-500">Выбранные вручную в списке</div>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1017] cursor-pointer hover:border-indigo-500">
+              <input type="radio" name="exportScope" value="tracks_list" id="exportScopeTracksRadio" onchange="toggleExportTracksBox()" class="text-indigo-600" />
+              <div>
+                <div class="font-bold text-slate-900 dark:text-white">По списку трек-номеров</div>
+                <div class="text-[10px] text-slate-500">Ищет треки по всем проектам!</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Поле для ввода конкретных трек-номеров при выборе "По списку треков" -->
+          <div id="exportTracksInputBox" class="hidden mt-3">
+            <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Укажите нужные трек-номера (через пробел, запятую или с новой строки):</label>
+            <textarea id="exportTracksTextarea" rows="3" placeholder="YT748392019283&#10;SF149283746501" class="w-full p-2.5 text-xs font-mono font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none uppercase"></textarea>
+          </div>
+        </div>
+
+        <!-- Шаг 2: Формат файла -->
+        <div>
+          <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">2. Формат выгрузки:</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button type="button" onclick="executeExport('html_photos')" class="p-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-left shadow-md transition-all flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-1.5">
+                <i data-lucide="image" class="w-5 h-5"></i>
+                <span class="px-1.5 py-0.5 rounded bg-white/20 text-[9px] font-extrabold">С ФОТО</span>
+              </div>
+              <div class="text-xs font-extrabold">Каталог / Накладная</div>
+              <div class="text-[10px] text-indigo-100 mt-0.5">HTML-таблица с картинками и печатью в PDF</div>
+            </button>
+
+            <button type="button" onclick="executeExport('xls_photos')" class="p-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-left shadow-md transition-all flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-1.5">
+                <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                <span class="px-1.5 py-0.5 rounded bg-white/20 text-[9px] font-extrabold">EXCEL + ФОТО</span>
+              </div>
+              <div class="text-xs font-extrabold">Таблица Excel (.xls)</div>
+              <div class="text-[10px] text-emerald-100 mt-0.5">Открывается в Excel со встроенными фото</div>
+            </button>
+
+            <button type="button" onclick="executeExport('csv_clean')" class="p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-left shadow-md transition-all flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-1.5">
+                <i data-lucide="file-text" class="w-5 h-5 text-amber-400"></i>
+                <span class="px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-bold">CSV</span>
+              </div>
+              <div class="text-xs font-extrabold">Чистый CSV</div>
+              <div class="text-[10px] text-slate-300 mt-0.5">Для 1С, МойСклад и Google Таблиц</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- МОДАЛЬНОЕ ОКНО 2: МАССОВАЯ СМЕНА СТАТУСОВ ПО ТРЕК-НОМЕРАМ            -->
+  <!-- ===================================================================== -->
+  <div id="bulkStatusModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
+    <div class="bg-white dark:bg-[#131722] border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-[#10131A]">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Массовая смена статусов по трекам</h3>
+            <p class="text-[11px] font-medium text-slate-600 dark:text-slate-400">Обновляет статусы сразу по всем партиям</p>
+          </div>
+        </div>
+        <button onclick="closeModal('bulkStatusModal')" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">Список трек-номеров:</label>
+          <textarea id="bulkTracksInput" rows="4" placeholder="YT748392019283&#10;SF149283746501&#10;77328192039481" class="w-full p-3 text-xs font-mono font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-emerald-500 focus:outline-none uppercase"></textarea>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">Установить новый статус для найденных:</label>
+          <select id="bulkNewStatusSelect" class="w-full px-3 py-2 text-xs font-bold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:outline-none">
+            <option value="china_transit">🟣 Едет по Китаю</option>
+            <option value="warehouse">🟠 На складе Карго (CN)</option>
+            <option value="transit" selected>🔵 Едет в Беларусь</option>
+            <option value="arrived">🟢 Прибыло в Минск (РБ)</option>
+            <option value="delivered">⚪ Выдано / Архив</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('bulkStatusModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800">Отмена</button>
+          <button type="button" onclick="applyBulkStatusUpdate()" class="px-5 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Применить ко всем</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- МОДАЛЬНОЕ ОКНО 3: СОЗДАНИЕ НОВОЙ ПАРТИИ / ПРОЕКТА                     -->
+  <!-- ===================================================================== -->
+  <div id="newProjectModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
+    <div class="bg-white dark:bg-[#131722] border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-[#10131A]">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Создать новую партию (проект)</h3>
+        <button onclick="closeModal('newProjectModal')" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form onsubmit="createNewProject(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Название партии *</label>
+          <input id="newProjectNameInput" type="text" required placeholder="Например: Декабрь 2026 — Авиа карго" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Примечание / Склад</label>
+          <input id="newProjectDescInput" type="text" placeholder="Гуанчжоу • Срок 12 дней" class="w-full px-3 py-2 text-xs font-medium text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('newProjectModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800">Отмена</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white">Создать</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- МОДАЛЬНОЕ ОКНО 4: ПРОСМОТР И ЗАМЕНА ФОТО ТОВАРА (LIGHTBOX)            -->
+  <!-- ===================================================================== -->
+  <div id="photoLightboxModal" onclick="if(event.target === this) closeModal('photoLightboxModal')" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#131722] border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in">
+      <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <h3 id="lightboxTitle" class="text-xs font-extrabold text-slate-900 dark:text-white truncate pr-4">Фотография товара</h3>
+        <button onclick="closeModal('photoLightboxModal')" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-5 flex flex-col items-center justify-center bg-slate-100 dark:bg-[#0B0D12] min-h-[280px]">
+        <img id="lightboxImage" src="" alt="Фото товара" class="max-h-[55vh] w-auto rounded-xl shadow-md object-contain" />
+        <div id="lightboxNoPhoto" class="hidden text-center py-8">
+          <i data-lucide="image" class="w-12 h-12 text-slate-400 mx-auto mb-2"></i>
+          <p class="text-xs font-semibold text-slate-600 dark:text-slate-400">У этого товара пока нет фотографии</p>
+        </div>
+      </div>
+      <div class="px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+        <input id="lightboxFileInput" type="file" accept="image/*" onchange="handleLightboxFileReplace(event)" class="hidden" />
+        <div class="flex items-center gap-2">
+          <button onclick="document.getElementById('lightboxFileInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5">
+            <i data-lucide="camera" class="w-3.5 h-3.5"></i> Загрузить новое фото
+          </button>
+          <span class="text-[11px] font-medium text-slate-500 hidden sm:inline">или <kbd class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono text-[10px]">Ctrl+V</kbd></span>
+        </div>
+        <button id="lightboxDeletePhotoBtn" onclick="removeItemPhotoFromLightbox()" class="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+          Удалить фото
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- МОДАЛЬНОЕ ОКНО 5: УПРАВЛЕНИЕ ПОЛУЧАТЕЛЯМИ («ДЛЯ КОГО»)                -->
+  <!-- ===================================================================== -->
+  <div id="recipientManagerModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
+    <div class="bg-white dark:bg-[#131722] border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-[#10131A]">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Получатели («Для кого»)</h3>
+        <button onclick="closeModal('recipientManagerModal')" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <form onsubmit="addCustomRecipient(event)" class="flex gap-2">
+          <input id="newRecipientIcon" type="text" value="👤" maxlength="4" class="w-12 text-center px-2 py-2 text-sm rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:outline-none" />
+          <input id="newRecipientName" type="text" required placeholder="Имя клиента или категория..." class="flex-1 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+          <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">Добавить</button>
+        </form>
+        <div id="customRecipientsList" class="space-y-1.5 max-h-60 overflow-y-auto">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- КОНТЕЙНЕР TOAST-УВЕДОМЛЕНИЙ -->
+  <div id="toastContainer" class="fixed bottom-20 lg:bottom-5 right-4 sm:right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- ЛОГИКА ПРИЛОЖЕНИЯ (ГЛОБАЛЬНЫЙ ПОИСК, ГОЛОС, ЭКСПОРТ С ФОТО, МОБАЙЛ)   -->
+  <!-- ===================================================================== -->
+  <script>
+    const STORAGE_KEY = 'cargo_control_cn_by_v3';
+    let currentLightboxItemId = null;
+    let selectedItemIds = new Set();
+    let speechRecognition = null;
+    let isRecordingVoice = false;
+
+    // Справочник статусов с высоким контрастом для светлой и тёмной темы
+    const STATUS_CONFIG = {
+      bought:        { label: 'Выкуплено',       badge: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',       progress: 15, barColor: 'bg-amber-500' },
+      china_transit: { label: 'Едет по Китаю',   badge: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30', progress: 35, barColor: 'bg-purple-500' },
+      warehouse:     { label: 'На складе CN',    badge: 'bg-orange-100 text-orange-900 border-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30', progress: 50, barColor: 'bg-orange-500' },
+      transit:       { label: 'Едет в РБ',       badge: 'bg-blue-100 text-blue-900 border-blue-300 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30',             progress: 75, barColor: 'bg-blue-600' },
+      arrived:       { label: 'Прибыло в Минск', badge: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30', progress: 95, barColor: 'bg-emerald-600' },
+      delivered:     { label: 'Выдано / Архив',  badge: 'bg-slate-200 text-slate-800 border-slate-300 dark:bg-slate-700/50 dark:text-slate-300 dark:border-slate-600',          progress: 100, barColor: 'bg-slate-500' }
+    };
+
+    const DEFAULT_RECIPIENTS = [
+      { name: 'В продажу', icon: '💰', color: 'text-emerald-800 dark:text-emerald-400', bg: 'bg-emerald-100 border-emerald-300 dark:bg-emerald-500/15 dark:border-emerald-500/30' },
+      { name: 'Клиент',    icon: '🤝', color: 'text-indigo-800 dark:text-indigo-400',   bg: 'bg-indigo-100 border-indigo-300 dark:bg-indigo-500/15 dark:border-indigo-500/30' },
+      { name: 'Себе',      icon: '🙋‍♂️', color: 'text-sky-800 dark:text-sky-400',         bg: 'bg-sky-100 border-sky-300 dark:bg-sky-500/15 dark:border-sky-500/30' },
+      { name: 'Родители',  icon: '👨‍👩‍👧', color: 'text-amber-800 dark:text-amber-400',     bg: 'bg-amber-100 border-amber-300 dark:bg-amber-500/15 dark:border-amber-500/30' },
+      { name: 'Друзьям',   icon: '🫂', color: 'text-purple-800 dark:text-purple-400',   bg: 'bg-purple-100 border-purple-300 dark:bg-purple-500/15 dark:border-purple-500/30' },
+      { name: 'Подарок',   icon: '🎁', color: 'text-rose-800 dark:text-rose-400',       bg: 'bg-rose-100 border-rose-300 dark:bg-rose-500/15 dark:border-rose-500/30' }
+    ];
+
+    function makeDemoProductSvg(emoji, bgHex, accentHex, tag) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${bgHex}"/>
+            <stop offset="100%" stop-color="${accentHex}"/>
+          </linearGradient>
+        </defs>
+        <rect width="240" height="240" rx="28" fill="url(#g)"/>
+        <circle cx="195" cy="45" r="42" fill="#ffffff" fill-opacity="0.14"/>
+        <circle cx="45" cy="200" r="55" fill="#ffffff" fill-opacity="0.1"/>
+        <text x="120" y="132" font-size="86" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
+        <rect x="44" y="186" width="152" height="28" rx="14" fill="#000000" fill-opacity="0.32"/>
+        <text x="120" y="204" font-family="sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">${tag}</text>
+      </svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    function getInitialDemoState() {
+      const now = Date.now();
+      const dayMs = 86400000;
+      return {
+        theme: 'light',
+        showArchive: true,
+        globalSearch: true,
+        rates: {
+          cnyToByn: 0.48,
+          usdToByn: 3.28,
+          cargoUsdPerKg: 4.2,
+          cargoUsdPerCube: 420,
+          insurancePercent: 3
+        },
+        recipients: [...DEFAULT_RECIPIENTS],
+        activeProjectId: 'proj_1',
+        filters: {
+          status: 'ALL',
+          recipient: 'ALL'
+        },
+        projects: [
+          {
+            id: 'proj_1',
+            name: 'Сбор Ноябрь 2026 — Магазин и дом',
+            description: 'Склад Иу / Гуанчжоу • Авто-карго 14–18 дней',
+            items: [
+              {
+                id: 'itm_1',
+                name: 'Гелиевые шары Хром Золото/Серебро 12" (уп. 100 шт)',
+                note: 'Плотность 3.2г, фабрика Иу • 10 упаковок',
+                photo: makeDemoProductSvg('🎈', '#f59e0b', '#d97706', 'CHROME 12"'),
+                category: '🎈',
+                track: 'YT748392019283',
+                qty: 10,
+                priceCny: 280,
+                chinaShipCny: 15,
+                weightKg: 3.8,
+                dims: { l: 40, w: 30, h: 25 },
+                retailByn: 26,
+                recipient: 'В продажу',
+                status: 'transit',
+                createdAt: now - 9 * dayMs
+              },
+              {
+                id: 'itm_2',
+                name: 'Фольгированные фигуры и цифры 40 дюймов (микс)',
+                note: 'Золото и розовое золото, в индивидуальных пакетах',
+                photo: makeDemoProductSvg('✨', '#ec4899', '#be185d', 'FOIL 40"'),
+                category: '🎈',
+                track: 'SF149283746501',
+                qty: 25,
+                priceCny: 195,
+                chinaShipCny: 10,
+                weightKg: 1.9,
+                dims: { l: 45, w: 40, h: 35 },
+                retailByn: 12,
+                recipient: 'В продажу',
+                status: 'arrived',
+                createdAt: now - 16 * dayMs
+              },
+              {
+                id: 'itm_3',
+                name: 'Беспроводной компрессор для шаров (2 сопла, 600W)',
+                note: 'Евровилка 220V + насадки для ШДМ',
+                photo: makeDemoProductSvg('💨', '#6366f1', '#4338ca', 'PUMP 600W'),
+                category: '📱',
+                track: '77328192039481',
+                qty: 2,
+                priceCny: 170,
+                chinaShipCny: 0,
+                weightKg: 2.6,
+                dims: { l: 25, w: 20, h: 18 },
+                retailByn: 95,
+                recipient: 'Клиент',
+                status: 'transit',
+                createdAt: now - 7 * dayMs
+              },
+              {
+                id: 'itm_4',
+                name: 'Умный увлажнитель воздуха Xiaomi Mijia Humidifier 2',
+                note: 'Версия с УФ-стерилизацией, бак 4.5л',
+                photo: makeDemoProductSvg('💧', '#0ea5e9', '#0369a1', 'XIAOMI MIJIA'),
+                category: '🏠',
+                track: 'JT509283746192',
+                qty: 1,
+                priceCny: 149,
+                chinaShipCny: 0,
+                weightKg: 2.1,
+                dims: { l: 24, w: 24, h: 36 },
+                retailByn: 0,
+                recipient: 'Родители',
+                status: 'warehouse',
+                createdAt: now - 4 * dayMs
+              },
+              {
+                id: 'itm_5',
+                name: 'Механическая клавиатура Keychron K2 Pro (Brown Switch)',
+                note: 'Алюминиевая рамка, RGB подсветка, Hot-Swap',
+                photo: makeDemoProductSvg('⌨️', '#334155', '#0f172a', 'KEYCHRON K2'),
+                category: '📱',
+                track: 'ZTO92837465102',
+                qty: 1,
+                priceCny: 420,
+                chinaShipCny: 0,
+                weightKg: 1.35,
+                dims: { l: 36, w: 16, h: 6 },
+                retailByn: 0,
+                recipient: 'Себе',
+                status: 'arrived',
+                createdAt: now - 14 * dayMs
+              },
+              {
+                id: 'itm_6',
+                name: 'Конструктор Technic Спорткар 1:8 (3696 деталей)',
+                note: 'Без оригинальной коробки (в пупырке для экономии веса)',
+                photo: makeDemoProductSvg('🏎️', '#ef4444', '#b91c1c', 'TECHNIC 1:8'),
+                category: '🧸',
+                track: 'YD837465910283',
+                qty: 1,
+                priceCny: 310,
+                chinaShipCny: 12,
+                weightKg: 4.4,
+                dims: { l: 58, w: 38, h: 15 },
+                retailByn: 0,
+                recipient: 'Подарок',
+                status: 'china_transit',
+                createdAt: now - 2 * dayMs
+              },
+              {
+                id: 'itm_7',
+                name: 'Набор вакуумных пакетов для хранения одежды (12 шт + насос)',
+                note: 'Размеры 80x60 и 100x70 см',
+                photo: makeDemoProductSvg('🧳', '#10b981', '#047857', 'VACUUM PACK'),
+                category: '🏠',
+                track: 'YT748392099911',
+                qty: 2,
+                priceCny: 76,
+                chinaShipCny: 8,
+                weightKg: 1.6,
+                dims: { l: 32, w: 24, h: 14 },
+                retailByn: 0,
+                recipient: 'Друзьям',
+                status: 'delivered',
+                createdAt: now - 21 * dayMs
+              }
+            ]
+          },
+          {
+            id: 'proj_2',
+            name: 'Новый год 2027 — Гирлянды и ёлочный декор',
+            description: 'Предзаказ фабрики Иу • Сборная фура',
+            items: [
+              {
+                id: 'itm_201',
+                name: 'Гирлянда Роса 200 метров на катушке (теплый свет)',
+                note: 'С пультом ДУ и 8 режимами мерцания',
+                photo: makeDemoProductSvg('🎄', '#eab308', '#a16207', 'LED 200M'),
+                category: '🎈',
+                track: 'SF998877665544',
+                qty: 15,
+                priceCny: 450,
+                chinaShipCny: 20,
+                weightKg: 6.2,
+                dims: { l: 42, w: 35, h: 30 },
+                retailByn: 35,
+                recipient: 'В продажу',
+                status: 'bought',
+                createdAt: now - 1 * dayMs
+              }
+            ]
+          }
+        ]
+      };
+    }
+
+    let state = getInitialDemoState();
+
+
+    const META_PREFIX = "__CARGO_HTML_META__";
+    let apiBaseline = { projects: [], orders: [] };
+    let syncQueue = Promise.resolve();
+    const emptyAppState = () => ({
+      theme: localStorage.getItem("cargo_html_theme") || "light",
+      showArchive: true, globalSearch: true,
+      rates: { cnyToByn: 0.48, usdToByn: 3.28, cargoUsdPerKg: 4.2, cargoUsdPerCube: 420, insurancePercent: 3 },
+      recipients: [...DEFAULT_RECIPIENTS], activeProjectId: "",
+      filters: { status: "ALL", recipient: "ALL" }, projects: []
+    });
+    function parseMeta(notes) {
+      const raw = String(notes || "");
+      if (!raw.startsWith(META_PREFIX)) return { note: raw, category: "📦", dims: {l:0,w:0,h:0}, retailByn: 0, createdAt: Date.now() };
+      try { return JSON.parse(raw.slice(META_PREFIX.length)); }
+      catch { return { note: raw, category: "📦", dims: {l:0,w:0,h:0}, retailByn: 0, createdAt: Date.now() }; }
+    }
+    function packMeta(item) {
+      return META_PREFIX + JSON.stringify({
+        note: item.note || "", category: item.category || "📦",
+        dims: item.dims || {l:0,w:0,h:0}, retailByn: Number(item.retailByn)||0,
+        createdAt: Number(item.createdAt)||Date.now()
+      });
+    }
+    function dbStatusToHtml(value) {
+      const s = String(value || "").toLowerCase();
+      if (s.includes("выдан") || s.includes("архив")) return "delivered";
+      if (s.includes("минск") || s.includes("прибыл")) return "arrived";
+      if (s.includes("беларус") || s.includes("рб") || s.includes("транзит")) return "transit";
+      if (s.includes("склад")) return "warehouse";
+      if (s.includes("кита") && (s.includes("едет") || s.includes("пути"))) return "china_transit";
+      return "bought";
+    }
+    function htmlStatusToDb(value) {
+      return ({ bought:"Выкуплено в Китае", china_transit:"Едет по Китаю", warehouse:"На складе Китая", transit:"Едет в Беларусь", arrived:"Прибыло в Минск", delivered:"Выдано" })[value] || "Выкуплено в Китае";
+    }
+    function mapDbOrder(row) {
+      const meta = parseMeta(row.notes);
+      return {
+        id: String(row.id), name: row.name || "", note: meta.note || "",
+        photo: row.imageUrl || "", category: meta.category || "📦",
+        track: row.trackNumber || "", qty: Number(row.quantity)||1,
+        priceCny: Number(row.priceCny)||0, chinaShipCny: Number(row.shippingChinaCny)||0,
+        weightKg: Number(row.weight)||0, dims: meta.dims || {l:0,w:0,h:0},
+        retailByn: Number(meta.retailByn)||0, recipient: row.forWhom || "Себе",
+        status: dbStatusToHtml(row.status), createdAt: meta.createdAt || new Date(row.createdAt).getTime(),
+        itemUrl: row.itemUrl || "", shippingChinaUsd: Number(row.shippingChinaUsd)||0,
+        shippingBelarusByn: Number(row.shippingBelarusByn)||0, rateCnyByn: Number(row.rateCnyByn)||0.48,
+        shippingUsdByn: Number(row.shippingUsdByn)||0
+      };
+    }
+    function mapHtmlOrder(item, projectId) {
+      return {
+        projectId: Number(projectId), name: item.name || "Товар без названия",
+        imageUrl: item.photo || null, itemUrl: item.itemUrl || null,
+        forWhom: item.recipient || "Себе", trackNumber: item.track || null,
+        status: htmlStatusToDb(item.status), quantity: Math.max(1, Number(item.qty)||1),
+        priceCny: Number(item.priceCny)||0, shippingChinaCny: Number(item.chinaShipCny)||0,
+        shippingChinaUsd: Number(item.shippingChinaUsd)||0,
+        shippingBelarusByn: Number(item.shippingBelarusByn)||0,
+        shippingUsdByn: Number(state.rates.usdToByn)||3.28,
+        rateCnyByn: Number(state.rates.cnyToByn)||0.48, weight: Number(item.weightKg)||0,
+        notes: packMeta(item)
+      };
+    }
+    async function apiJson(url, options) {
+      const response = await fetch(url, { cache:"no-store", ...options, headers:{ "Content-Type":"application/json", ...(options && options.headers || {}) } });
+      const json = await response.json();
+      if (!response.ok || json.success === false) throw new Error(json.error || "Ошибка сохранения данных");
+      return json;
+    }
+    async function loadStateFromDatabase() {
+      const saved = (() => { try { return JSON.parse(localStorage.getItem("cargo_control_cn_by_v3") || "null"); } catch { return null; } })();
+      const [projectResult] = await Promise.all([apiJson("/api/projects")]);
+      const dbProjects = projectResult.data || [];
+      const projectRows = await Promise.all(dbProjects.map(async p => {
+        const result = await apiJson("/api/orders?projectId="+encodeURIComponent(p.id));
+        return { row:p, orders:result.data || [] };
+      }));
+      const next = emptyAppState();
+      if (saved?.rates) next.rates = { ...next.rates, ...saved.rates };
+      next.theme = saved?.theme || next.theme;
+      next.showArchive = saved?.showArchive ?? true;
+      next.recipients = Array.isArray(saved?.recipients) && saved.recipients.length ? saved.recipients : [...DEFAULT_RECIPIENTS];
+      next.projects = projectRows.map(({row,orders}) => ({
+        id:String(row.id), name:row.name, description:"", items:orders.map(mapDbOrder)
+      }));
+      const recipientNames = new Set(next.recipients.map(x => x.name));
+      next.projects.flatMap(p=>p.items).forEach(item => { if(item.recipient && !recipientNames.has(item.recipient)){ next.recipients.push({name:item.recipient,icon:"📦",color:"text-slate-800 dark:text-slate-300",bg:"bg-slate-100 border-slate-300 dark:bg-slate-700/30 dark:border-slate-600"}); recipientNames.add(item.recipient); }});
+      const all = next.projects.flatMap(p=>p.items);
+      if (all.length) {
+        const cny = Number(all.find(x=>x.rateCnyByn)?.rateCnyByn);
+        const usd = Number(all.find(x=>x.shippingUsdByn)?.shippingUsdByn);
+        if (cny > 0) next.rates.cnyToByn = cny;
+        if (usd > 0) next.rates.usdToByn = usd;
+      }
+      const preferred = localStorage.getItem("cargo_current_project");
+      next.activeProjectId = next.projects.some(p=>p.id===String(preferred)) ? String(preferred) : (next.projects[0]?.id || "");
+      apiBaseline = { projects: JSON.parse(JSON.stringify(next.projects)), orders: JSON.parse(JSON.stringify(next.projects.flatMap(p=>p.items))) };
+      return next;
+    }
+    function saveState() {
+      try {
+        localStorage.setItem("cargo_control_cn_by_v3", JSON.stringify({
+          theme:state.theme, showArchive:state.showArchive, globalSearch:state.globalSearch,
+          rates:state.rates, recipients:state.recipients, filters:state.filters
+        }));
+        localStorage.setItem("cargo_html_theme", state.theme || "light");
+      } catch(e) { console.warn("Не удалось сохранить настройки интерфейса",e); }
+      syncQueue = syncQueue.then(syncStateToDatabase).catch(error => {
+        console.error("Database sync failed:",error);
+        if (typeof showToast === "function") showToast("Не удалось сохранить изменения в базе: "+error.message,"error");
+      });
+    }
+    async function syncStateToDatabase() {
+      const baselineProjects = new Map(apiBaseline.projects.map(p=>[String(p.id),p]));
+      const baselineOrders = new Map(apiBaseline.orders.map(o=>[String(o.id),o]));
+      const currentIds = new Set(state.projects.map(p=>String(p.id)));
+      for (const oldProject of apiBaseline.projects) {
+        if (!currentIds.has(String(oldProject.id))) {
+          await apiJson("/api/projects",{method:"DELETE",body:JSON.stringify({id:Number(oldProject.id)})});
+        }
+      }
+      for (const project of state.projects) {
+        let pid = Number(project.id);
+        if (!Number.isInteger(pid) || pid<=0) {
+          const created = await apiJson("/api/projects",{method:"POST",body:JSON.stringify({name:project.name})});
+          const oldId=String(project.id); project.id=String(created.data.id); pid=Number(created.data.id);
+          state.projects.forEach(p=>{ if(String(p.id)===oldId) p.id=String(pid); });
+          if(state.activeProjectId===oldId) state.activeProjectId=String(pid);
+        } else if (baselineProjects.has(String(pid)) && baselineProjects.get(String(pid)).name!==project.name) {
+          await apiJson("/api/projects",{method:"PUT",body:JSON.stringify({id:pid,name:project.name})});
+        }
+      }
+      const nowIds = new Set();
+      for (const project of state.projects) {
+        const pid=Number(project.id);
+        for (const item of project.items) {
+          const key=String(item.id); nowIds.add(key);
+          const payload=mapHtmlOrder(item,pid);
+          if (/^\d+$/.test(key) && baselineOrders.has(key)) {
+            const before=baselineOrders.get(key);
+            if (JSON.stringify(item)!==JSON.stringify(before)) await apiJson("/api/orders/"+key,{method:"PUT",body:JSON.stringify(payload)});
+          } else {
+            const created=await apiJson("/api/orders",{method:"POST",body:JSON.stringify(payload)});
+            item.id=String(created.data.id);
+          }
+        }
+      }
+      for (const old of apiBaseline.orders) {
+        if (!nowIds.has(String(old.id))) await apiJson("/api/orders/"+old.id,{method:"DELETE"});
+      }
+      apiBaseline = { projects:JSON.parse(JSON.stringify(state.projects)), orders:JSON.parse(JSON.stringify(state.projects.flatMap(p=>p.items))) };
+    }
+    function resetToDemoData() {
+      showToast("Демо-данные отключены. Загружаются реальные позиции из базы.", "info");
+    }
+
+    function getActiveProject() {
+      return state.projects.find(p => p.id === state.activeProjectId) || state.projects[0];
+    }
+
+    // Поиск товара по ID во всех проектах
+    function findItemAcrossProjects(itemId) {
+      for (const proj of state.projects) {
+        const item = proj.items.find(i => i.id === itemId);
+        if (item) return { item, project: proj };
+      }
+      return null;
+    }
+
+    function getRecipientMeta(name) {
+      return state.recipients.find(r => r.name === name) || {
+        name: name || 'Себе',
+        icon: '👤',
+        color: 'text-slate-800 dark:text-slate-300',
+        bg: 'bg-slate-200 border-slate-300 dark:bg-slate-700/40 dark:border-slate-600'
+      };
+    }
+
+    function calculateItemMetrics(item) {
+      const { cnyToByn, usdToByn, cargoUsdPerKg, cargoUsdPerCube = 420, insurancePercent } = state.rates;
+      const qty = Math.max(1, Number(item.qty) || 1);
+      const priceCny = Number(item.priceCny) || 0;
+      const chinaShipCny = Number(item.chinaShipCny) || 0;
+      const weightKg = Number(item.weightKg) || 0;
+      const retailByn = Number(item.retailByn) || 0;
+
+      const totalCny = priceCny + chinaShipCny;
+      const goodsByn = totalCny * cnyToByn;
+      const insuranceByn = (priceCny * cnyToByn) * (insurancePercent / 100);
+
+      let volumeM3 = 0;
+      let density = null;
+      let isVolumetric = false;
+      if (item.dims && item.dims.l > 0 && item.dims.w > 0 && item.dims.h > 0) {
+        volumeM3 = (item.dims.l * item.dims.w * item.dims.h) / 1000000;
+        if (volumeM3 > 0 && weightKg > 0) {
+          density = weightKg / volumeM3;
+          isVolumetric = density < 100;
+        }
+      }
+
+      const cargoByWeightUsd = weightKg * cargoUsdPerKg;
+      const cargoByCubeUsd = volumeM3 * cargoUsdPerCube;
+      const cargoUsd = isVolumetric ? Math.max(cargoByWeightUsd, cargoByCubeUsd) : cargoByWeightUsd;
+      const cargoByn = cargoUsd * usdToByn;
+
+      const totalCostByn = goodsByn + insuranceByn + cargoByn;
+      const unitCostByn = totalCostByn / qty;
+
+      const totalRevenueByn = retailByn * qty;
+      const profitByn = retailByn > 0 ? (totalRevenueByn - totalCostByn) : 0;
+      const roiPercent = (retailByn > 0 && totalCostByn > 0) ? ((profitByn / totalCostByn) * 100) : 0;
+      const daysInTransit = Math.max(1, Math.floor((Date.now() - (item.createdAt || Date.now())) / 86400000));
+
+      return {
+        qty, totalCny, goodsByn, insuranceByn, cargoUsd, cargoByn,
+        totalCostByn, unitCostByn, volumeM3, density, isVolumetric,
+        retailByn, totalRevenueByn, profitByn, roiPercent, daysInTransit
+      };
+    }
+
+    // =========================================================================
+    // СЖАТИЕ И ОБРАБОТКА ФОТОГРАФИЙ ТОВАРА
+    // =========================================================================
+    function compressImageFile(file, maxSize = 260, quality = 0.78) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width;
+            let h = img.height;
+            if (w > h) {
+              if (w > maxSize) { h = Math.round(h * (maxSize / w)); w = maxSize; }
+            } else {
+              if (h > maxSize) { w = Math.round(w * (maxSize / h)); h = maxSize; }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = ev.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function setModalPhotoPreview(dataUrl) {
+      document.getElementById('itemPhotoDataInput').value = dataUrl || '';
+      const img = document.getElementById('modalPhotoImg');
+      const placeholder = document.getElementById('modalPhotoPlaceholder');
+      const clearBtn = document.getElementById('clearPhotoBtn');
+
+      if (dataUrl) {
+        img.src = dataUrl;
+        img.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+        clearBtn.classList.remove('hidden');
+      } else {
+        img.src = '';
+        img.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        clearBtn.classList.add('hidden');
+      }
+    }
+
+    function clearModalPhoto() {
+      setModalPhotoPreview('');
+      document.getElementById('itemPhotoUrlInput').value = '';
+      document.getElementById('itemPhotoFileInput').value = '';
+    }
+
+    async function handlePhotoFileSelect(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const compressed = await compressImageFile(file);
+        setModalPhotoPreview(compressed);
+        showToast('Фото сжато и прикреплено', 'success');
+      } catch (e) {
+        showToast('Не удалось обработать изображение', 'error');
+      }
+    }
+
+    async function handlePhotoDrop(event) {
+      event.preventDefault();
+      event.currentTarget.classList.remove('ring-2', 'ring-indigo-500');
+      const file = event.dataTransfer?.files?.[0];
+      if (file && file.type.startsWith('image/')) {
+        const compressed = await compressImageFile(file);
+        setModalPhotoPreview(compressed);
+        showToast('Фото загружено перетаскиванием', 'success');
+      }
+    }
+
+    function handlePhotoUrlInput(url) {
+      const trimmed = url.trim();
+      if (trimmed) setModalPhotoPreview(trimmed);
+    }
+
+    document.addEventListener('paste', async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (!file) continue;
+
+          const smartModalOpen = !document.getElementById('smartAddModal').classList.contains('hidden');
+          const lightboxOpen = !document.getElementById('photoLightboxModal').classList.contains('hidden');
+
+          if (smartModalOpen) {
+            e.preventDefault();
+            const compressed = await compressImageFile(file);
+            setModalPhotoPreview(compressed);
+            showToast('Фото вставлено из буфера обмена (Ctrl+V)!', 'success');
+          } else if (lightboxOpen && currentLightboxItemId) {
+            e.preventDefault();
+            const compressed = await compressImageFile(file);
+            updateItemPhotoById(currentLightboxItemId, compressed);
+            openPhotoLightbox(currentLightboxItemId);
+            showToast('Фото товара заменено из буфера обмена!', 'success');
+          }
+          break;
+        }
+      }
+    });
+
+    function openPhotoLightbox(itemId) {
+      const found = findItemAcrossProjects(itemId);
+      if (!found) return;
+      const { item } = found;
+
+      currentLightboxItemId = itemId;
+      document.getElementById('lightboxTitle').textContent = item.name;
+      const imgEl = document.getElementById('lightboxImage');
+      const noPhotoEl = document.getElementById('lightboxNoPhoto');
+      const delBtn = document.getElementById('lightboxDeletePhotoBtn');
+
+      if (item.photo) {
+        imgEl.src = item.photo;
+        imgEl.classList.remove('hidden');
+        noPhotoEl.classList.add('hidden');
+        delBtn.classList.remove('hidden');
+      } else {
+        imgEl.src = '';
+        imgEl.classList.add('hidden');
+        noPhotoEl.classList.remove('hidden');
+        delBtn.classList.add('hidden');
+      }
+
+      openModal('photoLightboxModal');
+      lucide.createIcons();
+    }
+
+    async function handleLightboxFileReplace(event) {
+      const file = event.target.files?.[0];
+      if (!file || !currentLightboxItemId) return;
+      const compressed = await compressImageFile(file);
+      updateItemPhotoById(currentLightboxItemId, compressed);
+      openPhotoLightbox(currentLightboxItemId);
+      showToast('Фотография товара обновлена!', 'success');
+    }
+
+    function removeItemPhotoFromLightbox() {
+      if (!currentLightboxItemId) return;
+      updateItemPhotoById(currentLightboxItemId, '');
+      openPhotoLightbox(currentLightboxItemId);
+      showToast('Фотография удалена', 'info');
+    }
+
+    function updateItemPhotoById(itemId, photoData) {
+      const found = findItemAcrossProjects(itemId);
+      if (!found) return;
+      found.item.photo = photoData;
+      saveState();
+      renderAll();
+    }
+
+    // =========================================================================
+    // ГЛОБАЛЬНЫЙ ПОИСК И ФИЛЬТРАЦИЯ
+    // =========================================================================
+    function toggleGlobalSearch() {
+      state.globalSearch = !state.globalSearch;
+      saveState();
+      renderAll();
+      showToast(state.globalSearch ? 'Поиск включен по ВСЕМ партиям' : 'Поиск только в текущей партии', 'info');
+    }
+
+    function getFilteredRecords() {
+      const activeProject = getActiveProject();
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const isGlobalActive = Boolean(query && state.globalSearch);
+
+      // Если введен поисковый запрос и включен глобальный поиск — ищем по всем проектам!
+      const sourceProjects = isGlobalActive ? state.projects : [activeProject];
+      const results = [];
+
+      sourceProjects.forEach(proj => {
+        proj.items.forEach(item => {
+          if (!state.showArchive && item.status === 'delivered' && state.filters.status !== 'delivered') return;
+          if (state.filters.status !== 'ALL' && item.status !== state.filters.status) return;
+          if (state.filters.recipient !== 'ALL' && item.recipient !== state.filters.recipient) return;
+
+          if (query) {
+            const hay = `${item.name} ${item.note || ''} ${item.track || ''} ${item.recipient || ''} ${proj.name}`.toLowerCase();
+            if (!hay.includes(query)) return;
+          }
+
+          results.push({ item, project: proj, isOtherProject: proj.id !== activeProject.id });
+        });
+      });
+
+      return { results, isGlobalActive, query };
+    }
+
+    // =========================================================================
+    // РЕНДЕРИНГ ИНТЕРФЕЙСА (ТАБЛИЦА + МОБИЛЬНЫЕ КАРТОЧКИ)
+    // =========================================================================
+    function renderAll() {
+      const project = getActiveProject();
+
+      document.getElementById('rateCnyInput').value = state.rates.cnyToByn;
+      document.getElementById('rateUsdInput').value = state.rates.usdToByn;
+      document.getElementById('cargoRateInput').value = state.rates.cargoUsdPerKg;
+      document.getElementById('cargoCubeRateInput').value = state.rates.cargoUsdPerCube || 420;
+      document.getElementById('insuranceRateInput').value = state.rates.insurancePercent;
+      document.getElementById('showArchiveToggle').checked = state.showArchive;
+
+      // Кнопка режима поиска
+      const globalBtn = document.getElementById('globalSearchToggleBtn');
+      if (state.globalSearch) {
+        globalBtn.textContent = '🌐 Везде';
+        globalBtn.className = 'absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-colors bg-indigo-600 text-white shadow-2xs';
+      } else {
+        globalBtn.textContent = '📁 Партия';
+        globalBtn.className = 'absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-colors bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200';
+      }
+
+      document.getElementById('activeProjectTitle').value = project.name;
+      document.getElementById('activeProjectSubtitle').value = project.description || '';
+      document.getElementById('projectItemsBadge').textContent = `${project.items.length} поз.`;
+
+      populateRecipientSelects();
+      renderProjectsSidebar();
+      renderKPIsAndRecipients(project);
+      renderStatusTabs(project);
+      renderItemsViews();
+      updateSelectionActionBar();
+
+      lucide.createIcons();
+    }
+
+    function populateRecipientSelects() {
+      const optionsHtml = state.recipients.map(r =>
+        `<option value="${escapeHtml(r.name)}">${r.icon} ${escapeHtml(r.name)}</option>`
+      ).join('');
+
+      const modalSel = document.getElementById('itemRecipientInput');
+      const parserSel = document.getElementById('parserDefaultRecipient');
+      if (modalSel) {
+        const prev = modalSel.value;
+        modalSel.innerHTML = optionsHtml;
+        if (prev && state.recipients.some(r => r.name === prev)) modalSel.value = prev;
+      }
+      if (parserSel) {
+        const prevP = parserSel.value;
+        parserSel.innerHTML = optionsHtml;
+        if (prevP && state.recipients.some(r => r.name === prevP)) parserSel.value = prevP;
+      }
+    }
+
+    function renderProjectsSidebar() {
+      const listEl = document.getElementById('projectList');
+      listEl.innerHTML = state.projects.map(p => {
+        const isActive = p.id === state.activeProjectId;
+        return `
+          <div onclick="selectProject('${p.id}')" class="group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all ${isActive ? 'bg-indigo-600 text-white shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200'}">
+            <div class="min-w-0 pr-2">
+              <div class="text-xs font-bold truncate">${escapeHtml(p.name)}</div>
+              <div class="text-[10px] font-medium truncate ${isActive ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}">${p.items.length} позиций</div>
+            </div>
+            ${state.projects.length > 1 ? `
+              <button onclick="deleteProject(event, '${p.id}')" title="Удалить проект" class="opacity-0 group-hover:opacity-100 p-1 rounded-lg ${isActive ? 'hover:bg-indigo-500 text-indigo-100' : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500'} transition-opacity">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderKPIsAndRecipients(project) {
+      let totalUnits = 0, totalChinaCny = 0, totalChinaByn = 0, totalWeightKg = 0;
+      let totalVolumeM3 = 0, totalCargoUsd = 0, totalCargoAndInsByn = 0, totalCostByn = 0;
+      let totalExpectedRev = 0, totalNetProfit = 0, commercialCostByn = 0;
+      let inTransitCount = 0, arrivedCount = 0;
+
+      const recipientStats = {};
+      state.recipients.forEach(r => {
+        recipientStats[r.name] = { count: 0, units: 0, costByn: 0, profitByn: 0 };
+      });
+
+      project.items.forEach(item => {
+        const m = calculateItemMetrics(item);
+        totalUnits += m.qty;
+        totalChinaCny += m.totalCny;
+        totalChinaByn += m.goodsByn;
+        totalWeightKg += Number(item.weightKg) || 0;
+        totalVolumeM3 += m.volumeM3;
+        totalCargoUsd += m.cargoUsd;
+        totalCargoAndInsByn += (m.cargoByn + m.insuranceByn);
+        totalCostByn += m.totalCostByn;
+
+        if (item.status === 'arrived' || item.status === 'delivered') arrivedCount++;
+        else inTransitCount++;
+
+        if (m.retailByn > 0) {
+          totalExpectedRev += m.totalRevenueByn;
+          totalNetProfit += m.profitByn;
+          commercialCostByn += m.totalCostByn;
+        }
+
+        const rec = item.recipient || 'Себе';
+        if (!recipientStats[rec]) recipientStats[rec] = { count: 0, units: 0, costByn: 0, profitByn: 0 };
+        recipientStats[rec].count += 1;
+        recipientStats[rec].units += m.qty;
+        recipientStats[rec].costByn += m.totalCostByn;
+        recipientStats[rec].profitByn += m.profitByn;
+      });
+
+      document.getElementById('kpiTotalUnits').textContent = totalUnits;
+      document.getElementById('kpiStatusBreakdown').innerHTML = `
+        <span class="text-blue-700 dark:text-blue-400">● В пути: ${inTransitCount}</span>
+        <span class="text-emerald-700 dark:text-emerald-400">● В РБ: ${arrivedCount}</span>
+      `;
+
+      document.getElementById('kpiChinaCny').textContent = `¥${totalChinaCny.toFixed(0)}`;
+      document.getElementById('kpiChinaByn').textContent = `${totalChinaByn.toFixed(2)} BYN`;
+
+      document.getElementById('kpiCargoUsd').textContent = `$${totalCargoUsd.toFixed(1)}`;
+      document.getElementById('kpiTotalWeight').textContent = `${totalWeightKg.toFixed(2)} кг`;
+      document.getElementById('kpiTotalVolume').textContent = `${totalVolumeM3.toFixed(3)} м³`;
+      document.getElementById('kpiCargoByn').textContent = `${totalCargoAndInsByn.toFixed(2)} BYN`;
+
+      document.getElementById('kpiTotalCostByn').textContent = totalCostByn.toFixed(2);
+      const logisticsShare = totalChinaByn > 0 ? ((totalCargoAndInsByn / totalChinaByn) * 100) : 0;
+      document.getElementById('kpiLogisticsShare').textContent = `+${logisticsShare.toFixed(0)}% к CN`;
+
+      const sign = totalNetProfit >= 0 ? '+' : '';
+      document.getElementById('kpiNetProfitByn').textContent = `${sign}${totalNetProfit.toFixed(2)}`;
+      document.getElementById('kpiExpectedRevenue').textContent = `Выручка: ${totalExpectedRev.toFixed(0)} BYN`;
+      const avgRoi = commercialCostByn > 0 ? ((totalNetProfit / commercialCostByn) * 100) : 0;
+      document.getElementById('kpiAvgRoi').textContent = `ROI ${avgRoi.toFixed(0)}%`;
+
+      const recGrid = document.getElementById('recipientCardsGrid');
+      const clearBtn = document.getElementById('clearRecipientFilterBtn');
+      if (state.filters.recipient !== 'ALL') clearBtn.classList.remove('hidden');
+      else clearBtn.classList.add('hidden');
+
+      recGrid.innerHTML = state.recipients.map(cfg => {
+        const stat = recipientStats[cfg.name] || { count: 0, units: 0, costByn: 0, profitByn: 0 };
+        const isSelected = state.filters.recipient === cfg.name;
+        return `
+          <div onclick="setRecipientFilter('${escapeHtml(cfg.name)}')" class="p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'ring-2 ring-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500' : 'bg-slate-50 dark:bg-[#161B26] border-slate-300/80 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700'}">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                <span>${cfg.icon}</span>
+                <span class="truncate">${escapeHtml(cfg.name)}</span>
+              </span>
+              <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white dark:bg-[#1E2433] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shrink-0">${stat.count} поз.</span>
+            </div>
+            <div class="font-mono text-sm font-extrabold ${cfg.color}">
+              ${stat.costByn.toFixed(2)} <span class="text-[10px] font-semibold text-slate-500">BYN</span>
+            </div>
+            <div class="text-[10px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 flex justify-between">
+              <span>${stat.units} ед.</span>
+              ${stat.profitByn > 0 ? `<span class="text-emerald-700 dark:text-emerald-400 font-extrabold">+${stat.profitByn.toFixed(0)} BYN</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStatusTabs(project) {
+      const counts = { ALL: project.items.length, bought: 0, china_transit: 0, warehouse: 0, transit: 0, arrived: 0, delivered: 0 };
+      project.items.forEach(i => {
+        if (counts[i.status] !== undefined) counts[i.status]++;
+      });
+
+      const tabs = [
+        { key: 'ALL', label: 'Все позиции' },
+        { key: 'bought', label: '🟡 Выкуплено' },
+        { key: 'china_transit', label: '🟣 По Китаю' },
+        { key: 'warehouse', label: '🟠 Склад CN' },
+        { key: 'transit', label: '🔵 Едет в РБ' },
+        { key: 'arrived', label: '🟢 В Минске' },
+        { key: 'delivered', label: '⚪ Выдано' }
+      ];
+
+      document.getElementById('statusFilterTabs').innerHTML = tabs.map(t => {
+        const active = state.filters.status === t.key;
+        return `
+          <button onclick="setStatusFilter('${t.key}')" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white dark:bg-[#12161F] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'}">
+            <span>${t.label}</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${active ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}">${counts[t.key]}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderItemsViews() {
+      const tbody = document.getElementById('itemsTableBody');
+      const mobileContainer = document.getElementById('mobileCardsContainer');
+      const emptyState = document.getElementById('emptyState');
+      const globalBanner = document.getElementById('globalSearchBanner');
+
+      const { results, isGlobalActive } = getFilteredRecords();
+
+      // Показываем или скрываем баннер глобального поиска
+      if (isGlobalActive) {
+        globalBanner.classList.remove('hidden');
+        const projectsCount = new Set(results.map(r => r.project.id)).size;
+        document.getElementById('globalSearchSummaryText').textContent =
+          `Глобальный поиск по всем партиям: найдено ${results.length} позиций в ${projectsCount} партиях`;
+      } else {
+        globalBanner.classList.add('hidden');
+      }
+
+      if (results.length === 0) {
+        tbody.innerHTML = '';
+        mobileContainer.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      // 1. РЕНДЕР ДЕСКТОПНОЙ ТАБЛИЦЫ
+      tbody.innerHTML = results.map(({ item, project, isOtherProject }) => {
+        const m = calculateItemMetrics(item);
+        const st = STATUS_CONFIG[item.status] || STATUS_CONFIG.bought;
+        const rec = getRecipientMeta(item.recipient);
+        const isChecked = selectedItemIds.has(item.id);
+
+        const recipientOptionsHtml = state.recipients.map(r =>
+          `<option value="${escapeHtml(r.name)}" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" ${item.recipient === r.name ? 'selected' : ''}>${r.icon} ${escapeHtml(r.name)}</option>`
+        ).join('');
+
+        return `
+          <tr class="${isChecked ? 'bg-indigo-50/80 dark:bg-indigo-950/25' : 'hover:bg-slate-50 dark:hover:bg-[#161B26]/80'} transition-colors group">
+            <!-- Чекбокс выбора -->
+            <td class="py-3 pl-4 pr-2 align-top pt-4">
+              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleItemSelection('${item.id}', this.checked)" class="rounded border-slate-400 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+            </td>
+
+            <!-- Фото + Название + Бейдж партии (при глобальном поиске) + Трек -->
+            <td class="py-3 px-3">
+              <div class="flex items-start gap-3">
+                <button type="button" onclick="openPhotoLightbox('${item.id}')" title="Нажмите, чтобы открыть или заменить фото" class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#1C2230] border border-slate-300 dark:border-slate-700 hover:ring-2 hover:ring-indigo-500 flex items-center justify-center shrink-0 overflow-hidden relative group/img transition-all">
+                  ${item.photo ? `
+                    <img src="${escapeHtml(item.photo)}" alt="" class="w-full h-full object-cover" />
+                    <div class="absolute inset-0 bg-black/45 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white transition-opacity">
+                      <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                    </div>
+                  ` : `
+                    <span class="text-lg">${item.category || '📦'}</span>
+                    <div class="absolute inset-0 bg-indigo-600/85 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white transition-opacity">
+                      <i data-lucide="camera" class="w-4 h-4"></i>
+                    </div>
+                  `}
+                </button>
+
+                <div class="min-w-0 flex-1 space-y-1">
+                  ${isGlobalActive ? `
+                    <button type="button" onclick="selectProject('${project.id}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold ${isOtherProject ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300'}">
+                      📁 ${escapeHtml(project.name)}
+                    </button>
+                  ` : ''}
+
+                  <input type="text" value="${escapeHtml(item.name)}" onchange="inlineUpdateItem('${item.id}', 'name', this.value)" title="Нажмите, чтобы изменить название" class="w-full font-bold text-slate-900 dark:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/80 focus:bg-white dark:focus:bg-[#0D1017] px-1.5 -ml-1.5 py-0.5 rounded-md focus:ring-1 focus:ring-indigo-500 focus:outline-none truncate" />
+                  
+                  <input type="text" value="${escapeHtml(item.note || '')}" placeholder="+ добавить заметку..." onchange="inlineUpdateItem('${item.id}', 'note', this.value)" class="w-full text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/80 focus:bg-white dark:focus:bg-[#0D1017] px-1.5 -ml-1.5 py-0.2 rounded focus:outline-none truncate" />
+
+                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <div class="inline-flex items-center rounded-md bg-slate-100 dark:bg-[#1D2332] border border-slate-300/80 dark:border-slate-700 focus-within:border-indigo-500 px-1.5 py-0.5">
+                      <input type="text" value="${escapeHtml(item.track || '')}" placeholder="Трек-номер..." onchange="inlineUpdateItem('${item.id}', 'track', this.value)" class="w-28 bg-transparent font-mono font-bold text-[11px] text-slate-800 dark:text-slate-200 uppercase focus:outline-none" />
+                      ${item.track ? `
+                        <button type="button" onclick="copyTrackNumber('${escapeHtml(item.track)}')" title="Скопировать трек" class="ml-1 text-slate-500 hover:text-indigo-600 transition-colors">
+                          <i data-lucide="copy" class="w-3 h-3"></i>
+                        </button>
+                      ` : ''}
+                    </div>
+                    <span class="text-[10px] font-semibold text-slate-500 font-mono">${m.daysInTransit} дн.</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Количество -->
+            <td class="py-3 px-2 text-center">
+              <input type="number" min="1" value="${item.qty}" onchange="inlineUpdateItem('${item.id}', 'qty', this.value)" class="w-12 text-center font-mono font-extrabold text-slate-900 dark:text-white py-1 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 focus:border-indigo-500 focus:outline-none" />
+            </td>
+
+            <!-- Цена в юанях + Доставка CN -->
+            <td class="py-3 px-2 text-right font-mono">
+              <div class="flex items-center justify-end gap-0.5">
+                <span class="text-slate-500 text-[11px] font-bold">¥</span>
+                <input type="number" step="0.1" min="0" value="${item.priceCny}" onchange="inlineUpdateItem('${item.id}', 'priceCny', this.value)" class="w-16 text-right font-extrabold text-slate-900 dark:text-white py-0.5 rounded bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-[#0D1017] focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+              </div>
+              <div class="flex items-center justify-end gap-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5">
+                <span>+¥</span>
+                <input type="number" step="0.5" min="0" value="${item.chinaShipCny || 0}" onchange="inlineUpdateItem('${item.id}', 'chinaShipCny', this.value)" class="w-10 text-right bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded focus:outline-none" />
+                <span>CN</span>
+              </div>
+            </td>
+
+            <!-- Вес + индикатор объемного груза -->
+            <td class="py-3 px-2 text-right font-mono">
+              <div class="flex items-center justify-end gap-1">
+                <input type="number" step="0.05" min="0" value="${item.weightKg}" onchange="inlineUpdateItem('${item.id}', 'weightKg', this.value)" class="w-14 text-right font-extrabold text-slate-900 dark:text-white py-1 rounded-lg bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+                <span class="text-slate-500 text-[11px] font-bold">кг</span>
+              </div>
+              <div class="text-[10px] font-bold text-amber-700 dark:text-amber-400">$${m.cargoUsd.toFixed(1)} карго</div>
+              ${m.isVolumetric ? `
+                <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[9px] font-sans font-extrabold">
+                  ⚠️ Объёмный
+                </span>
+              ` : (m.density ? `<div class="text-[9px] font-medium text-slate-500">${m.density.toFixed(0)} кг/м³</div>` : '')}
+            </td>
+
+            <!-- Себестоимость 1 ед. в BYN -->
+            <td class="py-3 px-2 text-right font-mono">
+              <div class="font-extrabold text-indigo-700 dark:text-indigo-400">${m.unitCostByn.toFixed(2)} <span class="text-[10px] font-semibold">BYN</span></div>
+              <div class="text-[10px] font-medium text-slate-500">за 1 ед.</div>
+            </td>
+
+            <!-- Итого себестоимость партии -->
+            <td class="py-3 px-2 text-right font-mono">
+              <div class="font-extrabold text-slate-900 dark:text-white">${m.totalCostByn.toFixed(2)} <span class="text-[10px] font-semibold text-slate-500">BYN</span></div>
+            </td>
+
+            <!-- Розница и Маржа -->
+            <td class="py-3 px-2 text-right font-mono">
+              <div class="flex items-center justify-end gap-1">
+                <input type="number" step="0.5" min="0" value="${item.retailByn || 0}" onchange="inlineUpdateItem('${item.id}', 'retailByn', this.value)" class="w-14 text-right font-extrabold py-0.5 rounded bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-900 dark:text-slate-100" />
+                <span class="text-[10px] font-bold text-slate-500">BYN</span>
+              </div>
+              ${m.retailByn > 0 ? `
+                <div class="text-[10px] font-extrabold mt-0.5 ${m.profitByn >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600'}">
+                  ${m.profitByn >= 0 ? '+' : ''}${m.profitByn.toFixed(1)} (${m.roiPercent.toFixed(0)}%)
+                </div>
+              ` : `<div class="text-[9px] text-slate-500 font-sans">без розницы</div>`}
+            </td>
+
+            <!-- Для кого -->
+            <td class="py-3 px-2">
+              <select onchange="inlineUpdateItem('${item.id}', 'recipient', this.value)" class="w-full px-2 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer focus:outline-none ${rec.bg} ${rec.color}">
+                ${recipientOptionsHtml}
+              </select>
+            </td>
+
+            <!-- Статус доставки -->
+            <td class="py-3 px-2">
+              <select onchange="inlineUpdateItem('${item.id}', 'status', this.value)" class="w-full px-2 py-1 rounded-lg border text-[11px] font-bold cursor-pointer focus:outline-none ${st.badge}">
+                <option value="bought" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" ${item.status === 'bought' ? 'selected' : ''}>🟡 Выкуплено</option>
+                <option value="china_transit" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" ${item.status === 'china_transit' ? 'selected' : ''}>🟣 Едет по Китаю</option>
+                <option value="warehouse" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" ${item.status === 'warehouse' ? 'selected' : ''}>🟠 На складе CN</option>
+                <option value="transit" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" ${item.status === 'transit' ? 'selected' : ''}>🔵 Едет в РБ</option>
+                <option value="arrived" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" ${item.status === 'arrived' ? 'selected' : ''}>🟢 Прибыло в Минск</option>
+                <option value="delivered" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" ${item.status === 'delivered' ? 'selected' : ''}>⚪ Выдано / Архив</option>
+              </select>
+              <div class="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mt-1.5 overflow-hidden">
+                <div class="h-full ${st.barColor} transition-all duration-300" style="width: ${st.progress}%"></div>
+              </div>
+            </td>
+
+            <!-- Действия -->
+            <td class="py-3 px-3 text-right">
+              <div class="inline-flex items-center gap-1">
+                <button onclick="duplicateItem('${item.id}')" title="Дублировать" class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
+                  <i data-lucide="copy-plus" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="openEditItemModal('${item.id}')" title="Редактировать" class="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
+                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteItem('${item.id}')" title="Удалить" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // 2. РЕНДЕР МОБИЛЬНЫХ КАРТОЧЕК (< md) — максимально удобно на смартфоне
+      mobileContainer.innerHTML = results.map(({ item, project, isOtherProject }) => {
+        const m = calculateItemMetrics(item);
+        const st = STATUS_CONFIG[item.status] || STATUS_CONFIG.bought;
+        const rec = getRecipientMeta(item.recipient);
+        const isChecked = selectedItemIds.has(item.id);
+
+        const recipientOptionsHtml = state.recipients.map(r =>
+          `<option value="${escapeHtml(r.name)}" ${item.recipient === r.name ? 'selected' : ''}>${r.icon} ${escapeHtml(r.name)}</option>`
+        ).join('');
+
+        return `
+          <div class="bg-white dark:bg-[#12161F] rounded-2xl p-3.5 border ${isChecked ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-slate-300 dark:border-slate-800'} shadow-sm space-y-3">
+            <!-- Верхняя строка карточки: Чекбокс, Фото, Название, Действия -->
+            <div class="flex items-start gap-3">
+              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleItemSelection('${item.id}', this.checked)" class="mt-1 rounded border-slate-400 text-indigo-600 focus:ring-indigo-500" />
+              
+              <button type="button" onclick="openPhotoLightbox('${item.id}')" class="w-16 h-16 rounded-xl bg-slate-100 dark:bg-[#1C2230] border border-slate-300 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="" class="w-full h-full object-cover" />` : `<span class="text-2xl">${item.category || '📦'}</span>`}
+              </button>
+
+              <div class="min-w-0 flex-1">
+                ${isGlobalActive ? `
+                  <div class="mb-1">
+                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-extrabold ${isOtherProject ? 'bg-amber-100 text-amber-900' : 'bg-indigo-100 text-indigo-800'}">📁 ${escapeHtml(project.name)}</span>
+                  </div>
+                ` : ''}
+                <div class="font-extrabold text-sm text-slate-900 dark:text-white leading-snug">${escapeHtml(item.name)}</div>
+                ${item.note ? `<div class="text-[11px] font-medium text-slate-600 dark:text-slate-400 mt-0.5">${escapeHtml(item.note)}</div>` : ''}
+                
+                <!-- Трек-номер с кнопкой копирования -->
+                <div class="flex items-center gap-2 mt-1.5">
+                  ${item.track ? `
+                    <button type="button" onclick="copyTrackNumber('${escapeHtml(item.track)}')" class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 dark:bg-[#1D2332] border border-slate-300 dark:border-slate-700 font-mono text-[11px] font-bold text-slate-800 dark:text-slate-200 active:scale-95">
+                      <span>${escapeHtml(item.track)}</span>
+                      <i data-lucide="copy" class="w-3 h-3 text-indigo-600"></i>
+                    </button>
+                  ` : `<span class="text-[11px] text-slate-400">Без трека</span>`}
+                  <span class="text-[11px] font-mono font-semibold text-slate-500">${m.daysInTransit} дн.</span>
+                </div>
+              </div>
+
+              <button onclick="openEditItemModal('${item.id}')" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 shrink-0">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Сетка ключевых цифр -->
+            <div class="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-100/90 dark:bg-[#0D1017] border border-slate-200 dark:border-slate-800 text-center">
+              <div>
+                <div class="text-[10px] font-bold text-slate-500 uppercase">Кол-во / Вес</div>
+                <div class="font-mono text-xs font-extrabold text-slate-900 dark:text-white mt-0.5">${item.qty} шт • ${item.weightKg} кг</div>
+              </div>
+              <div>
+                <div class="text-[10px] font-bold text-slate-500 uppercase">Закуп CN</div>
+                <div class="font-mono text-xs font-extrabold text-slate-900 dark:text-white mt-0.5">¥${m.totalCny.toFixed(0)}</div>
+              </div>
+              <div>
+                <div class="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase">Себест. 1 ед.</div>
+                <div class="font-mono text-xs font-extrabold text-indigo-700 dark:text-indigo-400 mt-0.5">${m.unitCostByn.toFixed(2)} BYN</div>
+              </div>
+            </div>
+
+            <!-- Нижняя панель карточки: Быстрая смена получателя и статуса -->
+            <div class="grid grid-cols-2 gap-2">
+              <select onchange="inlineUpdateItem('${item.id}', 'recipient', this.value)" class="w-full px-2.5 py-2 rounded-xl border text-xs font-bold focus:outline-none ${rec.bg} ${rec.color}">
+                ${recipientOptionsHtml}
+              </select>
+
+              <select onchange="inlineUpdateItem('${item.id}', 'status', this.value)" class="w-full px-2.5 py-2 rounded-xl border text-xs font-bold focus:outline-none ${st.badge}">
+                <option value="bought" ${item.status === 'bought' ? 'selected' : ''}>🟡 Выкуплено</option>
+                <option value="china_transit" ${item.status === 'china_transit' ? 'selected' : ''}>🟣 По Китаю</option>
+                <option value="warehouse" ${item.status === 'warehouse' ? 'selected' : ''}>🟠 Склад CN</option>
+                <option value="transit" ${item.status === 'transit' ? 'selected' : ''}>🔵 Едет в РБ</option>
+                <option value="arrived" ${item.status === 'arrived' ? 'selected' : ''}>🟢 В Минске</option>
+                <option value="delivered" ${item.status === 'delivered' ? 'selected' : ''}>⚪ Выдано</option>
+              </select>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // ЧЕКБОКСЫ ВЫДЕЛЕНИЯ СТРОК ДЛЯ МАССОВЫХ ОПЕРАЦИЙ И ЭКСПОРТА
+    // =========================================================================
+    function toggleItemSelection(itemId, checked) {
+      if (checked) selectedItemIds.add(itemId);
+      else selectedItemIds.delete(itemId);
+      updateSelectionActionBar();
+      renderItemsViews();
+      lucide.createIcons();
+    }
+
+    function toggleSelectAllVisible(checked) {
+      const { results } = getFilteredRecords();
+      results.forEach(({ item }) => {
+        if (checked) selectedItemIds.add(item.id);
+        else selectedItemIds.delete(item.id);
+      });
+      updateSelectionActionBar();
+      renderItemsViews();
+      lucide.createIcons();
+    }
+
+    function clearSelection() {
+      selectedItemIds.clear();
+      const masterCb = document.getElementById('selectAllCheckbox');
+      if (masterCb) masterCb.checked = false;
+      updateSelectionActionBar();
+      renderItemsViews();
+      lucide.createIcons();
+    }
+
+    function updateSelectionActionBar() {
+      const bar = document.getElementById('selectionActionBar');
+      const count = selectedItemIds.size;
+      if (count > 0) {
+        bar.classList.remove('hidden');
+        document.getElementById('selectedCountBadge').textContent = count;
+      } else {
+        bar.classList.add('hidden');
+      }
+    }
+
+    function deleteSelectedItems() {
+      if (selectedItemIds.size === 0) return;
+      state.projects.forEach(p => {
+        p.items = p.items.filter(i => !selectedItemIds.has(i.id));
+      });
+      const deletedCount = selectedItemIds.size;
+      selectedItemIds.clear();
+      saveState();
+      renderAll();
+      showToast(`Удалено выбранных позиций: ${deletedCount}`, 'info');
+    }
+
+    // =========================================================================
+    // ГОЛОСОВОЙ ВВОД (WEB SPEECH API) ДЛЯ УМНОГО ПАРСЕРА
+    // =========================================================================
+    function toggleVoiceInput() {
+      if (isRecordingVoice && speechRecognition) {
+        speechRecognition.stop();
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast('Голосовой ввод не поддерживается этим браузером (используйте Chrome / Safari)', 'error');
+        return;
+      }
+
+      speechRecognition = new SpeechRecognition();
+      speechRecognition.lang = 'ru-RU';
+      speechRecognition.continuous = true;
+      speechRecognition.interimResults = false;
+
+      const btn = document.getElementById('voiceRecordBtn');
+      const btnText = document.getElementById('voiceRecordBtnText');
+      const badge = document.getElementById('voiceStatusBadge');
+      const textarea = document.getElementById('parserTextarea');
+
+      speechRecognition.onstart = () => {
+        isRecordingVoice = true;
+        btn.classList.remove('bg-rose-600', 'hover:bg-rose-700');
+        btn.classList.add('bg-slate-900', 'animate-pulse');
+        btnText.textContent = 'Остановить запись';
+        badge.classList.remove('hidden');
+        showToast('Говорите: название, количество, цена в юанях, вес...', 'info');
+      };
+
+      speechRecognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            transcript += event.results[i][0].transcript.trim() + '\n';
+          }
+        }
+        if (transcript) {
+          // Нормализуем разговорные слова ("юаней" -> "ю", "килограмм" -> "кг", "штук" -> "шт")
+          const normalized = transcript
+            .replace(/юаней|юаня|юань/gi, 'ю')
+            .replace(/килограммов|килограмма|килограмм|кг\./gi, 'кг')
+            .replace(/штук|штуки|штука/gi, 'шт');
+          textarea.value = (textarea.value ? textarea.value.trim() + '\n' : '') + normalized;
+        }
+      };
+
+      speechRecognition.onerror = (event) => {
+        showToast('Ошибка микрофона: ' + event.error, 'error');
+      };
+
+      speechRecognition.onend = () => {
+        isRecordingVoice = false;
+        btn.classList.add('bg-rose-600', 'hover:bg-rose-700');
+        btn.classList.remove('bg-slate-900', 'animate-pulse');
+        btnText.textContent = 'Начать диктовку';
+        badge.classList.add('hidden');
+      };
+
+      speechRecognition.start();
+    }
+
+    // =========================================================================
+    // ЦЕНТР ГИБКОГО ЭКСПОРТА (С ФОТОГРАФИЯМИ, EXCEL, HTML-ПЕЧАТЬ, ПО ТРЕКАМ)
+    // =========================================================================
+    function openExportModal(presetScope = null) {
+      document.getElementById('exportSelectedCountLabel').textContent = selectedItemIds.size;
+
+      if (presetScope === 'selected' && selectedItemIds.size > 0) {
+        document.getElementById('exportScopeSelectedRadio').checked = true;
+      } else if (selectedItemIds.size > 0) {
+        document.getElementById('exportScopeSelectedRadio').checked = true;
+      } else {
+        document.querySelector('input[name="exportScope"][value="current_project"]').checked = true;
+      }
+
+      toggleExportTracksBox();
+      openModal('exportModal');
+      lucide.createIcons();
+    }
+
+    function toggleExportTracksBox() {
+      const scope = document.querySelector('input[name="exportScope"]:checked')?.value;
+      const box = document.getElementById('exportTracksInputBox');
+      if (scope === 'tracks_list') box.classList.remove('hidden');
+      else box.classList.add('hidden');
+    }
+
+    function getItemsForExport() {
+      const scope = document.querySelector('input[name="exportScope"]:checked')?.value || 'current_project';
+      const activeProject = getActiveProject();
+
+      if (scope === 'current_project') {
+        return activeProject.items.map(item => ({ item, project: activeProject }));
+      }
+      if (scope === 'filtered') {
+        return getFilteredRecords().results.map(r => ({ item: r.item, project: r.project }));
+      }
+      if (scope === 'selected') {
+        const list = [];
+        state.projects.forEach(p => {
+          p.items.forEach(item => {
+            if (selectedItemIds.has(item.id)) list.push({ item, project: p });
+          });
+        });
+        return list;
+      }
+      if (scope === 'tracks_list') {
+        const raw = document.getElementById('exportTracksTextarea').value.trim().toUpperCase();
+        const tokens = raw.split(/[\s,;]+/).map(t => t.trim()).filter(Boolean);
+        const trackSet = new Set(tokens);
+        const list = [];
+        state.projects.forEach(p => {
+          p.items.forEach(item => {
+            if (item.track && trackSet.has(item.track.trim().toUpperCase())) {
+              list.push({ item, project: p });
+            }
+          });
+        });
+        return list;
+      }
+      return [];
+    }
+
+    function executeExport(format) {
+      const records = getItemsForExport();
+      if (!records.length) {
+        showToast('Нет позиций для экспорта по выбранным параметрам', 'error');
+        return;
+      }
+
+      const activeProject = getActiveProject();
+      const safeName = activeProject.name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
+
+      if (format === 'csv_clean') {
+        const headers = [
+          'Партия', 'Название товара', 'Заметка', 'Трек-номер', 'Кол-во',
+          'Цена CN (CNY)', 'Доставка CN (CNY)', 'Вес (кг)', 'Карго ($)',
+          'Себест. 1 ед. (BYN)', 'Итого себест. (BYN)', 'Розница (BYN)', 'Прибыль (BYN)',
+          'Для кого', 'Статус'
+        ];
+        const rows = records.map(({ item, project }) => {
+          const m = calculateItemMetrics(item);
+          const stLabel = STATUS_CONFIG[item.status]?.label || item.status;
+          return [
+            `"${project.name.replace(/"/g, '""')}"`,
+            `"${(item.name || '').replace(/"/g, '""')}"`,
+            `"${(item.note || '').replace(/"/g, '""')}"`,
+            `"${item.track || ''}"`,
+            m.qty, item.priceCny, item.chinaShipCny || 0, item.weightKg,
+            m.cargoUsd.toFixed(2), m.unitCostByn.toFixed(2), m.totalCostByn.toFixed(2),
+            m.retailByn.toFixed(2), m.profitByn.toFixed(2),
+            `"${item.recipient}"`, `"${stLabel}"`
+          ].join(';');
+        });
+        const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\n');
+        downloadBlobFile(csvContent, 'text/csv;charset=utf-8;', `Cargo_${safeName}.csv`);
+        closeModal('exportModal');
+        showToast(`Экспортировано в CSV: ${records.length} поз.`, 'success');
+        return;
+      }
+
+      // Генерация HTML-документа с встроенными картинками (подходит и для HTML-каталога/PDF, и для Excel .xls)
+      let totalCostAll = 0;
+      let totalWeightAll = 0;
+
+      const tableRowsHtml = records.map(({ item, project }, index) => {
+        const m = calculateItemMetrics(item);
+        const stLabel = STATUS_CONFIG[item.status]?.label || item.status;
+        totalCostAll += m.totalCostByn;
+        totalWeightAll += Number(item.weightKg) || 0;
+
+        const imgCell = item.photo
+          ? `<img src="${item.photo}" width="64" height="64" style="width:64px;height:64px;object-fit:cover;border-radius:8px;display:block;" />`
+          : `<div style="width:64px;height:64px;background:#f1f5f9;border-radius:8px;text-align:center;line-height:64px;font-size:24px;">${item.category || '📦'}</div>`;
+
+        return `
+          <tr>
+            <td style="text-align:center;font-weight:bold;">${index + 1}</td>
+            <td style="width:72px;">${imgCell}</td>
+            <td>
+              <div style="font-weight:bold;font-size:13px;color:#0f172a;">${escapeHtml(item.name)}</div>
+              ${item.note ? `<div style="font-size:11px;color:#475569;margin-top:2px;">${escapeHtml(item.note)}</div>` : ''}
+              <div style="font-size:10px;color:#6366f1;margin-top:3px;">Партия: ${escapeHtml(project.name)}</div>
+            </td>
+            <td style="font-family:monospace;font-weight:bold;">${escapeHtml(item.track || '—')}</td>
+            <td style="text-align:center;font-weight:bold;">${m.qty} шт</td>
+            <td style="text-align:right;">¥${m.totalCny.toFixed(1)}</td>
+            <td style="text-align:right;">${item.weightKg} кг<br><span style="font-size:10px;color:#b45309;">($${m.cargoUsd.toFixed(1)})</span></td>
+            <td style="text-align:right;font-weight:bold;color:#4338ca;">${m.unitCostByn.toFixed(2)} BYN</td>
+            <td style="text-align:right;font-weight:bold;">${m.totalCostByn.toFixed(2)} BYN</td>
+            <td style="font-weight:bold;">${escapeHtml(item.recipient)}</td>
+            <td>${escapeHtml(stLabel)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const htmlDoc = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Карго-Накладная с фото — ${escapeHtml(activeProject.name)}</title>
+<style>
+  body { font-family: Arial, sans-serif; color: #0f172a; margin: 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px 0; }
+  .meta { font-size: 12px; color: #475569; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #1e293b; color: #ffffff; padding: 10px 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+  td { border: 1px solid #cbd5e1; padding: 8px; vertical-align: middle; }
+  tr:nth-child(even) { background: #f8fafc; }
+  .summary { margin-top: 16px; font-size: 14px; font-weight: bold; text-align: right; }
+  @media print { .no-print { display: none; } body { margin: 8px; } }
+</style>
+</head>
+<body>
+  <div class="no-print" style="margin-bottom:16px;padding:12px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
+    <span><b>Готово!</b> Вы можете распечатать этот каталог или сохранить его в PDF.</span>
+    <button onclick="window.print()" style="padding:8px 16px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">🖨️ Печать / Сохранить в PDF</button>
+  </div>
+  <h1>КАРГО-КОНТРОЛЬ 🇨🇳 ➔ 🇧🇾 • Ведомость товаров с фото</h1>
+  <div class="meta">Дата выгрузки: ${new Date().toLocaleString('ru-RU')} • Курс: 1 CNY = ${state.rates.cnyToByn} BYN | 1 USD = ${state.rates.usdToByn} BYN | Тариф: $${state.rates.cargoUsdPerKg}/кг</div>
+  <table>
+    <thead>
+      <tr>
+        <th>№</th>
+        <th>Фото</th>
+        <th>Товар и характеристики</th>
+        <th>Трек-номер</th>
+        <th>Кол-во</th>
+        <th>Китай ¥</th>
+        <th>Вес / Карго</th>
+        <th>Себест. 1 ед.</th>
+        <th>Итого BYN</th>
+        <th>Для кого</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>${tableRowsHtml}</tbody>
+  </table>
+  <div class="summary">Позиций: ${records.length} • Общий вес: ${totalWeightAll.toFixed(2)} кг • Итого себестоимость: ${totalCostAll.toFixed(2)} BYN</div>
+</body>
+</html>`;
+
+      if (format === 'xls_photos') {
+        downloadBlobFile('\uFEFF' + htmlDoc, 'application/vnd.ms-excel;charset=utf-8;', `Cargo_Photos_${safeName}.xls`);
+        closeModal('exportModal');
+        showToast(`Экспортировано в Excel с фото: ${records.length} поз.`, 'success');
+      } else {
+        downloadBlobFile(htmlDoc, 'text/html;charset=utf-8;', `Cargo_Catalog_${safeName}.html`);
+        closeModal('exportModal');
+        showToast(`HTML-каталог с фото скачан (${records.length} поз.)`, 'success');
+      }
+    }
+
+    function downloadBlobFile(content, mimeType, fileName) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    // =========================================================================
+    // ОСТАЛЬНЫЕ ДЕЙСТВИЯ (INLINE-РЕДАКТОР, ПАРСЕР, ПРОЕКТЫ, ПОЛУЧАТЕЛИ)
+    // =========================================================================
+    function updateRates() {
+      state.rates.cnyToByn = Math.max(0.001, parseFloat(document.getElementById('rateCnyInput').value) || 0.48);
+      state.rates.usdToByn = Math.max(0.01, parseFloat(document.getElementById('rateUsdInput').value) || 3.28);
+      state.rates.cargoUsdPerKg = Math.max(0, parseFloat(document.getElementById('cargoRateInput').value) || 0);
+      state.rates.cargoUsdPerCube = Math.max(0, parseFloat(document.getElementById('cargoCubeRateInput').value) || 420);
+      state.rates.insurancePercent = Math.max(0, parseFloat(document.getElementById('insuranceRateInput').value) || 0);
+      saveState();
+      renderAll();
+      showToast('Курсы валют и тарифы карго пересчитаны', 'info');
+    }
+
+    function inlineUpdateItem(itemId, field, rawValue) {
+      const found = findItemAcrossProjects(itemId);
+      if (!found) return;
+      const { item } = found;
+
+      if (field === 'name') {
+        const trimmed = String(rawValue).trim();
+        if (trimmed) item.name = trimmed;
+      } else if (field === 'note') {
+        item.note = String(rawValue).trim();
+      } else if (field === 'track') {
+        item.track = String(rawValue).trim().toUpperCase();
+      } else if (field === 'qty') {
+        item.qty = Math.max(1, parseInt(rawValue) || 1);
+      } else if (field === 'priceCny') {
+        item.priceCny = Math.max(0, parseFloat(rawValue) || 0);
+      } else if (field === 'chinaShipCny') {
+        item.chinaShipCny = Math.max(0, parseFloat(rawValue) || 0);
+      } else if (field === 'weightKg') {
+        item.weightKg = Math.max(0, parseFloat(rawValue) || 0);
+      } else if (field === 'retailByn') {
+        item.retailByn = Math.max(0, parseFloat(rawValue) || 0);
+      } else if (field === 'recipient') {
+        item.recipient = rawValue;
+        showToast(`Получатель: ${rawValue}`, 'success');
+      } else if (field === 'status') {
+        item.status = rawValue;
+        showToast(`Статус: ${STATUS_CONFIG[rawValue].label}`, 'success');
+      }
+
+      saveState();
+      renderAll();
+    }
+
+    function duplicateItem(itemId) {
+      const found = findItemAcrossProjects(itemId);
+      if (!found) return;
+      const copy = JSON.parse(JSON.stringify(found.item));
+      copy.id = 'itm_' + Date.now();
+      copy.name = found.item.name + ' (копия)';
+      copy.createdAt = Date.now();
+      found.project.items.unshift(copy);
+      saveState();
+      renderAll();
+      showToast('Позиция продублирована', 'success');
+    }
+
+    function toggleShowArchive(checked) {
+      state.showArchive = checked;
+      saveState();
+      renderAll();
+    }
+
+    function renameActiveProject(newName) {
+      const trimmed = newName.trim();
+      if (!trimmed) return;
+      getActiveProject().name = trimmed;
+      saveState();
+      renderProjectsSidebar();
+      showToast('Название партии обновлено', 'success');
+    }
+
+    function updateActiveProjectDesc(newDesc) {
+      getActiveProject().description = newDesc.trim();
+      saveState();
+    }
+
+    function openRecipientManagerModal() {
+      renderCustomRecipientsList();
+      openModal('recipientManagerModal');
+    }
+
+    function renderCustomRecipientsList() {
+      const container = document.getElementById('customRecipientsList');
+      container.innerHTML = state.recipients.map((r, idx) => `
+        <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0D1017] border border-slate-200 dark:border-slate-800 text-xs">
+          <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
+            <span class="text-base">${r.icon}</span>
+            <span>${escapeHtml(r.name)}</span>
+          </div>
+          ${idx >= DEFAULT_RECIPIENTS.length ? `
+            <button onclick="deleteCustomRecipient('${escapeHtml(r.name)}')" class="text-rose-600 hover:underline text-[11px] font-bold">Удалить</button>
+          ` : `<span class="text-[10px] font-medium text-slate-400">Базовый</span>`}
+        </div>
+      `).join('');
+    }
+
+    function addCustomRecipient(e) {
+      e.preventDefault();
+      const icon = document.getElementById('newRecipientIcon').value.trim() || '👤';
+      const name = document.getElementById('newRecipientName').value.trim();
+      if (!name) return;
+
+      if (state.recipients.some(r => r.name.toLowerCase() === name.toLowerCase())) {
+        showToast('Такой получатель уже есть', 'error');
+        return;
+      }
+
+      state.recipients.push({
+        name,
+        icon,
+        color: 'text-indigo-800 dark:text-indigo-400',
+        bg: 'bg-indigo-100 border-indigo-300 dark:bg-indigo-500/15 dark:border-indigo-500/30'
+      });
+
+      document.getElementById('newRecipientName').value = '';
+      saveState();
+      renderCustomRecipientsList();
+      renderAll();
+      showToast(`Получатель «${name}» добавлен`, 'success');
+    }
+
+    function deleteCustomRecipient(name) {
+      state.recipients = state.recipients.filter(r => r.name !== name);
+      if (state.filters.recipient === name) state.filters.recipient = 'ALL';
+      saveState();
+      renderCustomRecipientsList();
+      renderAll();
+    }
+
+    function deleteItem(itemId) {
+      state.projects.forEach(p => {
+        p.items = p.items.filter(i => i.id !== itemId);
+      });
+      selectedItemIds.delete(itemId);
+      saveState();
+      renderAll();
+      showToast('Позиция удалена', 'info');
+    }
+
+    function copyTrackNumber(track) {
+      const el = document.createElement('textarea');
+      el.value = track;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast(`Трек-номер ${track} скопирован!`, 'success');
+    }
+
+    function setStatusFilter(statusKey) {
+      state.filters.status = statusKey;
+      saveState();
+      renderAll();
+    }
+
+    function setRecipientFilter(recipientName) {
+      state.filters.recipient = (state.filters.recipient === recipientName) ? 'ALL' : recipientName;
+      saveState();
+      renderAll();
+    }
+
+    function resetFilters() {
+      state.filters.status = 'ALL';
+      state.filters.recipient = 'ALL';
+      document.getElementById('searchInput').value = '';
+      renderAll();
+    }
+
+    function selectProject(projectId) {
+      state.activeProjectId = projectId;
+      state.filters.status = 'ALL';
+      state.filters.recipient = 'ALL';
+      saveState();
+      renderAll();
+      const sidebar = document.getElementById('sidebar');
+      if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
+        toggleSidebar();
+      }
+    }
+
+    function openNewProjectModal() {
+      document.getElementById('newProjectNameInput').value = '';
+      document.getElementById('newProjectDescInput').value = '';
+      openModal('newProjectModal');
+    }
+
+    function createNewProject(e) {
+      e.preventDefault();
+      const name = document.getElementById('newProjectNameInput').value.trim();
+      const description = document.getElementById('newProjectDescInput').value.trim();
+      if (!name) return;
+
+      const newProj = {
+        id: 'proj_' + Date.now(),
+        name,
+        description: description || 'Новая партия закупки из Китая',
+        items: []
+      };
+      state.projects.unshift(newProj);
+      state.activeProjectId = newProj.id;
+      saveState();
+      closeModal('newProjectModal');
+      renderAll();
+      showToast(`Партия «${name}» создана`, 'success');
+    }
+
+    function deleteProject(e, projectId) {
+      e.stopPropagation();
+      if (state.projects.length <= 1) return;
+      state.projects = state.projects.filter(p => p.id !== projectId);
+      if (state.activeProjectId === projectId) state.activeProjectId = state.projects[0].id;
+      saveState();
+      renderAll();
+      showToast('Партия удалена', 'info');
+    }
+
+    function openSmartAddModal(tab = 'manual', autoStartVoice = false) {
+      document.getElementById('editItemId').value = '';
+      document.getElementById('modalTitle').textContent = 'Добавить позицию в партию';
+      document.getElementById('manualItemForm').reset();
+      clearModalPhoto();
+      populateRecipientSelects();
+      document.getElementById('itemQtyInput').value = 1;
+      document.getElementById('itemPriceCnyInput').value = 0;
+      document.getElementById('itemChinaShipInput').value = 0;
+      document.getElementById('itemWeightInput').value = 0.5;
+      document.getElementById('itemRetailBynInput').value = 0;
+      switchAddTab(tab);
+      updateLiveFormPreview();
+      openModal('smartAddModal');
+      lucide.createIcons();
+
+      if (autoStartVoice && tab === 'parser') {
+        setTimeout(() => toggleVoiceInput(), 250);
+      }
+    }
+
+    function openEditItemModal(itemId) {
+      const found = findItemAcrossProjects(itemId);
+      if (!found) return;
+      const { item } = found;
+
+      populateRecipientSelects();
+      document.getElementById('editItemId').value = item.id;
+      document.getElementById('modalTitle').textContent = 'Полное редактирование товара';
+      document.getElementById('itemNameInput').value = item.name;
+      document.getElementById('itemNoteInput').value = item.note || '';
+      document.getElementById('itemCategoryInput').value = item.category || '📦';
+      document.getElementById('itemTrackInput').value = item.track || '';
+      document.getElementById('itemRecipientInput').value = item.recipient || 'В продажу';
+      document.getElementById('itemStatusInput').value = item.status || 'bought';
+      document.getElementById('itemQtyInput').value = item.qty;
+      document.getElementById('itemPriceCnyInput').value = item.priceCny;
+      document.getElementById('itemChinaShipInput').value = item.chinaShipCny || 0;
+      document.getElementById('itemWeightInput').value = item.weightKg;
+      document.getElementById('itemDimL').value = item.dims?.l || '';
+      document.getElementById('itemDimW').value = item.dims?.w || '';
+      document.getElementById('itemDimH').value = item.dims?.h || '';
+      document.getElementById('itemRetailBynInput').value = item.retailByn || 0;
+
+      setModalPhotoPreview(item.photo || '');
+      document.getElementById('itemPhotoUrlInput').value = (item.photo && item.photo.startsWith('http')) ? item.photo : '';
+
+      switchAddTab('manual');
+      updateLiveFormPreview();
+      openModal('smartAddModal');
+      lucide.createIcons();
+    }
+
+    function switchAddTab(tab) {
+      const manualForm = document.getElementById('manualItemForm');
+      const parserPane = document.getElementById('smartParserPane');
+      const btnManual = document.getElementById('tabBtnManual');
+      const btnParser = document.getElementById('tabBtnParser');
+
+      if (tab === 'manual') {
+        manualForm.classList.remove('hidden');
+        parserPane.classList.add('hidden');
+        btnManual.className = 'py-2 rounded-lg bg-white dark:bg-[#1A202E] shadow-xs text-indigo-700 dark:text-indigo-400 transition-all';
+        btnParser.className = 'py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all flex items-center justify-center gap-1.5';
+      } else {
+        manualForm.classList.add('hidden');
+        parserPane.classList.remove('hidden');
+        btnParser.className = 'py-2 rounded-lg bg-white dark:bg-[#1A202E] shadow-xs text-indigo-700 dark:text-indigo-400 transition-all flex items-center justify-center gap-1.5';
+        btnManual.className = 'py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all';
+      }
+    }
+
+    function updateLiveFormPreview() {
+      const tempItem = {
+        qty: parseInt(document.getElementById('itemQtyInput').value) || 1,
+        priceCny: parseFloat(document.getElementById('itemPriceCnyInput').value) || 0,
+        chinaShipCny: parseFloat(document.getElementById('itemChinaShipInput').value) || 0,
+        weightKg: parseFloat(document.getElementById('itemWeightInput').value) || 0,
+        retailByn: parseFloat(document.getElementById('itemRetailBynInput').value) || 0,
+        dims: {
+          l: parseFloat(document.getElementById('itemDimL').value) || 0,
+          w: parseFloat(document.getElementById('itemDimW').value) || 0,
+          h: parseFloat(document.getElementById('itemDimH').value) || 0,
+        }
+      };
+
+      const m = calculateItemMetrics(tempItem);
+      const previewEl = document.getElementById('liveFormPreview');
+
+      previewEl.innerHTML = `
+        <div>
+          <span class="text-slate-700 dark:text-slate-300 font-semibold">Себестоимость 1 ед.:</span>
+          <strong class="font-mono text-indigo-700 dark:text-indigo-400 text-sm ml-1">${m.unitCostByn.toFixed(2)} BYN</strong>
+          <span class="text-slate-600 dark:text-slate-400 font-medium ml-2">(Всего: ${m.totalCostByn.toFixed(2)} BYN)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          ${m.isVolumetric ? `<span class="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 font-extrabold text-[10px]">⚠️ Объёмный (${m.density.toFixed(0)} кг/м³)</span>` : ''}
+          ${m.retailByn > 0 ? `<span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 font-extrabold text-[10px]">Прибыль: ${m.profitByn >= 0 ? '+' : ''}${m.profitByn.toFixed(1)} BYN</span>` : ''}
+        </div>
+      `;
+    }
+
+    function saveItemFromForm(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editItemId').value;
+
+      const payload = {
+        id: editId || ('itm_' + Date.now()),
+        name: document.getElementById('itemNameInput').value.trim(),
+        note: document.getElementById('itemNoteInput').value.trim(),
+        photo: document.getElementById('itemPhotoDataInput').value || '',
+        category: document.getElementById('itemCategoryInput').value,
+        track: document.getElementById('itemTrackInput').value.trim().toUpperCase(),
+        recipient: document.getElementById('itemRecipientInput').value,
+        status: document.getElementById('itemStatusInput').value,
+        qty: Math.max(1, parseInt(document.getElementById('itemQtyInput').value) || 1),
+        priceCny: Math.max(0, parseFloat(document.getElementById('itemPriceCnyInput').value) || 0),
+        chinaShipCny: Math.max(0, parseFloat(document.getElementById('itemChinaShipInput').value) || 0),
+        weightKg: Math.max(0, parseFloat(document.getElementById('itemWeightInput').value) || 0),
+        dims: {
+          l: parseFloat(document.getElementById('itemDimL').value) || 0,
+          w: parseFloat(document.getElementById('itemDimW').value) || 0,
+          h: parseFloat(document.getElementById('itemDimH').value) || 0,
+        },
+        retailByn: Math.max(0, parseFloat(document.getElementById('itemRetailBynInput').value) || 0),
+        createdAt: Date.now()
+      };
+
+      if (editId) {
+        const found = findItemAcrossProjects(editId);
+        if (found) {
+          const idx = found.project.items.findIndex(i => i.id === editId);
+          payload.createdAt = found.item.createdAt;
+          found.project.items[idx] = payload;
+        }
+        showToast('Позиция успешно обновлена', 'success');
+      } else {
+        getActiveProject().items.unshift(payload);
+        showToast('Новая позиция добавлена в партию', 'success');
+      }
+
+      saveState();
+      closeModal('smartAddModal');
+      renderAll();
+    }
+
+    function fillParserExample() {
+      document.getElementById('parserTextarea').value =
+`Фольгированные шары звезды 18 дюймов 100шт 95ю вес 1.4кг трек YT758493021199
+Гирлянда занавес 3х3м теплый белый 5шт 140ю 2.5кг SF149283746588
+Силиконовые формы для льда и десертов 4шт 36ю вес 0.8кг трек ZTO9988112233`;
+    }
+
+    function runSmartParser() {
+      if (isRecordingVoice && speechRecognition) speechRecognition.stop();
+
+      const rawText = document.getElementById('parserTextarea').value.trim();
+      if (!rawText) {
+        showToast('Продиктуйте или вставьте текст для распознавания', 'error');
+        return;
+      }
+
+      const defaultRecipient = document.getElementById('parserDefaultRecipient').value;
+      const defaultStatus = document.getElementById('parserDefaultStatus').value;
+      const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const project = getActiveProject();
+
+      let addedCount = 0;
+
+      lines.forEach((line, idx) => {
+        let cleanName = line;
+
+        let track = '';
+        const trackMatch = line.match(/(?:трек[:\s]*)?([A-Z]{2}\d{8,16}|\d{10,16})/i);
+        if (trackMatch) {
+          track = trackMatch[1].toUpperCase();
+          cleanName = cleanName.replace(trackMatch[0], '');
+        }
+
+        let weightKg = 0.5;
+        const weightMatch = cleanName.match(/(?:вес[:\s]*)?(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i);
+        if (weightMatch) {
+          weightKg = parseFloat(weightMatch[1].replace(',', '.'));
+          cleanName = cleanName.replace(weightMatch[0], '');
+        }
+
+        let priceCny = 0;
+        const priceMatch = cleanName.match(/(\d+(?:[.,]\d+)?)\s*(?:ю|юаней|¥|cny|rmb)/i);
+        if (priceMatch) {
+          priceCny = parseFloat(priceMatch[1].replace(',', '.'));
+          cleanName = cleanName.replace(priceMatch[0], '');
+        }
+
+        let qty = 1;
+        const qtyMatch = cleanName.match(/(\d+)\s*(?:шт|ед|pcs|уп)/i);
+        if (qtyMatch) {
+          qty = parseInt(qtyMatch[1], 10);
+          cleanName = cleanName.replace(qtyMatch[0], '');
+        }
+
+        cleanName = cleanName.replace(/трек|вес|[:;,]+$/gi, '').replace(/\s{2,}/g, ' ').trim();
+        if (!cleanName) cleanName = `Товар из Китая #${idx + 1}`;
+        cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+
+        let category = '📦';
+        if (/шар|гирлянд|праздн|свеч/i.test(cleanName)) category = '🎈';
+        else if (/игруш|конструктор|кукл/i.test(cleanName)) category = '🧸';
+        else if (/дом|кухн|форм|органайзер|пакет/i.test(cleanName)) category = '🏠';
+        else if (/кабел|ламп|компрессор|клавиатур|телефон/i.test(cleanName)) category = '📱';
+
+        project.items.unshift({
+          id: 'itm_' + Date.now() + '_' + idx,
+          name: cleanName,
+          note: '',
+          photo: '',
+          category,
+          track,
+          qty: Math.max(1, qty),
+          priceCny,
+          chinaShipCny: 0,
+          weightKg,
+          dims: { l: 0, w: 0, h: 0 },
+          retailByn: 0,
+          recipient: defaultRecipient,
+          status: defaultStatus,
+          createdAt: Date.now()
+        });
+
+        addedCount++;
+      });
+
+      saveState();
+      closeModal('smartAddModal');
+      document.getElementById('parserTextarea').value = '';
+      renderAll();
+      showToast(`Распознано и добавлено позиций: ${addedCount}`, 'success');
+    }
+
+    function openBulkStatusModal() {
+      document.getElementById('bulkTracksInput').value = '';
+      openModal('bulkStatusModal');
+    }
+
+    function applyBulkStatusUpdate() {
+      const raw = document.getElementById('bulkTracksInput').value.trim().toUpperCase();
+      const newStatus = document.getElementById('bulkNewStatusSelect').value;
+
+      if (!raw) {
+        showToast('Введите хотя бы один трек-номер', 'error');
+        return;
+      }
+
+      const tokens = raw.split(/[\s,;]+/).map(t => t.trim()).filter(Boolean);
+      const trackSet = new Set(tokens);
+
+      let updatedCount = 0;
+      state.projects.forEach(p => {
+        p.items.forEach(item => {
+          if (item.track && trackSet.has(item.track.trim().toUpperCase())) {
+            item.status = newStatus;
+            updatedCount++;
+          }
+        });
+      });
+
+      if (updatedCount > 0) {
+        saveState();
+        renderAll();
+        closeModal('bulkStatusModal');
+        showToast(`Обновлено посылок по всем партиям: ${updatedCount} ➔ ${STATUS_CONFIG[newStatus].label}`, 'success');
+      } else {
+        showToast('Совпадений по трек-номерам не найдено', 'error');
+      }
+    }
+
+    // =========================================================================
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ UI
+    // =========================================================================
+    function openModal(id) {
+      const el = document.getElementById(id);
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      if (id === 'smartAddModal' && isRecordingVoice && speechRecognition) {
+        speechRecognition.stop();
+      }
+      const el = document.getElementById(id);
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('-translate-x-full');
+      overlay.classList.toggle('hidden');
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+      state.theme = html.classList.contains('dark') ? 'dark' : 'light';
+      saveState();
+    }
+
+    function resetToDemoData() {
+      state = getInitialDemoState();
+      selectedItemIds.clear();
+      saveState();
+      renderAll();
+      showToast('Загружены демонстрационные данные', 'info');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const colors = {
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500',
+        info: 'bg-slate-900 dark:bg-indigo-600 text-white border-slate-700 dark:border-indigo-500'
+      };
+
+      toast.className = `pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl border shadow-xl text-xs font-bold animate-in ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(6px)';
+        toast.style.transition = 'all 0.2s ease';
+        setTimeout(() => toast.remove(), 200);
+      }, 2800);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+      }
+      if (e.key === 'Escape') {
+        closeModal('smartAddModal');
+        closeModal('bulkStatusModal');
+        closeModal('newProjectModal');
+        closeModal('photoLightboxModal');
+        closeModal('recipientManagerModal');
+        closeModal('exportModal');
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        state = await loadStateFromDatabase();
+        if (state.theme === 'light') document.documentElement.classList.remove('dark');
+        else document.documentElement.classList.add('dark');
+        renderAll();
+      } catch (error) {
+        console.error("Database load failed:", error);
+        state = emptyAppState();
+        renderAll();
+        showToast("Не удалось загрузить реальные данные из базы: " + error.message, "error");
+      }
+    });
+  </script>
+</body>
+</html>
