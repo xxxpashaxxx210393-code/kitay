@@ -1759,12 +1759,15 @@
           commercialCostByn += m.totalCostByn;
         }
 
-        const rec = item.recipient || 'Себе';
-        if (!recipientStats[rec]) recipientStats[rec] = { count: 0, units: 0, costByn: 0, profitByn: 0 };
-        recipientStats[rec].count += 1;
-        recipientStats[rec].units += m.qty;
-        recipientStats[rec].costByn += m.totalCostByn;
-        recipientStats[rec].profitByn += m.profitByn;
+        // Не создаём карточку для пустого назначения. Карточки только у реальных получателей.
+        const rec = String(item.recipient || '').trim();
+        if (rec) {
+          if (!recipientStats[rec]) recipientStats[rec] = { count: 0, units: 0, costByn: 0, profitByn: 0 };
+          recipientStats[rec].count += 1;
+          recipientStats[rec].units += m.qty;
+          recipientStats[rec].costByn += m.totalCostByn;
+          recipientStats[rec].profitByn += m.profitByn;
+        }
       });
 
       document.getElementById('kpiTotalUnits').textContent = totalUnits;
