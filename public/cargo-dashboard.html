@@ -403,10 +403,10 @@
                 <span>Показывать архив</span>
               </label>
 
-              <button onclick="openExportModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-amber-50 dark:hover:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold shadow-2xs transition-colors">
-                <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                <span>Экспорт</span>
-              </button>
+              <button onclick="exportFullBackup()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-indigo-700 border border-indigo-200 font-bold shadow-2xs transition-colors"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i><span>Резервная копия</span></button>
+              <button onclick="document.getElementById('backupImportInput').click()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-emerald-700 border border-emerald-200 font-bold shadow-2xs transition-colors"><i data-lucide="upload" class="w-3.5 h-3.5"></i><span>Импорт</span></button>
+              <input id="backupImportInput" type="file" accept="application/json,.json" class="hidden" onchange="handleImportBackup(event)" />
+              <button onclick="openExportModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-amber-50 dark:hover:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold shadow-2xs transition-colors"><i data-lucide="download" class="w-3.5 h-3.5"></i><span>Экспорт</span></button>
             </div>
           </div>
 
@@ -1661,7 +1661,16 @@
           <div class="cc-detail-head"><span>МАРШРУТ ДОСТАВКИ</span><span class="cc-muted">${status.progress || 0}%</span></div>
           <div class="cc-progress"><span style="width:${status.progress || 0}%"></span></div>
           <div class="cc-steps">${steps}</div>
-          <div class="cc-detail-foot"><span>Количество: <b>${metrics.qty}</b></span><span>Вес: <b>${(Number(item.weightKg)||0).toFixed(2)} кг</b></span><span>Объём: <b>${metrics.volumeM3.toFixed(3)} м³</b></span></div>
+          <div class="cc-detail-edit-grid">
+            <label>Количество (шт)<input type="number" min="1" step="1" value="${Number(item.qty)||1}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','qty',this.value)" /></label>
+            <label>Цена за всё (¥)<input type="number" min="0" step="0.01" value="${Number(item.priceCny)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','priceCny',this.value)" /></label>
+            <label>Доставка по Китаю (¥)<input type="number" min="0" step="0.01" value="${Number(item.chinaShipCny)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','chinaShipCny',this.value)" /></label>
+            <label>Вес (кг)<input type="number" min="0" step="0.01" value="${Number(item.weightKg)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','weightKg',this.value)" /></label>
+            <label>Длина (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.l)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimL',this.value)" /></label>
+            <label>Ширина (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.w)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimW',this.value)" /></label>
+            <label>Высота (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.h)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimH',this.value)" /></label>
+            <div class="cc-volume-readout">Объём: <b>${metrics.volumeM3.toFixed(3)} м³</b> <span>Нули означают, что объём не учитывается</span></div>
+          </div>
         </article>
         <article class="cc-detail-card">
           <div class="cc-detail-head"><span>РАСЧЁТ СЕБЕСТОИМОСТИ</span><span class="cc-muted">BYN</span></div>
@@ -2097,20 +2106,13 @@
               </button>
             </div>
 
-            <!-- Сетка ключевых цифр -->
-            <div class="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-100/90 dark:bg-[#0D1017] border border-slate-200 dark:border-slate-800 text-center">
-              <div>
-                <div class="text-[10px] font-bold text-slate-500 uppercase">Кол-во / Вес</div>
-                <div class="font-mono text-xs font-extrabold text-slate-900 dark:text-white mt-0.5">${item.qty} шт • ${item.weightKg} кг</div>
-              </div>
-              <div>
-                <div class="text-[10px] font-bold text-slate-500 uppercase">Закуп CN</div>
-                <div class="font-mono text-xs font-extrabold text-slate-900 dark:text-white mt-0.5">¥${m.totalCny.toFixed(0)}</div>
-              </div>
-              <div>
-                <div class="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase">Себест. 1 ед.</div>
-                <div class="font-mono text-xs font-extrabold text-indigo-700 dark:text-indigo-400 mt-0.5">${m.unitCostByn.toFixed(2)} BYN</div>
-              </div>
+            <!-- Быстрое редактирование на телефоне -->
+            <div class="grid grid-cols-2 gap-2 rounded-xl bg-slate-100/90 border border-slate-200 p-2.5">
+              <label class="cc-mobile-edit">Количество (шт)<input type="number" min="1" step="1" value="${Number(item.qty)||1}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','qty',this.value)" /></label>
+              <label class="cc-mobile-edit">Вес (кг)<input type="number" min="0" step="0.01" value="${Number(item.weightKg)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','weightKg',this.value)" /></label>
+              <label class="cc-mobile-edit">Цена за всё (¥)<input type="number" min="0" step="0.01" value="${Number(item.priceCny)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','priceCny',this.value)" /></label>
+              <label class="cc-mobile-edit">Доставка CN (¥)<input type="number" min="0" step="0.01" value="${Number(item.chinaShipCny)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','chinaShipCny',this.value)" /></label>
+              <div class="col-span-2 text-xs text-slate-600">Себестоимость: <b>${m.unitCostByn.toFixed(2)} BYN / шт.</b> • Объём: ${m.volumeM3.toFixed(3)} м³</div>
             </div>
 
             <!-- Нижняя панель карточки: Быстрая смена получателя и статуса -->
@@ -2445,6 +2447,37 @@
       }
     }
 
+    function exportFullBackup() {
+      const backup = { app:"cargo-control-cn-by", schemaVersion:1, exportedAt:new Date().toISOString(), projects:state.projects, rates:state.rates, recipients:state.recipients, preferences:{showArchive:state.showArchive,globalSearch:state.globalSearch,filters:state.filters} };
+      downloadBlobFile(JSON.stringify(backup,null,2),"application/json;charset=utf-8;","Cargo_Backup_"+new Date().toISOString().slice(0,10)+".json");
+      showToast("Резервная копия создана: проекты, товары, фото и настройки","success");
+    }
+    async function handleImportBackup(event) {
+      const file=event.target.files?.[0]; if(!file)return;
+      try {
+        const backup=JSON.parse(await file.text());
+        if(backup?.app!=="cargo-control-cn-by"||backup?.schemaVersion!==1||!Array.isArray(backup.projects)) throw new Error("Неверный формат резервной копии");
+        const ids=new Set();
+        for(const project of backup.projects){
+          if(!project?.name||!Array.isArray(project.items)) throw new Error("Повреждена структура партий");
+          for(const item of project.items){
+            if(!item?.name||item.id==null||ids.has(String(item.id))) throw new Error("Найдены пустые или повторяющиеся товары");
+            ids.add(String(item.id)); item.qty=Math.max(1,Number(item.qty)||1); item.priceCny=Math.max(0,Number(item.priceCny)||0);
+            item.chinaShipCny=Math.max(0,Number(item.chinaShipCny)||0); item.weightKg=Math.max(0,Number(item.weightKg)||0);
+            item.dims={l:Math.max(0,Number(item.dims?.l)||0),w:Math.max(0,Number(item.dims?.w)||0),h:Math.max(0,Number(item.dims?.h)||0)};
+          }
+        }
+        if(!confirm("Импорт полностью заменит текущие партии и товары. Перед продолжением скачайте резервную копию текущих данных. Продолжить?")) return;
+        state.projects=backup.projects; state.rates={...state.rates,...(backup.rates||{})};
+        if(Array.isArray(backup.recipients)&&backup.recipients.length)state.recipients=backup.recipients;
+        state.showArchive=backup.preferences?.showArchive??true; state.globalSearch=backup.preferences?.globalSearch??true;
+        state.filters=backup.preferences?.filters||{status:"ALL",recipient:"ALL"}; state.activeProjectId=state.projects[0]?.id||"";
+        selectedItemIds.clear(); selectedDetailItemId=null; saveState(); renderAll();
+        showToast("Импорт выполнен. Синхронизация с базой запущена.","success");
+      } catch(error){console.error("Backup import failed:",error);showToast("Импорт не выполнен: "+error.message,"error");}
+      finally{event.target.value="";}
+    }
+
     function downloadBlobFile(content, mimeType, fileName) {
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
@@ -2493,6 +2526,10 @@
         item.weightKg = Math.max(0, parseFloat(rawValue) || 0);
       } else if (field === 'retailByn') {
         item.retailByn = Math.max(0, parseFloat(rawValue) || 0);
+      } else if (field === 'dimL' || field === 'dimW' || field === 'dimH') {
+        if (!item.dims) item.dims = { l:0, w:0, h:0 };
+        const dimKey = field === 'dimL' ? 'l' : field === 'dimW' ? 'w' : 'h';
+        item.dims[dimKey] = Math.max(0, parseFloat(rawValue) || 0);
       } else if (field === 'recipient') {
         item.recipient = rawValue;
         showToast(`Получатель: ${rawValue}`, 'success');
