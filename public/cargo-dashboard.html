@@ -84,6 +84,7 @@
       animation: slideUpFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
   </style>
+  <link rel="stylesheet" href="/cargo-redesign.css?v=1" />
 </head>
 
 <body class="bg-[#EEF2F6] text-slate-900 dark:bg-[#090B10] dark:text-slate-100 antialiased selection:bg-indigo-600 selection:text-white transition-colors duration-200 pb-20 lg:pb-0">
@@ -1006,7 +1007,7 @@
       const now = Date.now();
       const dayMs = 86400000;
       return {
-        theme: 'light',
+        theme: 'dark',
         showArchive: true,
         globalSearch: true,
         rates: {
@@ -1184,7 +1185,7 @@
     let apiBaseline = { projects: [], orders: [] };
     let syncQueue = Promise.resolve();
     const emptyAppState = () => ({
-      theme: localStorage.getItem("cargo_html_theme") || "light",
+      theme: localStorage.getItem("cargo_html_theme") || "dark",
       showArchive: true, globalSearch: true,
       rates: { cnyToByn: 0.48, usdToByn: 3.28, cargoUsdPerKg: 4.2, cargoUsdPerCube: 420, insurancePercent: 3 },
       recipients: [...DEFAULT_RECIPIENTS], activeProjectId: "",
