@@ -2112,6 +2112,10 @@
               <label class="cc-mobile-edit">Вес (кг)<input type="number" min="0" step="0.01" value="${Number(item.weightKg)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','weightKg',this.value)" /></label>
               <label class="cc-mobile-edit">Цена за всё (¥)<input type="number" min="0" step="0.01" value="${Number(item.priceCny)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','priceCny',this.value)" /></label>
               <label class="cc-mobile-edit">Доставка CN (¥)<input type="number" min="0" step="0.01" value="${Number(item.chinaShipCny)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','chinaShipCny',this.value)" /></label>
+              <label class="cc-mobile-edit">Розничная цена (BYN)<input type="number" min="0" step="0.01" value="${Number(item.retailByn)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','retailByn',this.value)" /></label>
+              <label class="cc-mobile-edit">Длина (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.l)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimL',this.value)" /></label>
+              <label class="cc-mobile-edit">Ширина (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.w)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimW',this.value)" /></label>
+              <label class="cc-mobile-edit">Высота (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.h)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimH',this.value)" /></label>
               <div class="col-span-2 text-xs text-slate-600">Себестоимость: <b>${m.unitCostByn.toFixed(2)} BYN / шт.</b> • Объём: ${m.volumeM3.toFixed(3)} м³</div>
             </div>
 
