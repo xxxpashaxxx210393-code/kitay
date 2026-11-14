@@ -1279,7 +1279,7 @@
       }
       const preferred = localStorage.getItem("cargo_current_project");
       next.activeProjectId = next.projects.some(p=>p.id===String(preferred)) ? String(preferred) : (next.projects[0]?.id || "");
-      apiBaseline = { projects: JSON.parse(JSON.stringify(next.projects)), orders: JSON.parse(JSON.stringify(next.projects.flatMap(p=>p.items))) };
+      apiBaseline = { projects: JSON.parse(JSON.stringify(next.projects)), orders: JSON.parse(JSON.stringify(next.projects.flatMap(p=>p.items))), rates: JSON.parse(JSON.stringify(next.rates)) };
       return next;
     }
     function saveState() {
@@ -1299,6 +1299,7 @@
     async function syncStateToDatabase() {
       const baselineProjects = new Map(apiBaseline.projects.map(p=>[String(p.id),p]));
       const baselineOrders = new Map(apiBaseline.orders.map(o=>[String(o.id),o]));
+      const ratesChanged = JSON.stringify(state.rates) !== JSON.stringify(apiBaseline.rates || {});
       const currentIds = new Set(state.projects.map(p=>String(p.id)));
       for (const project of state.projects) {
         let pid = Number(project.id);
@@ -1319,7 +1320,7 @@
           const payload=mapHtmlOrder(item,pid);
           if (/^\d+$/.test(key) && baselineOrders.has(key)) {
             const before=baselineOrders.get(key);
-            if (JSON.stringify(item)!==JSON.stringify(before)) await apiJson("/api/orders/"+key,{method:"PUT",body:JSON.stringify(payload)});
+            if (ratesChanged || JSON.stringify(item)!==JSON.stringify(before)) await apiJson("/api/orders/"+key,{method:"PUT",body:JSON.stringify(payload)});
           } else {
             const created=await apiJson("/api/orders",{method:"POST",body:JSON.stringify(payload)});
             item.id=String(created.data.id);
@@ -1334,7 +1335,7 @@
           await apiJson("/api/projects",{method:"DELETE",body:JSON.stringify({id:Number(oldProject.id)})});
         }
       }
-      apiBaseline = { projects:JSON.parse(JSON.stringify(state.projects)), orders:JSON.parse(JSON.stringify(state.projects.flatMap(p=>p.items))) };
+      apiBaseline = { projects:JSON.parse(JSON.stringify(state.projects)), orders:JSON.parse(JSON.stringify(state.projects.flatMap(p=>p.items))), rates:JSON.parse(JSON.stringify(state.rates)) };
       writeExtraMeta(state.projects);
     }
     function resetToDemoData() {
