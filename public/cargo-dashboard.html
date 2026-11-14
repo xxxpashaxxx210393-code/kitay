@@ -381,7 +381,7 @@
         </section>
 
         <!-- 2. РАЗБИВКА ПО ПОЛУЧАТЕЛЯМ («ДЛЯ КОГО») -->
-        <section class="bg-white dark:bg-[#12161F] rounded-2xl p-3.5 sm:p-4 border border-slate-300/90 dark:border-slate-800 shadow-sm">
+        <section id="recipientSummarySection" class="bg-white dark:bg-[#12161F] rounded-2xl p-3.5 sm:p-4 border border-slate-300/90 dark:border-slate-800 shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div class="flex items-center gap-2">
               <i data-lucide="users" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
@@ -616,7 +616,7 @@
           </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Получатель («Для кого»)</label>
-            <select id="itemRecipientInput" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none">
+            <select id="itemRecipientInput" onchange="handleRecipientSelectChange(this)" class="w-full px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none">
             </select>
           </div>
           <div>
@@ -1683,26 +1683,34 @@
       lucide.createIcons();
     }
 
-    function populateRecipientSelects() {
-      const optionsHtml = state.recipients.map(r =>
-        `<option value="${escapeHtml(r.name)}">${r.icon} ${escapeHtml(r.name)}</option>`
-      ).join('');
-
-      const modalSel = document.getElementById('itemRecipientInput');
-      const parserSel = document.getElementById('parserDefaultRecipient');
-      if (modalSel) {
-        const prev = modalSel.value;
-        modalSel.innerHTML = optionsHtml;
-        if (prev && state.recipients.some(r => r.name === prev)) modalSel.value = prev;
-      }
-      if (parserSel) {
-        const prevP = parserSel.value;
-        parserSel.innerHTML = optionsHtml;
-        if (prevP && state.recipients.some(r => r.name === prevP)) parserSel.value = prevP;
-      }
+    function recipientOptionMarkup(selectedValue = '') {
+      const names = new Map();
+      state.recipients.forEach(r => names.set(r.name, r));
+      state.projects.forEach(p => p.items.forEach(item => { const name = String(item.recipient || '').trim(); if (name && !names.has(name)) names.set(name, { name, icon: '👤' }); }));
+      const options = [...names.values()].map(r => '<option value="' + escapeHtml(r.name) + '" ' + (selectedValue === r.name ? 'selected' : '') + '>' + (r.icon || '👤') + ' ' + escapeHtml(r.name) + '</option>').join('');
+      return '<option value="">— Не назначен —</option>' + options + '<option value="__ADD_NEW__">＋ Добавить нового получателя…</option>';
     }
 
-    function renderProjectsSidebar() {
+    function populateRecipientSelects() {
+      const modalSel = document.getElementById('itemRecipientInput');
+      const parserSel = document.getElementById('parserDefaultRecipient');
+      if (modalSel) { const prev = modalSel.value; modalSel.innerHTML = recipientOptionMarkup(prev); modalSel.value = prev; }
+      if (parserSel) { const prev = parserSel.value; parserSel.innerHTML = recipientOptionMarkup(prev); parserSel.value = prev; }
+    }
+
+    function handleRecipientSelectChange(selectEl, itemId = null) {
+      if (selectEl.value !== '__ADD_NEW__') { if (itemId) inlineUpdateItem(itemId, 'recipient', selectEl.value); return; }
+      const name = (window.prompt('Введите имя нового получателя:') || '').trim();
+      if (!name) { selectEl.value = itemId ? (findItemAcrossProjects(itemId)?.item.recipient || '') : ''; return; }
+      let recipient = state.recipients.find(r => r.name.toLowerCase() === name.toLowerCase());
+      if (!recipient) { recipient = { name, icon: '👤', color: 'text-indigo-800 dark:text-indigo-400', bg: 'bg-indigo-100 border-indigo-300 dark:bg-indigo-500/15 dark:border-indigo-500/30' }; state.recipients.push(recipient); }
+      if (itemId) { const found = findItemAcrossProjects(itemId); if (found) found.item.recipient = recipient.name; }
+      saveState(); renderAll();
+      if (!itemId) document.getElementById('itemRecipientInput').value = recipient.name;
+      showToast('Получатель «' + recipient.name + '» добавлен', 'success');
+    }
+
+    function renderProjectsSidebar() {    function renderProjectsSidebar() {
       const listEl = document.getElementById('projectList');
       listEl.innerHTML = state.projects.map(p => {
         const isActive = p.id === state.activeProjectId;
@@ -1729,9 +1737,6 @@
       let inTransitCount = 0, arrivedCount = 0;
 
       const recipientStats = {};
-      state.recipients.forEach(r => {
-        recipientStats[r.name] = { count: 0, units: 0, costByn: 0, profitByn: 0 };
-      });
 
       project.items.forEach(item => {
         const m = calculateItemMetrics(item);
@@ -1786,13 +1791,14 @@
       document.getElementById('kpiAvgRoi').textContent = `ROI ${avgRoi.toFixed(0)}%`;
 
       const recGrid = document.getElementById('recipientCardsGrid');
+      const recSection = document.getElementById('recipientSummarySection');
       const clearBtn = document.getElementById('clearRecipientFilterBtn');
 
-      // Показываем только получателей, которым назначены товары в текущей партии.
-      // Новый получатель появится здесь сразу после назначения ему первой позиции.
-      const visibleRecipients = state.recipients.filter(cfg =>
-        (recipientStats[cfg.name]?.count || 0) > 0
+      // Только фактически назначенные получатели активной партии, включая имена из базы.
+      const visibleRecipients = Object.entries(recipientStats).filter(([, stat]) => stat.count > 0).map(([name]) =>
+        state.recipients.find(r => r.name === name) || { name, icon: '👤', color: 'text-indigo-800 dark:text-indigo-400' }
       );
+      recSection.classList.toggle('hidden', visibleRecipients.length === 0);
       if (state.filters.recipient !== 'ALL' &&
           !visibleRecipients.some(cfg => cfg.name === state.filters.recipient)) {
         state.filters.recipient = 'ALL';
@@ -1885,9 +1891,7 @@
         const rec = getRecipientMeta(item.recipient);
         const isChecked = selectedItemIds.has(item.id);
 
-        const recipientOptionsHtml = state.recipients.map(r =>
-          `<option value="${escapeHtml(r.name)}" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" ${item.recipient === r.name ? 'selected' : ''}>${r.icon} ${escapeHtml(r.name)}</option>`
-        ).join('');
+        const recipientOptionsHtml = recipientOptionMarkup(item.recipient || '');
 
         return `
           <tr data-item-id="${escapeHtml(String(item.id))}" class="${isChecked ? 'bg-indigo-50/80 dark:bg-indigo-950/25' : 'hover:bg-slate-50 dark:hover:bg-[#161B26]/80'} transition-colors group cursor-pointer">
@@ -2097,7 +2101,7 @@
 
             <!-- Нижняя панель карточки: Быстрая смена получателя и статуса -->
             <div class="grid grid-cols-2 gap-2">
-              <select onchange="inlineUpdateItem('${item.id}', 'recipient', this.value)" class="w-full px-2.5 py-2 rounded-xl border text-xs font-bold focus:outline-none ${rec.bg} ${rec.color}">
+              <select onchange="handleRecipientSelectChange(this, '${escapeHtml(String(item.id))}')" class="w-full px-2.5 py-2 rounded-xl border text-xs font-bold focus:outline-none ${rec.bg} ${rec.color}">
                 ${recipientOptionsHtml}
               </select>
 
@@ -2601,6 +2605,7 @@
     }
 
     function deleteCustomRecipient(name) {
+      state.projects.forEach(p => p.items.forEach(item => { if (item.recipient === name) item.recipient = ''; }));
       state.recipients = state.recipients.filter(r => r.name !== name);
       if (state.filters.recipient === name) state.filters.recipient = 'ALL';
       saveState();
@@ -2728,7 +2733,7 @@
       document.getElementById('itemNoteInput').value = item.note || '';
       document.getElementById('itemCategoryInput').value = item.category || '📦';
       document.getElementById('itemTrackInput').value = item.track || '';
-      document.getElementById('itemRecipientInput').value = item.recipient || 'В продажу';
+      document.getElementById('itemRecipientInput').value = item.recipient || '';
       document.getElementById('itemStatusInput').value = item.status || 'bought';
       document.getElementById('itemQtyInput').value = item.qty;
       document.getElementById('itemPriceCnyInput').value = item.priceCny;
@@ -2808,7 +2813,7 @@
         photo: document.getElementById('itemPhotoDataInput').value || '',
         category: document.getElementById('itemCategoryInput').value,
         track: document.getElementById('itemTrackInput').value.trim().toUpperCase(),
-        recipient: document.getElementById('itemRecipientInput').value,
+        recipient: document.getElementById('itemRecipientInput').value === '__ADD_NEW__' ? '' : document.getElementById('itemRecipientInput').value,
         status: document.getElementById('itemStatusInput').value,
         qty: Math.max(1, parseInt(document.getElementById('itemQtyInput').value) || 1),
         priceCny: Math.max(0, parseFloat(document.getElementById('itemPriceCnyInput').value) || 0),
@@ -2857,7 +2862,7 @@
         return;
       }
 
-      const defaultRecipient = document.getElementById('parserDefaultRecipient').value;
+      const defaultRecipient = document.getElementById('parserDefaultRecipient').value === '__ADD_NEW__' ? '' : document.getElementById('parserDefaultRecipient').value;
       const defaultStatus = document.getElementById('parserDefaultStatus').value;
       const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       const project = getActiveProject();
