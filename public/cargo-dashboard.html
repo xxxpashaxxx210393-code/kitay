@@ -84,7 +84,6 @@
       animation: slideUpFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
   </style>
-  <link rel="stylesheet" href="/cargo-redesign.css?v=8" />
 </head>
 
 <body class="bg-[#EEF2F6] text-slate-900 dark:bg-[#090B10] dark:text-slate-100 antialiased selection:bg-indigo-600 selection:text-white transition-colors duration-200 pb-20 lg:pb-0">
@@ -460,11 +459,6 @@
         <section id="mobileCardsContainer" class="md:hidden space-y-3">
           <!-- Карточки рендерятся через JS -->
         </section>
-
-        <!-- Выбранный товар: подробности, маршрут и себестоимость -->
-<section id="selectedItemDetails" class="hidden">
-  <div id="selectedItemDetailsContent" class="grid grid-cols-1 xl:grid-cols-[1fr_1.15fr_.95fr] gap-3"></div>
-</section>
 
 <!-- Пустое состояние (Общее для таблицы и мобильных карточек) -->
         <div id="emptyState" class="hidden bg-white dark:bg-[#12161F] rounded-2xl border border-slate-300 dark:border-slate-800 py-14 px-4 text-center shadow-sm">
@@ -968,7 +962,6 @@
     const STORAGE_KEY = 'cargo_control_cn_by_v3';
     let currentLightboxItemId = null;
     let selectedItemIds = new Set();
-    let selectedDetailItemId = null;
     let speechRecognition = null;
     let isRecordingVoice = false;
 
@@ -1191,7 +1184,7 @@
     let apiBaseline = { projects: [], orders: [] };
     let syncQueue = Promise.resolve();
     const emptyAppState = () => ({
-      theme: localStorage.getItem("cargo_html_theme") || "dark",
+      theme: localStorage.getItem("cargo_html_theme") || "light",
       showArchive: true, globalSearch: true,
       rates: { cnyToByn: 0.48, usdToByn: 3.28, cargoUsdPerKg: 4.2, cargoUsdPerCube: 420, insurancePercent: 3 },
       recipients: [...DEFAULT_RECIPIENTS], activeProjectId: "",
@@ -1287,7 +1280,13 @@
       }));
       const next = emptyAppState();
       if (saved?.rates) next.rates = { ...next.rates, ...saved.rates };
-      next.theme = saved?.theme || next.theme;
+      // One-time visual migration: open the approved light reference layout on existing browsers.
+      if (!localStorage.getItem("cargo_layout_reference_v1")) {
+        next.theme = "light";
+        localStorage.setItem("cargo_layout_reference_v1", "1");
+      } else {
+        next.theme = saved?.theme || next.theme;
+      }
       next.showArchive = saved?.showArchive ?? true;
       next.recipients = Array.isArray(saved?.recipients) && saved.recipients.length ? saved.recipients : [...DEFAULT_RECIPIENTS];
       next.projects = projectRows.map(({row,orders}) => ({
@@ -1636,70 +1635,6 @@
     // =========================================================================
     // РЕНДЕРИНГ ИНТЕРФЕЙСА (ТАБЛИЦА + МОБИЛЬНЫЕ КАРТОЧКИ)
     // =========================================================================
-    function openItemDetails(itemId, event) {
-      if (event && event.target && event.target.closest("button,input,select,a,label")) return;
-      selectedDetailItemId = String(itemId);
-      renderSelectedItemDetails();
-      const panel = document.getElementById("selectedItemDetails");
-      if (panel) panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-
-    function closeItemDetails() {
-      selectedDetailItemId = null;
-      renderSelectedItemDetails();
-    }
-
-    function renderSelectedItemDetails() {
-      const panel = document.getElementById("selectedItemDetails");
-      const host = document.getElementById("selectedItemDetailsContent");
-      if (!panel || !host) return;
-      const found = selectedDetailItemId ? findItemAcrossProjects(selectedDetailItemId) : null;
-      if (!found) { panel.classList.add("hidden"); host.innerHTML = ""; return; }
-      const { item, project } = found;
-      const metrics = calculateItemMetrics(item);
-      const statusOrder = ["bought","china_transit","warehouse","transit","arrived","delivered"];
-      const statusNames = ["Выкуплено","Едет по Китаю","На складе CN","Едет в РБ","Прибыло","Выдано"];
-      const activeIndex = Math.max(0,statusOrder.indexOf(item.status));
-      const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.bought;
-      const steps = statusOrder.map((key,index) => {
-        const done = index <= activeIndex;
-        const color = index === activeIndex ? "bg-blue-500" : done ? "bg-emerald-500" : "bg-slate-700";
-        return `<div class="cc-step"><span class="cc-step-dot ${color}">${done ? "✓" : "·"}</span><span class="${done ? "text-slate-200" : "text-slate-500"}">${statusNames[index]}</span></div>`;
-      }).join("");
-      const photo = item.photo ? `<img src="${escapeHtml(item.photo)}" alt="" class="cc-detail-photo" />` : `<div class="cc-detail-photo cc-detail-placeholder">📦</div>`;
-      const itemLink = item.itemUrl ? `<a href="${escapeHtml(item.itemUrl)}" target="_blank" rel="noopener" class="cc-link">Открыть товар ↗</a>` : "";
-      host.innerHTML = `
-        <article class="cc-detail-card">
-          <div class="cc-detail-head"><span>ТОВАР / ${escapeHtml(project.name)}</span><button type="button" onclick="closeItemDetails()" aria-label="Закрыть">✕</button></div>
-          <div class="cc-product-row">${photo}<div class="min-w-0"><h3>${escapeHtml(item.name || "Товар без названия")}</h3><span class="cc-status-pill">${escapeHtml(status.label)}</span><div class="cc-muted mt-2">Для кого: <b>${escapeHtml(item.recipient || "Себе")}</b></div><div class="cc-muted">Трек: <b class="font-mono">${escapeHtml(item.track || "не указан")}</b></div>${itemLink}</div></div>
-          <div class="cc-note">${escapeHtml(item.note || "Комментарий не добавлен")}</div>
-          <button type="button" class="cc-edit-button" onclick="openEditItemModal('${escapeHtml(String(item.id))}')">Редактировать товар</button>
-        </article>
-        <article class="cc-detail-card">
-          <div class="cc-detail-head"><span>МАРШРУТ ДОСТАВКИ</span><span class="cc-muted">${status.progress || 0}%</span></div>
-          <div class="cc-progress"><span style="width:${status.progress || 0}%"></span></div>
-          <div class="cc-steps">${steps}</div>
-          <div class="cc-detail-edit-grid">
-            <label>Количество (шт)<input type="number" min="1" step="1" value="${Number(item.qty)||1}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','qty',this.value)" /></label>
-            <label>Цена за всё (¥)<input type="number" min="0" step="0.01" value="${Number(item.priceCny)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','priceCny',this.value)" /></label>
-            <label>Доставка по Китаю (¥)<input type="number" min="0" step="0.01" value="${Number(item.chinaShipCny)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','chinaShipCny',this.value)" /></label>
-            <label>Вес (кг)<input type="number" min="0" step="0.01" value="${Number(item.weightKg)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','weightKg',this.value)" /></label>
-            <label>Длина (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.l)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimL',this.value)" /></label>
-            <label>Ширина (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.w)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimW',this.value)" /></label>
-            <label>Высота (см)<input type="number" min="0" step="0.1" value="${Number(item.dims?.h)||0}" onchange="inlineUpdateItem('${escapeHtml(String(item.id))}','dimH',this.value)" /></label>
-            <div class="cc-volume-readout">Объём: <b>${metrics.volumeM3.toFixed(3)} м³</b> <span>Нули означают, что объём не учитывается</span></div>
-          </div>
-        </article>
-        <article class="cc-detail-card">
-          <div class="cc-detail-head"><span>РАСЧЁТ СЕБЕСТОИМОСТИ</span><span class="cc-muted">BYN</span></div>
-          <div class="cc-cost-line"><span>Товар + доставка по Китаю</span><b>${metrics.goodsByn.toFixed(2)}</b></div>
-          <div class="cc-cost-line"><span>Карго и страхование</span><b>${(metrics.cargoByn+metrics.insuranceByn).toFixed(2)}</b></div>
-          <div class="cc-cost-line"><span>Себестоимость партии</span><b>${metrics.totalCostByn.toFixed(2)}</b></div>
-          <div class="cc-cost-total"><span>Себестоимость 1 шт.</span><b>${metrics.unitCostByn.toFixed(2)} BYN</b></div>
-        </article>`;
-      panel.classList.remove("hidden");
-    }
-
     function renderAll() {
       const project = getActiveProject();
 
@@ -1729,7 +1664,6 @@
       renderKPIsAndRecipients(project);
       renderStatusTabs(project);
       renderItemsViews();
-      renderSelectedItemDetails();
       updateSelectionActionBar();
 
       lucide.createIcons();
@@ -1932,7 +1866,7 @@
         ).join('');
 
         return `
-          <tr data-item-id="${escapeHtml(String(item.id))}" onclick="openItemDetails('${escapeHtml(String(item.id))}', event)" class="${isChecked ? 'bg-indigo-50/80 dark:bg-indigo-950/25' : 'hover:bg-slate-50 dark:hover:bg-[#161B26]/80'} transition-colors group cursor-pointer">
+          <tr data-item-id="${escapeHtml(String(item.id))}" class="${isChecked ? 'bg-indigo-50/80 dark:bg-indigo-950/25' : 'hover:bg-slate-50 dark:hover:bg-[#161B26]/80'} transition-colors group cursor-pointer">
             <!-- Чекбокс выбора -->
             <td class="py-3 pl-4 pr-2 align-top pt-4">
               <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleItemSelection('${item.id}', this.checked)" class="rounded border-slate-400 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
