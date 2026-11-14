@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import "./cargo-ui.css";
+import "./design-experiment.css";
+import "./mobile-polish.css";
 
 export const metadata: Metadata = {
-  title: "КАРГО-КОНТРОЛЬ 🇨🇳 → 🇧🇾",
-  description: "Учет заказов из Китая, трек-номеров и себестоимости",
+  title: "КАРГО-КОНТРОЛЬ 🇨🇳 ➔ 🇧🇾 Трекер заказов из Китая",
+  description: "Простое и быстрое управление заказами, трек-номеров и авторасчет себестоимости в РБ",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
-      <body style={{ margin: 0, padding: 0, overflow: "hidden" }}>{children}</body>
+      <body className="antialiased">
+        {children}
+      </body>
     </html>
   );
 }
