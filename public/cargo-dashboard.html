@@ -1190,19 +1190,21 @@
       recipients: [...DEFAULT_RECIPIENTS], activeProjectId: "",
       filters: { status: "ALL", recipient: "ALL" }, projects: []
     });
-    function parseMeta(notes) {
-      const raw = String(notes || "");
-      if (!raw.startsWith(META_PREFIX)) return { note: raw, category: "📦", dims: {l:0,w:0,h:0}, retailByn: 0, createdAt: Date.now() };
-      try { return JSON.parse(raw.slice(META_PREFIX.length)); }
-      catch { return { note: raw, category: "📦", dims: {l:0,w:0,h:0}, retailByn: 0, createdAt: Date.now() }; }
+    function readExtraMeta() {
+      try { return JSON.parse(localStorage.getItem("cargo_html_item_meta") || "{}"); } catch { return {}; }
     }
-    function packMeta(item) {
-      return META_PREFIX + JSON.stringify({
-        note: item.note || "", category: item.category || "📦",
-        dims: item.dims || {l:0,w:0,h:0}, retailByn: Number(item.retailByn)||0,
-        createdAt: Number(item.createdAt)||Date.now()
-      });
+    function writeExtraMeta(projects) {
+      const current = {};
+      projects.forEach(project => project.items.forEach(item => {
+        current[String(item.id)] = { category:item.category || "📦", dims:item.dims || {l:0,w:0,h:0}, retailByn:Number(item.retailByn)||0, createdAt:Number(item.createdAt)||Date.now() };
+      }));
+      try { localStorage.setItem("cargo_html_item_meta", JSON.stringify(current)); } catch(e) { console.warn("Extra item metadata storage failed",e); }
     }
+    function parseMeta(notes, itemId) {
+      const extras = readExtraMeta()[String(itemId)] || {};
+      return { note:String(notes || ""), category:extras.category || "📦", dims:extras.dims || {l:0,w:0,h:0}, retailByn:Number(extras.retailByn)||0, createdAt:extras.createdAt || Date.now() };
+    }
+    function packMeta(item) { return item.note || ""; }
     function dbStatusToHtml(value) {
       const s = String(value || "").toLowerCase();
       if (s.includes("выдан") || s.includes("архив")) return "delivered";
@@ -1216,7 +1218,7 @@
       return ({ bought:"Выкуплено в Китае", china_transit:"Едет по Китаю", warehouse:"На складе Китая", transit:"Едет в Беларусь", arrived:"Прибыло в Минск", delivered:"Выдано" })[value] || "Выкуплено в Китае";
     }
     function mapDbOrder(row) {
-      const meta = parseMeta(row.notes);
+      const meta = parseMeta(row.notes, row.id);
       return {
         id: String(row.id), name: row.name || "", note: meta.note || "",
         photo: row.imageUrl || "", category: meta.category || "📦",
@@ -1286,6 +1288,7 @@
           theme:state.theme, showArchive:state.showArchive, globalSearch:state.globalSearch,
           rates:state.rates, recipients:state.recipients, filters:state.filters
         }));
+        writeExtraMeta(state.projects);
         localStorage.setItem("cargo_html_theme", state.theme || "light");
       } catch(e) { console.warn("Не удалось сохранить настройки интерфейса",e); }
       syncQueue = syncQueue.then(syncStateToDatabase).catch(error => {
@@ -1297,11 +1300,6 @@
       const baselineProjects = new Map(apiBaseline.projects.map(p=>[String(p.id),p]));
       const baselineOrders = new Map(apiBaseline.orders.map(o=>[String(o.id),o]));
       const currentIds = new Set(state.projects.map(p=>String(p.id)));
-      for (const oldProject of apiBaseline.projects) {
-        if (!currentIds.has(String(oldProject.id))) {
-          await apiJson("/api/projects",{method:"DELETE",body:JSON.stringify({id:Number(oldProject.id)})});
-        }
-      }
       for (const project of state.projects) {
         let pid = Number(project.id);
         if (!Number.isInteger(pid) || pid<=0) {
@@ -1330,6 +1328,11 @@
       }
       for (const old of apiBaseline.orders) {
         if (!nowIds.has(String(old.id))) await apiJson("/api/orders/"+old.id,{method:"DELETE"});
+      }
+      for (const oldProject of apiBaseline.projects) {
+        if (!currentIds.has(String(oldProject.id))) {
+          await apiJson("/api/projects",{method:"DELETE",body:JSON.stringify({id:Number(oldProject.id)})});
+        }
       }
       apiBaseline = { projects:JSON.parse(JSON.stringify(state.projects)), orders:JSON.parse(JSON.stringify(state.projects.flatMap(p=>p.items))) };
     }
