@@ -1431,9 +1431,10 @@
       const weightKg = Number(item.weightKg) || 0;
       const retailByn = Number(item.retailByn) || 0;
 
-      const totalCny = priceCny + chinaShipCny;
+      // priceCny and chinaShipCny are unit prices; convert them to line totals.
+      const totalCny = (priceCny + chinaShipCny) * qty;
       const goodsByn = totalCny * cnyToByn;
-      const insuranceByn = (priceCny * cnyToByn) * (insurancePercent / 100);
+      const insuranceByn = (priceCny * qty * cnyToByn) * (insurancePercent / 100);
 
       let volumeM3 = 0;
       let density = null;
