@@ -1340,6 +1340,8 @@
       return next;
     }
     function saveState() {
+      const activeProject = getActiveProject();
+      if (activeProject) activeProject.recipientList = state.recipients;
       try {
         localStorage.setItem("cargo_control_cn_by_v3", JSON.stringify({
           theme:state.theme, showArchive:state.showArchive, globalSearch:state.globalSearch,
