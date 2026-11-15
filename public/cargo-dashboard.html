@@ -1556,7 +1556,12 @@
           const smartModalOpen = !document.getElementById('smartAddModal').classList.contains('hidden');
           const lightboxOpen = !document.getElementById('photoLightboxModal').classList.contains('hidden');
 
-          if (smartModalOpen) {
+          if (smartModalOpen && !document.getElementById('aiScannerPane').classList.contains('hidden')) {
+            e.preventDefault();
+            const compressed = await compressImageFile(file);
+            showAIScreenshotPreview(compressed);
+            showToast('Скриншот вставлен для AI-распознавания', 'success');
+          } else if (smartModalOpen) {
             e.preventDefault();
             const compressed = await compressImageFile(file);
             setModalPhotoPreview(compressed);
@@ -2717,7 +2722,7 @@
       showToast('Партия удалена', 'info');
     }
 
-    function openSmartAddModal(tab = 'manual', autoStartVoice = false) {
+    function openSmartAddModal(tab = 'ai', autoStartVoice = false) {
       document.getElementById('editItemId').value = '';
       document.getElementById('modalTitle').textContent = 'Добавить позицию в партию';
       document.getElementById('manualItemForm').reset();
