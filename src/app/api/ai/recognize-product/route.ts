@@ -49,14 +49,23 @@ photoImageIndex — номер изображения (начиная с 0), г�
 
     const parts: any[] = [{ text: prompt }];
     for (const img of images) parts.push({ inline_data: { mime_type: img.mime, data: img.data } });
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + encodeURIComponent(apiKey), {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
-      }),
-      signal: AbortSignal.timeout(50000)
+    const requestBody = JSON.stringify({
+      contents: [{ role: "user", parts }],
+      generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
     });
+    // Try the primary model first, then automatically fall back to the lighter
+    // stable multimodal model when Google reports temporary capacity pressure.
+    let response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + encodeURIComponent(apiKey), {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: requestBody, signal: AbortSignal.timeout(25000)
+    });
+    if (response.status === 503 || response.status === 500) {
+      console.warn("Gemini 3.8 Flash is temporarily unavailable; retrying with Gemini 3.5 Flash-Lite");
+      response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + encodeURIComponent(apiKey), {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: requestBody, signal: AbortSignal.timeout(25000)
+      });
+    }
     const result = await response.json();
     if (!response.ok) {
       console.error("Gemini recognition error:", result);
