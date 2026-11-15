@@ -555,10 +555,10 @@
         <div class="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 p-3 text-xs text-indigo-900 dark:text-indigo-200">
           Загрузите скриншот заказа Pinduoduo, Taobao или 1688. AI попробует извлечь название, цену, количество, вес и трек-номер. Перед сохранением вы сможете проверить и поправить поля.
         </div>
-        <input id="aiScreenshotInput" type="file" accept="image/*" class="hidden" onchange="handleAIScreenshot(event)" />
+        <input id="aiScreenshotInput" type="file" accept="image/*" multiple class="hidden" onchange="handleAIScreenshot(event)" />
         <div id="aiDropZone" onclick="document.getElementById('aiScreenshotInput').click()" ondragover="event.preventDefault();this.classList.add('ring-2','ring-indigo-500')" ondragleave="this.classList.remove('ring-2','ring-indigo-500')" ondrop="handleAIScreenshotDrop(event)" class="min-h-32 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1017] flex flex-col items-center justify-center gap-2 p-4 text-center cursor-pointer">
-          <img id="aiScreenshotPreview" class="hidden max-h-52 max-w-full rounded-lg object-contain" alt="Предпросмотр скриншота" />
-          <div id="aiScreenshotPlaceholder"><div class="text-3xl">🖼️</div><div class="font-bold text-sm text-slate-800 dark:text-white">Нажмите, перетащите или вставьте скриншот (Ctrl+V)</div><div class="text-xs text-slate-500">PNG, JPG или WEBP, до 10 МБ</div></div>
+          <div id="aiScreenshotPreviews" class="hidden w-full grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+          <div id="aiScreenshotPlaceholder"><div class="text-3xl">🖼️</div><div class="font-bold text-sm text-slate-800 dark:text-white">Нажмите, выберите несколько фото, перетащите или вставьте (Ctrl+V)</div><div class="text-xs text-slate-500">Можно выбрать несколько фото сразу. До 5 изображений, каждое до 10 МБ.</div></div>
         </div>
         <div id="aiScanStatus" class="hidden text-center text-xs font-semibold text-indigo-600 dark:text-indigo-300"></div>
         <button id="aiScanButton" type="button" onclick="runAIScreenshotRecognition()" class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-3 font-extrabold text-sm shadow-md">✨ Распознать скриншот через AI</button>
@@ -2786,40 +2786,72 @@
       });
     }
 
-    let aiScreenshotData = '';
+    let aiScreenshotData = [];
     async function handleAIScreenshot(event) {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) { showToast('Выберите изображение', 'error'); return; }
-      if (file.size > 10 * 1024 * 1024) { showToast('Файл больше 10 МБ', 'error'); return; }
-      try {
-        aiScreenshotData = await compressImageFile(file);
-        showAIScreenshotPreview(aiScreenshotData);
-      } catch { showToast('Не удалось прочитать изображение', 'error'); }
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
+      const remaining = Math.max(0, 5 - aiScreenshotData.length);
+      if (!remaining) { showToast('Можно добавить максимум 5 изображений', 'error'); event.target.value = ''; return; }
+      const selected = files.slice(0, remaining);
+      if (files.length > remaining) showToast('Добавлены первые ' + remaining + ' фото: лимит 5 изображений', 'info');
+      for (const file of selected) {
+        if (!file.type.startsWith('image/')) { showToast('Пропущен файл не являющийся изображением', 'error'); continue; }
+        if (file.size > 10 * 1024 * 1024) { showToast('Файл ' + file.name + ' больше 10 МБ', 'error'); continue; }
+        try { aiScreenshotData.push(await compressImageFile(file)); }
+        catch { showToast('Не удалось прочитать ' + file.name, 'error'); }
+      }
+      renderAIScreenshotPreviews();
+      event.target.value = '';
     }
     function showAIScreenshotPreview(data) {
-      aiScreenshotData = data;
-      const img = document.getElementById('aiScreenshotPreview');
-      img.src = data; img.classList.remove('hidden');
-      document.getElementById('aiScreenshotPlaceholder').classList.add('hidden');
+      if (!data || aiScreenshotData.length >= 5) { if (aiScreenshotData.length >= 5) showToast('Лимит: 5 изображений', 'info'); return; }
+      aiScreenshotData.push(data);
+      renderAIScreenshotPreviews();
+    }
+    function renderAIScreenshotPreviews() {
+      const box = document.getElementById('aiScreenshotPreviews');
+      const placeholder = document.getElementById('aiScreenshotPlaceholder');
+      box.innerHTML = '';
+      box.classList.toggle('hidden', !aiScreenshotData.length);
+      placeholder.classList.toggle('hidden', !!aiScreenshotData.length);
+      aiScreenshotData.forEach((data, index) => {
+        const card = document.createElement('div');
+        card.className = 'relative rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900';
+        const img = document.createElement('img');
+        img.src = data; img.alt = 'Скриншот ' + (index + 1);
+        img.className = 'w-full h-28 object-contain';
+        const remove = document.createElement('button');
+        remove.type = 'button'; remove.textContent = '×';
+        remove.className = 'absolute top-1 right-1 w-7 h-7 rounded-full bg-black/70 text-white text-lg font-bold';
+        remove.onclick = (event) => { event.stopPropagation(); aiScreenshotData.splice(index, 1); renderAIScreenshotPreviews(); };
+        const label = document.createElement('div');
+        label.className = 'text-[11px] text-center py-1 text-slate-500';
+        label.textContent = 'Фото ' + (index + 1);
+        card.append(img, remove, label); box.appendChild(card);
+      });
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'min-h-28 rounded-xl border-2 border-dashed border-indigo-300 text-indigo-600 font-bold text-sm';
+      add.textContent = '+ Добавить фото';
+      add.onclick = () => document.getElementById('aiScreenshotInput').click();
+      if (aiScreenshotData.length < 5) box.appendChild(add);
     }
     async function handleAIScreenshotDrop(event) {
       event.preventDefault(); event.currentTarget.classList.remove('ring-2','ring-indigo-500');
-      const file = event.dataTransfer?.files?.[0];
-      if (file) await handleAIScreenshot({ target: { files: [file] } });
+      const files = Array.from(event.dataTransfer?.files || []);
+      if (files.length) await handleAIScreenshot({ target: { files } });
     }
     async function runAIScreenshotRecognition() {
-      if (!aiScreenshotData) { showToast('Сначала загрузите скриншот', 'error'); return; }
+      if (!aiScreenshotData.length) { showToast('Сначала добавьте одно или несколько фото', 'error'); return; }
       const button = document.getElementById('aiScanButton');
       const status = document.getElementById('aiScanStatus');
-      button.disabled = true; status.classList.remove('hidden'); status.textContent = 'AI анализирует скриншот…';
+      button.disabled = true; status.classList.remove('hidden'); status.textContent = 'AI анализирует ' + aiScreenshotData.length + ' фото…';
       try {
         const response = await fetch('/api/ai/recognize-product', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: aiScreenshotData })
+          body: JSON.stringify({ images: aiScreenshotData })
         });
         const payload = await response.json();
-        if (!response.ok || !payload.success) throw new Error(payload.error || 'Не удалось распознать скриншот');
+        if (!response.ok || !payload.success) throw new Error(payload.error || 'Не удалось распознать скриншоты');
         const item = payload.data || {};
         document.getElementById('itemNameInput').value = item.name || '';
         document.getElementById('itemQtyInput').value = Math.max(1, Number(item.quantity) || 1);
@@ -2829,14 +2861,14 @@
         document.getElementById('itemNoteInput').value = item.notes || '';
         document.getElementById('itemCategoryInput').value = item.category || '📦';
         document.getElementById('itemRecipientInput').value = document.getElementById('parserDefaultRecipient')?.value || '';
-        if (item.photoBounds) {
-          const cropped = await cropRecognizedProductPhoto(aiScreenshotData, item.photoBounds);
+        if (item.photoBounds && aiScreenshotData[item.photoImageIndex || 0]) {
+          const cropped = await cropRecognizedProductPhoto(aiScreenshotData[item.photoImageIndex || 0], item.photoBounds);
           if (cropped) setModalPhotoPreview(cropped);
         }
         updateLiveFormPreview();
         switchAddTab('manual');
         status.textContent = 'Распознавание завершено. Проверьте поля и сохраните товар.';
-        showToast('Данные распознаны. Проверьте карточку товара.', 'success');
+        showToast('Данные распознаны по ' + aiScreenshotData.length + ' фото. Проверьте карточку.', 'success');
       } catch (error) {
         status.textContent = error.message || 'Ошибка распознавания';
         showToast(status.textContent, 'error');
