@@ -1301,7 +1301,7 @@
     }
     async function loadStateFromDatabase() {
       const saved = (() => { try { return JSON.parse(localStorage.getItem("cargo_control_cn_by_v3") || "null"); } catch { return null; } })();
-      const savedRecipientLists = (() => { try { return JSON.parse(localStorage.getItem('cargo_project_recipients_v1') || '{}'); } catch { return {}; } })();
+      const savedRecipientLists = saved?.recipientLists || (() => { try { return JSON.parse(localStorage.getItem('cargo_project_recipients_v1') || '{}'); } catch { return {}; } })();
       const [projectResult] = await Promise.all([apiJson("/api/projects")]);
       const dbProjects = projectResult.data || [];
       const projectRows = await Promise.all(dbProjects.map(async p => {
@@ -1335,6 +1335,7 @@
       }
       const preferred = localStorage.getItem("cargo_current_project");
       next.activeProjectId = next.projects.some(p=>p.id===String(preferred)) ? String(preferred) : (next.projects[0]?.id || "");
+      next.recipients = next.projects.find(p => p.id === next.activeProjectId)?.recipientList || [];
       apiBaseline = { projects: JSON.parse(JSON.stringify(next.projects)), orders: JSON.parse(JSON.stringify(next.projects.flatMap(p=>p.items))), rates: JSON.parse(JSON.stringify(next.rates)) };
       return next;
     }
