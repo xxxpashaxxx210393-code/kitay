@@ -1334,7 +1334,7 @@
         if (usd > 0) next.rates.usdToByn = usd;
       }
       const preferred = localStorage.getItem("cargo_current_project");
-      next.activeProjectId = next.projects.some(p=>p.id===String(preferred)) ? String(preferred) : (next.projects[0]?.id || "");
+      next.activeProjectId = next.projects.some(p=>p.id===String(preferred)) ? String(preferred) : (next.projects[next.projects.length - 1]?.id || "");
       next.recipients = next.projects.find(p => p.id === next.activeProjectId)?.recipientList || [];
       apiBaseline = { projects: JSON.parse(JSON.stringify(next.projects)), orders: JSON.parse(JSON.stringify(next.projects.flatMap(p=>p.items))), rates: JSON.parse(JSON.stringify(next.rates)) };
       return next;
@@ -1343,6 +1343,7 @@
       const activeProject = getActiveProject();
       if (activeProject) activeProject.recipientList = state.recipients;
       try {
+        if (state.activeProjectId) localStorage.setItem("cargo_current_project", String(state.activeProjectId));
         localStorage.setItem("cargo_control_cn_by_v3", JSON.stringify({
           theme:state.theme, showArchive:state.showArchive, globalSearch:state.globalSearch,
           rates:state.rates, recipients:state.recipients, recipientLists:Object.fromEntries(state.projects.map(p=>[String(p.id),p.recipientList || []])), filters:state.filters
