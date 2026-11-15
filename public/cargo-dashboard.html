@@ -542,18 +542,30 @@
         </button>
       </div>
 
-      <!-- Переключатель режимов: Ручной ввод / Умный парсер и Голос -->
+      <!-- Режимы добавления товара -->
       <div class="px-5 pt-3.5">
-        <div class="grid grid-cols-2 p-1 rounded-xl bg-slate-200/80 dark:bg-[#0D1017] text-xs font-bold">
-          <button id="tabBtnManual" onclick="switchAddTab('manual')" class="py-2 rounded-lg bg-white dark:bg-[#1A202E] shadow-xs text-indigo-700 dark:text-indigo-400 transition-all">
-            📝 Карточка товара
-          </button>
-          <button id="tabBtnParser" onclick="switchAddTab('parser')" class="py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all flex items-center justify-center gap-1.5">
-            <i data-lucide="mic" class="w-3.5 h-3.5 text-rose-500"></i> Голос и Парсер (1688)
-          </button>
+        <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-200/80 dark:bg-[#0D1017] text-[11px] sm:text-xs font-bold">
+          <button id="tabBtnAI" onclick="switchAddTab('ai')" class="py-2.5 px-1 rounded-lg bg-white dark:bg-[#1A202E] shadow-xs text-indigo-700 dark:text-indigo-400">📸 AI Сканер</button>
+          <button id="tabBtnParser" onclick="switchAddTab('parser')" class="py-2.5 px-1 rounded-lg text-slate-600 dark:text-slate-400">🎙️ Голос и парсер</button>
+          <button id="tabBtnManual" onclick="switchAddTab('manual')" class="py-2.5 px-1 rounded-lg text-slate-600 dark:text-slate-400">✏️ Карточка товара</button>
         </div>
       </div>
 
+      <div id="aiScannerPane" class="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+        <div class="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 p-3 text-xs text-indigo-900 dark:text-indigo-200">
+          Загрузите скриншот заказа Pinduoduo, Taobao или 1688. AI попробует извлечь название, цену, количество, вес и трек-номер. Перед сохранением вы сможете проверить и поправить поля.
+        </div>
+        <input id="aiScreenshotInput" type="file" accept="image/*" class="hidden" onchange="handleAIScreenshot(event)" />
+        <div id="aiDropZone" onclick="document.getElementById('aiScreenshotInput').click()" ondragover="event.preventDefault();this.classList.add('ring-2','ring-indigo-500')" ondragleave="this.classList.remove('ring-2','ring-indigo-500')" ondrop="handleAIScreenshotDrop(event)" class="min-h-32 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1017] flex flex-col items-center justify-center gap-2 p-4 text-center cursor-pointer">
+          <img id="aiScreenshotPreview" class="hidden max-h-52 max-w-full rounded-lg object-contain" alt="Предпросмотр скриншота" />
+          <div id="aiScreenshotPlaceholder"><div class="text-3xl">🖼️</div><div class="font-bold text-sm text-slate-800 dark:text-white">Нажмите, перетащите или вставьте скриншот (Ctrl+V)</div><div class="text-xs text-slate-500">PNG, JPG или WEBP, до 10 МБ</div></div>
+        </div>
+        <div id="aiScanStatus" class="hidden text-center text-xs font-semibold text-indigo-600 dark:text-indigo-300"></div>
+        <button id="aiScanButton" type="button" onclick="runAIScreenshotRecognition()" class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-3 font-extrabold text-sm shadow-md">✨ Распознать скриншот через AI</button>
+        <div class="flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800 pt-3">
+          <button type="button" onclick="closeModal('smartAddModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600">Отмена</button>
+        </div>
+      </div>
       <!-- Вкладка 1: Ручное добавление / редактирование -->
       <form id="manualItemForm" onsubmit="saveItemFromForm(event)" class="p-5 space-y-3.5 max-h-[80vh] overflow-y-auto">
         <input type="hidden" id="editItemId" value="" />
@@ -2759,23 +2771,96 @@
     }
 
     function switchAddTab(tab) {
-      const manualForm = document.getElementById('manualItemForm');
-      const parserPane = document.getElementById('smartParserPane');
-      const btnManual = document.getElementById('tabBtnManual');
-      const btnParser = document.getElementById('tabBtnParser');
-
-      if (tab === 'manual') {
-        manualForm.classList.remove('hidden');
-        parserPane.classList.add('hidden');
-        btnManual.className = 'py-2 rounded-lg bg-white dark:bg-[#1A202E] shadow-xs text-indigo-700 dark:text-indigo-400 transition-all';
-        btnParser.className = 'py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all flex items-center justify-center gap-1.5';
-      } else {
-        manualForm.classList.add('hidden');
-        parserPane.classList.remove('hidden');
-        btnParser.className = 'py-2 rounded-lg bg-white dark:bg-[#1A202E] shadow-xs text-indigo-700 dark:text-indigo-400 transition-all flex items-center justify-center gap-1.5';
-        btnManual.className = 'py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all';
-      }
+      const panes = { ai: document.getElementById('aiScannerPane'), manual: document.getElementById('manualItemForm'), parser: document.getElementById('smartParserPane') };
+      const buttons = { ai: document.getElementById('tabBtnAI'), manual: document.getElementById('tabBtnManual'), parser: document.getElementById('tabBtnParser') };
+      Object.entries(panes).forEach(([key, pane]) => pane.classList.toggle('hidden', key !== tab));
+      Object.entries(buttons).forEach(([key, button]) => {
+        button.className = key === tab
+          ? 'py-2.5 px-1 rounded-lg bg-white dark:bg-[#1A202E] shadow-xs text-indigo-700 dark:text-indigo-400'
+          : 'py-2.5 px-1 rounded-lg text-slate-600 dark:text-slate-400';
+      });
     }
+
+    let aiScreenshotData = '';
+    async function handleAIScreenshot(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { showToast('Выберите изображение', 'error'); return; }
+      if (file.size > 10 * 1024 * 1024) { showToast('Файл больше 10 МБ', 'error'); return; }
+      try {
+        aiScreenshotData = await compressImageFile(file);
+        showAIScreenshotPreview(aiScreenshotData);
+      } catch { showToast('Не удалось прочитать изображение', 'error'); }
+    }
+    function showAIScreenshotPreview(data) {
+      aiScreenshotData = data;
+      const img = document.getElementById('aiScreenshotPreview');
+      img.src = data; img.classList.remove('hidden');
+      document.getElementById('aiScreenshotPlaceholder').classList.add('hidden');
+    }
+    async function handleAIScreenshotDrop(event) {
+      event.preventDefault(); event.currentTarget.classList.remove('ring-2','ring-indigo-500');
+      const file = event.dataTransfer?.files?.[0];
+      if (file) await handleAIScreenshot({ target: { files: [file] } });
+    }
+    async function runAIScreenshotRecognition() {
+      if (!aiScreenshotData) { showToast('Сначала загрузите скриншот', 'error'); return; }
+      const button = document.getElementById('aiScanButton');
+      const status = document.getElementById('aiScanStatus');
+      button.disabled = true; status.classList.remove('hidden'); status.textContent = 'AI анализирует скриншот…';
+      try {
+        const response = await fetch('/api/ai/recognize-product', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: aiScreenshotData })
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.success) throw new Error(payload.error || 'Не удалось распознать скриншот');
+        const item = payload.data || {};
+        document.getElementById('itemNameInput').value = item.name || '';
+        document.getElementById('itemQtyInput').value = Math.max(1, Number(item.quantity) || 1);
+        document.getElementById('itemPriceCnyInput').value = Math.max(0, Number(item.priceCny) || 0);
+        document.getElementById('itemWeightInput').value = Math.max(0, Number(item.weightKg) || 0.5);
+        document.getElementById('itemTrackInput').value = item.trackNumber || '';
+        document.getElementById('itemNoteInput').value = item.notes || '';
+        document.getElementById('itemCategoryInput').value = item.category || '📦';
+        document.getElementById('itemRecipientInput').value = document.getElementById('parserDefaultRecipient')?.value || '';
+        if (item.photoBounds) {
+          const cropped = await cropRecognizedProductPhoto(aiScreenshotData, item.photoBounds);
+          if (cropped) setModalPhotoPreview(cropped);
+        }
+        updateLiveFormPreview();
+        switchAddTab('manual');
+        status.textContent = 'Распознавание завершено. Проверьте поля и сохраните товар.';
+        showToast('Данные распознаны. Проверьте карточку товара.', 'success');
+      } catch (error) {
+        status.textContent = error.message || 'Ошибка распознавания';
+        showToast(status.textContent, 'error');
+      } finally { button.disabled = false; }
+    }
+    function cropRecognizedProductPhoto(dataUrl, bounds) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const x = Math.max(0, Math.min(1, Number(bounds.x) / 1000));
+          const y = Math.max(0, Math.min(1, Number(bounds.y) / 1000));
+          const w = Math.max(0, Math.min(1 - x, Number(bounds.width) / 1000));
+          const h = Math.max(0, Math.min(1 - y, Number(bounds.height) / 1000));
+          if (!w || !h) return resolve('');
+          const sx = x * img.naturalWidth, sy = y * img.naturalHeight;
+          const sw = w * img.naturalWidth, sh = h * img.naturalHeight;
+          const side = Math.min(sw, sh);
+          const cx = sx + sw / 2, cy = sy + sh / 2;
+          const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0,0,512,512);
+          const scale = Math.min(512 / sw, 512 / sh);
+          ctx.drawImage(img, sx, sy, sw, sh, (512 - sw*scale)/2, (512 - sh*scale)/2, sw*scale, sh*scale);
+          resolve(canvas.toDataURL('image/jpeg', .86));
+        };
+        img.onerror = () => resolve(''); img.src = dataUrl;
+      });
+    }
+    
 
     function updateLiveFormPreview() {
       const tempItem = {
