@@ -1269,7 +1269,7 @@
         track: row.trackNumber || "", qty: Number(row.quantity)||1,
         priceCny: Number(row.priceCny)||0, chinaShipCny: Number(row.shippingChinaCny)||0,
         weightKg: Number(row.weight)||0, dims: meta.dims || {l:0,w:0,h:0},
-        retailByn: Number(meta.retailByn)||0, recipient: row.forWhom || "",
+        retailByn: Number(meta.retailByn)||0, recipient: (row.forWhom && row.forWhom !== 'null' && row.forWhom !== 'undefined') ? row.forWhom : "",
         status: dbStatusToHtml(row.status), createdAt: meta.createdAt || new Date(row.createdAt).getTime(),
         itemUrl: row.itemUrl || "", shippingChinaUsd: Number(row.shippingChinaUsd)||0,
         shippingBelarusByn: Number(row.shippingBelarusByn)||0, rateCnyByn: Number(row.rateCnyByn)||0.48,
@@ -1301,6 +1301,7 @@
     }
     async function loadStateFromDatabase() {
       const saved = (() => { try { return JSON.parse(localStorage.getItem("cargo_control_cn_by_v3") || "null"); } catch { return null; } })();
+      const savedRecipientLists = (() => { try { return JSON.parse(localStorage.getItem('cargo_project_recipients_v1') || '{}'); } catch { return {}; } })();
       const [projectResult] = await Promise.all([apiJson("/api/projects")]);
       const dbProjects = projectResult.data || [];
       const projectRows = await Promise.all(dbProjects.map(async p => {
@@ -1317,12 +1318,14 @@
         next.theme = saved?.theme || next.theme;
       }
       next.showArchive = saved?.showArchive ?? true;
-      next.recipients = Array.isArray(saved?.recipients) && saved.recipients.length ? saved.recipients : [...DEFAULT_RECIPIENTS];
-      next.projects = projectRows.map(({row,orders}) => ({
-        id:String(row.id), name:row.name, description:"", items:orders.map(mapDbOrder)
-      }));
-      const recipientNames = new Set(next.recipients.map(x => x.name));
-      next.projects.flatMap(p=>p.items).forEach(item => { if(item.recipient && !recipientNames.has(item.recipient)){ next.recipients.push({name:item.recipient,icon:"📦",color:"text-slate-800 dark:text-slate-300",bg:"bg-slate-100 border-slate-300 dark:bg-slate-700/30 dark:border-slate-600"}); recipientNames.add(item.recipient); }});
+      next.projects = projectRows.map(({row,orders}) => {
+        const items = orders.map(mapDbOrder);
+        const fromItems = [...new Set(items.map(item => String(item.recipient || '').trim()).filter(Boolean))].map(name => ({name,icon:'👤',color:'text-slate-800 dark:text-slate-300',bg:'bg-slate-100 border-slate-300 dark:bg-slate-700/30 dark:border-slate-600'}));
+        const stored = Array.isArray(savedRecipientLists[String(row.id)]) ? savedRecipientLists[String(row.id)] : null;
+        const recipients = stored || (items.length ? [...DEFAULT_RECIPIENTS, ...fromItems.filter(x => !DEFAULT_RECIPIENTS.some(d => d.name === x.name))] : []);
+        return { id:String(row.id), name:row.name, description:'', items, recipientList:recipients };
+      });
+      next.recipients = next.projects.find(p => p.id === next.activeProjectId)?.recipientList || [];
       const all = next.projects.flatMap(p=>p.items);
       if (all.length) {
         const cny = Number(all.find(x=>x.rateCnyByn)?.rateCnyByn);
@@ -1339,7 +1342,7 @@
       try {
         localStorage.setItem("cargo_control_cn_by_v3", JSON.stringify({
           theme:state.theme, showArchive:state.showArchive, globalSearch:state.globalSearch,
-          rates:state.rates, recipients:state.recipients, filters:state.filters
+          rates:state.rates, recipients:state.recipients, recipientLists:Object.fromEntries(state.projects.map(p=>[String(p.id),p.recipientList || []])), filters:state.filters
         }));
         writeExtraMeta(state.projects);
         localStorage.setItem("cargo_html_theme", state.theme || "light");
@@ -1463,7 +1466,7 @@
     // =========================================================================
     // СЖАТИЕ И ОБРАБОТКА ФОТОГРАФИЙ ТОВАРА
     // =========================================================================
-    function compressImageFile(file, maxSize = 260, quality = 0.78) {
+    function compressImageFile(file, maxSize = 1200, quality = 0.92) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -1706,7 +1709,6 @@
     function recipientOptionMarkup(selectedValue = '') {
       const names = new Map();
       state.recipients.forEach(r => names.set(r.name, r));
-      state.projects.forEach(p => p.items.forEach(item => { const name = String(item.recipient || '').trim(); if (name && !names.has(name)) names.set(name, { name, icon: '👤' }); }));
       const options = [...names.values()].map(r => '<option value="' + escapeHtml(r.name) + '" ' + (selectedValue === r.name ? 'selected' : '') + '>' + (r.icon || '👤') + ' ' + escapeHtml(r.name) + '</option>').join('');
       return '<option value="">— Не назначен —</option>' + options + '<option value="__ADD_NEW__">＋ Добавить нового получателя…</option>';
     }
@@ -1796,7 +1798,7 @@
         <span class="text-emerald-700 dark:text-emerald-400">● В РБ: ${arrivedCount}</span>
       `;
 
-      document.getElementById('kpiChinaCny').textContent = `¥${totalChinaCny.toFixed(0)}`;
+      document.getElementById('kpiChinaCny').textContent = `¥${totalChinaCny.toFixed(2)}`;
       document.getElementById('kpiChinaByn').textContent = `${totalChinaByn.toFixed(2)} BYN`;
 
       document.getElementById('kpiCargoUsd').textContent = `$${totalCargoUsd.toFixed(1)}`;
@@ -2627,8 +2629,10 @@
     }
 
     function deleteCustomRecipient(name) {
-      state.projects.forEach(p => p.items.forEach(item => { if (item.recipient === name) item.recipient = ''; }));
+      const activeProject = getActiveProject();
+      if (activeProject) activeProject.items.forEach(item => { if (item.recipient === name) item.recipient = ''; });
       state.recipients = state.recipients.filter(r => r.name !== name);
+      if (activeProject) activeProject.recipientList = state.recipients;
       if (state.filters.recipient === name) state.filters.recipient = 'ALL';
       saveState();
       renderCustomRecipientsList();
@@ -2676,6 +2680,7 @@
 
     function selectProject(projectId) {
       state.activeProjectId = projectId;
+      state.recipients = getActiveProject().recipientList || [];
       state.filters.status = 'ALL';
       state.filters.recipient = 'ALL';
       saveState();
@@ -2702,10 +2707,11 @@
         id: 'proj_' + Date.now(),
         name,
         description: description || 'Новая партия закупки из Китая',
-        items: []
+        items: [], recipientList: []
       };
       state.projects.unshift(newProj);
       state.activeProjectId = newProj.id;
+      state.recipients = newProj.recipientList;
       saveState();
       closeModal('newProjectModal');
       renderAll();
@@ -2887,12 +2893,12 @@
           const sw = w * img.naturalWidth, sh = h * img.naturalHeight;
           const side = Math.min(sw, sh);
           const cx = sx + sw / 2, cy = sy + sh / 2;
-          const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+          const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 1024;
           const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#fff'; ctx.fillRect(0,0,512,512);
-          const scale = Math.min(512 / sw, 512 / sh);
-          ctx.drawImage(img, sx, sy, sw, sh, (512 - sw*scale)/2, (512 - sh*scale)/2, sw*scale, sh*scale);
-          resolve(canvas.toDataURL('image/jpeg', .86));
+          ctx.fillStyle = '#fff'; ctx.fillRect(0,0,1024,1024);
+          const scale = Math.min(1024 / sw, 1024 / sh);
+          ctx.drawImage(img, sx, sy, sw, sh, (1024 - sw*scale)/2, (1024 - sh*scale)/2, sw*scale, sh*scale);
+          resolve(canvas.toDataURL('image/jpeg', .92));
         };
         img.onerror = () => resolve(''); img.src = dataUrl;
       });
