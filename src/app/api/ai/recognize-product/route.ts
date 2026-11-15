@@ -53,24 +53,61 @@ photoImageIndex — номер изображения (начиная с 0), г�
       contents: [{ role: "user", parts }],
       generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
     });
-    // Try the primary model first, then automatically fall back to the lighter
-    // stable multimodal model when Google reports temporary capacity pressure.
-    let response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + encodeURIComponent(apiKey), {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: requestBody, signal: AbortSignal.timeout(25000)
-    });
-    if (response.status === 503 || response.status === 500) {
-      console.warn("Gemini 3.8 Flash is temporarily unavailable; retrying with Gemini 3.5 Flash-Lite");
-      response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + encodeURIComponent(apiKey), {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: requestBody, signal: AbortSignal.timeout(25000)
-      });
+
+    // Google can temporarily overload one model. Try several supported
+    // multimodal models, continuing on capacity, rate-limit and timeout errors.
+    const modelFallbacks = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
+    let result: any = null;
+    let lastStatus = 0;
+    let lastError = "";
+    for (const model of modelFallbacks) {
+      try {
+        const response = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(apiKey),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: requestBody,
+            signal: AbortSignal.timeout(17000)
+          }
+        );
+        const responseText = await response.text();
+        let payload: any;
+        try { payload = JSON.parse(responseText); }
+        catch { payload = { raw: responseText.slice(0, 500) }; }
+
+        if (response.ok) {
+          result = payload;
+          console.info("Gemini screenshot recognition succeeded", { model });
+          break;
+        }
+
+        lastStatus = response.status;
+        lastError = String(payload?.error?.message || payload?.message || "Google API error");
+        console.error("Gemini model attempt failed", { model, status: lastStatus, message: lastError });
+
+        // These responses can be temporary or model-specific; try next model.
+        if (![408, 429, 500, 502, 503, 504].includes(response.status)) break;
+      } catch (attemptError) {
+        lastError = attemptError instanceof Error ? attemptError.message : String(attemptError);
+        console.error("Gemini model attempt timed out/failed", { model, message: lastError });
+        lastStatus = 408;
+      }
     }
-    const result = await response.json();
-    if (!response.ok) {
-      console.error("Gemini recognition error:", result);
-      const message = response.status === 429 ? "Лимит AI-запросов исчерпан. Попробуйте позже." : "Gemini не смог обработать изображения. Попробуйте ещё раз. Если ошибка повторится, проверьте доступность модели в Google AI Studio.";
-      return NextResponse.json({ success: false, error: message }, { status: response.status === 429 ? 429 : 502 });
+
+    if (!result) {
+      if (lastStatus === 401 || lastStatus === 403) {
+        return NextResponse.json({ success: false, error: "Google отклонил API-ключ. Проверьте, что в Vercel задан действующий GEMINI_API_KEY с доступом к Gemini API." }, { status: 502 });
+      }
+      if (lastStatus === 429) {
+        return NextResponse.json({ success: false, error: "Google временно ограничил запросы к Gemini. Подождите минуту и попробуйте снова." }, { status: 429 });
+      }
+      return NextResponse.json({
+        success: false,
+        error: lastStatus === 408 || lastStatus === 503 || lastStatus === 504
+          ? "Сервис распознавания Google сейчас перегружен или отвечает слишком долго. Попробуйте ещё раз через минуту."
+          : "Не удалось распознать изображения через Gemini. Проверьте формат фото и попробуйте снова."
+      }, { status: 502 });
     }
     const text = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
     const parsed = JSON.parse(text) as Partial<Recognition>;
