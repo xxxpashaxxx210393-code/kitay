@@ -49,7 +49,7 @@ photoImageIndex — номер изображения (начиная с 0), г�
 
     const parts: any[] = [{ text: prompt }];
     for (const img of images) parts.push({ inline_data: { mime_type: img.mime, data: img.data } });
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + encodeURIComponent(apiKey), {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + encodeURIComponent(apiKey), {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts }],
@@ -60,7 +60,7 @@ photoImageIndex — номер изображения (начиная с 0), г�
     const result = await response.json();
     if (!response.ok) {
       console.error("Gemini recognition error:", result);
-      const message = response.status === 429 ? "Лимит AI-запросов исчерпан. Попробуйте позже." : "Gemini не смог обработать изображения. Проверьте API-ключ и попробуйте ещё раз.";
+      const message = response.status === 429 ? "Лимит AI-запросов исчерпан. Попробуйте позже." : "Gemini не смог обработать изображения. Попробуйте ещё раз. Если ошибка повторится, проверьте доступность модели в Google AI Studio.";
       return NextResponse.json({ success: false, error: message }, { status: response.status === 429 ? 429 : 502 });
     }
     const text = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
