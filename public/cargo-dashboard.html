@@ -621,6 +621,11 @@
           </div>
         </div>
 
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Ссылка на товар (Taobao / 1688 / Pinduoduo)</label>
+          <input id="itemProductUrlInput" type="url" inputmode="url" placeholder="https://..." class="w-full px-3 py-2 text-xs font-medium text-slate-900 dark:text-white rounded-xl bg-white dark:bg-[#0D1017] border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Трек-номер (CN / Карго)</label>
@@ -2763,6 +2768,7 @@
       document.getElementById('editItemId').value = item.id;
       document.getElementById('modalTitle').textContent = 'Полное редактирование товара';
       document.getElementById('itemNameInput').value = item.name;
+      document.getElementById('itemProductUrlInput').value = item.itemUrl || '';
       document.getElementById('itemNoteInput').value = item.note || '';
       document.getElementById('itemCategoryInput').value = item.category || '📦';
       document.getElementById('itemTrackInput').value = item.track || '';
@@ -2947,6 +2953,7 @@
       const payload = {
         id: editId || ('itm_' + Date.now()),
         name: document.getElementById('itemNameInput').value.trim(),
+        itemUrl: document.getElementById('itemProductUrlInput').value.trim(),
         note: document.getElementById('itemNoteInput').value.trim(),
         photo: document.getElementById('itemPhotoDataInput').value || '',
         category: document.getElementById('itemCategoryInput').value,
