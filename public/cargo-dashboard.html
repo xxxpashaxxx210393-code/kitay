@@ -1326,8 +1326,15 @@
       next.projects = projectRows.map(({row,orders}) => {
         const items = orders.map(mapDbOrder);
         const fromItems = [...new Set(items.map(item => String(item.recipient || '').trim()).filter(Boolean))].map(name => ({name,icon:'👤',color:'text-slate-800 dark:text-slate-300',bg:'bg-slate-100 border-slate-300 dark:bg-slate-700/30 dark:border-slate-600'}));
-        const stored = Array.isArray(savedRecipientLists[String(row.id)]) ? savedRecipientLists[String(row.id)] : null;
-        const recipients = stored || (items.length ? [...DEFAULT_RECIPIENTS, ...fromItems.filter(x => !DEFAULT_RECIPIENTS.some(d => d.name === x.name))] : []);
+        const stored = Array.isArray(savedRecipientLists[String(row.id)]) ? savedRecipientLists[String(row.id)] : [];
+        // Never let an empty/stale browser recipient list hide names already assigned to database orders.
+        const recipientsByName = new Map();
+        [...DEFAULT_RECIPIENTS, ...stored, ...fromItems].forEach(recipient => {
+          const name = String(recipient?.name || '').trim();
+          if (!name || name === 'null' || name === 'undefined') return;
+          if (!recipientsByName.has(name)) recipientsByName.set(name, { ...recipient, name });
+        });
+        const recipients = [...recipientsByName.values()];
         return { id:String(row.id), name:row.name, description:'', items, recipientList:recipients };
       });
       next.recipients = next.projects.find(p => p.id === next.activeProjectId)?.recipientList || [];
